@@ -3,15 +3,26 @@ instances:
     long_name: nflexpd phytoplankton
     model: nflexpd/phy
     parameters:
-      p0: 0.0225                     # background concentration (mmol m-3), default = 0.0225
-      kc: 0.03                       # specific light extinction (m2 mmol-1), default = 0.03
-      i_min: 25.0                    # minimum light intensity in euphotic zone (W m-2), default = 25.0
-      rmax: 1.0                      # maximum specific growth rate (d-1), default = 1.0
-      alpha: 1.35                    # half-saturation nutrient concentration (mmol m-3), default = 0.3
-      kexc: 0.01                      # excreted fraction of primary production
-      M0p: 0.01                      # sp. quad. mortality rate
-      Mpart: 0.5                      # part of the mortality that goes to detritus
-      w_phy: -0.5                      # vertical velocity (<0 for sinking) (m d-1), default = -1.0
+      p0: 0.0225                     # background concentration (mmol m-3)
+      kc: 0.03                       # specific light extinction (m2 mmol-1)
+      w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
+      Theta_opt : .false.             # whether to optimize theta (true/false)
+      fA_opt : .true.                # whether to optimize fA (true/false)
+      fV_opt : .true.                # whether to optimize fV (true/false)
+      TheHat_fixed: 0.6              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
+      RMchl: 0.1                     # loss rate of chlorophyll (d-1)
+      mu0hat: 5.0                    # max. potential growth rate (d-1)
+      aI: 1.0                        # Chl-specific slope of the PI curve ((m^2 molPhot-1) (molC gChl-1))
+      fA_fixed: 0.5                  # fA to use when fa_opt=false (-)
+      fV_fixed: 0.25                 # fV to use when fv_opt=false (-)
+      Q0: 0.039                      # Subsistence cell quota (molN molC-1)
+      V0hat: 5.0                     # Potential maximum uptake rate (molN molC-1 d-1)
+      A0hat: 0.15                    # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
+      zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
+      zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
+      kexc: 0.01                     # excreted fraction of primary production
+      M0p: 0.01                      # sp. quad. mortality rate (m3 molN-1 d-1)
+      Mpart: 0.5                     # part of the mortality that goes to detritus
     initialization:
       N: 0.15                       # Phytoplankton-N concentration (mmol m-3)
     coupling:
@@ -22,10 +33,10 @@ instances:
     long_name: nlfexpd pelagic
     model: nflexpd/abio
     parameters:
-      w_det: -5.0                      # vertical velocity (<0 for sinking) (m d-1), default = -5.0
-      kc: 0.03                       # specific light extinction (m2 mmol-1), default = 0.03
-      kdet: 0.003                    # sp. rate for f_det_don
-      kdon: 0.003                    # sp. rate for f_don_din
+      w_det: -5.0                  # vertical velocity (<0 for sinking) (m d-1)
+      kc: 0.03                      # specific light extinction (m2 mmol-1)
+      kdet: 0.003                    # Degredation rate of Detritus (d-1)
+      kdon: 0.003                    # Remineralization rate of DON
     initialization:
       din: 4.5                         # DIN concentration (mmol m-3)
       don: 4.5                         # DON concentration (mmol m-3)

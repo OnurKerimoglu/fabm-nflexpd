@@ -11,6 +11,7 @@
 ! !DESCRIPTION:
 !
 ! !USES:
+   !use lambert
    use fabm_types
 
    implicit none
@@ -25,10 +26,17 @@
       type (type_state_variable_id)        :: id_din,id_don,id_detn
       type (type_dependency_id)            :: id_par,id_temp
       type (type_horizontal_dependency_id) :: id_I_0
-      type (type_diagnostic_variable_id)   :: id_GPP,id_NCP,id_PPR,id_NPR,id_dPAR
-
+      type (type_diagnostic_variable_id)   :: id_Q,id_mu,id_fV,id_fA,id_ThetaHat
+      type (type_diagnostic_variable_id)   :: id_PPR,id_NPR,id_dPAR
+      
+      
 !     Model parameters
-      real(rk) :: p0,z0,kc,i_min,rmax,gmax,iv,alpha,kexc,M0p,Mpart
+      real(rk) :: p0,kc,w_phy
+      real(rk) :: zetaN,zetaChl,kexc,M0p,Mpart,RMChl
+      real(rk) :: mu0hat,aI
+      real(rk) :: A0hat,V0hat,Q0
+      real(rk) :: fA_fixed,fV_fixed,TheHat_fixed
+      logical  :: fV_opt,fA_opt,Theta_opt
       real(rk) :: dic_per_n
 
       contains
@@ -66,15 +74,32 @@
 !BOC
    ! Store parameter values in our own derived type
    ! NB: all rates must be provided in values per day and are converted here to values per second.
+   ! General:
    call self%get_parameter(self%p0,   'p0',   'mmol m-3', 'background concentration ',               default=0.0225_rk)
    call self%get_parameter(self%kc,   'kc',   'm2 mmol-1','specific light extinction',               default=0.03_rk)
-   call self%get_parameter(self%i_min,'i_min','W m-2',    'minimum light intensity in euphotic zone',default=25.0_rk)
-   call self%get_parameter(self%rmax, 'rmax', 'd-1',      'maximum specific growth rate',            default=1.0_rk,  scale_factor=d_per_s)
-   call self%get_parameter(self%alpha,'alpha','mmol m-3', 'half-saturation nutrient concentration',  default=0.3_rk)
+   call self%get_parameter(self%w_phy,       'w_phy',  'm d-1',    'vertical velocity (<0 for sinking)',      default=-1.0_rk, scale_factor=d_per_s)
+   !optimality switches
+   call self%get_parameter(self%Theta_opt, 'Theta_opt','-', 'whether to optimize theta', default=.false.)
+   call self%get_parameter(self%fA_opt, 'fA_opt','-', 'whether to optimize fA', default=.false.)
+   call self%get_parameter(self%fV_opt, 'fV_opt','-', 'whether to optimize fV', default=.false.)
+   !light-related
+   call self%get_parameter(self%TheHat_fixed, 'TheHat_fixed','gChl molC-1', 'Theta_Hat to use when Theta_opt=false', default=0.6_rk)
+   call self%get_parameter(self%RMchl, 'RMchl','d-1', 'loss rate of chlorophyll', default=0.1_rk,scale_factor=d_per_s)
+   call self%get_parameter(self%mu0hat, 'mu0hat','d-1', 'max. potential growth rate', default=5.0_rk,scale_factor=d_per_s)
+   call self%get_parameter(self%aI, 'aI','(m^2 /molPhotons) (mol C) /(g chl)', 'Chl-specific slope of the PI curve', default=1.0_rk)
+   !nutrient-related
+   call self%get_parameter(self%fA_fixed, 'fA_fixed','-', 'fA to use when fa_opt=false', default=0.5_rk)
+   call self%get_parameter(self%fV_fixed, 'fV_fixed','-', 'fV to use when fv_opt=false', default=0.25_rk)
+   call self%get_parameter(self%Q0, 'Q0','molN molC-1', 'Subsistence cell quota', default=0.039_rk)
+   call self%get_parameter(self%V0hat, 'V0hat','molN molC-1 d-1', 'Potential maximum uptake rate', default=5.0_rk,scale_factor=d_per_s)
+   call self%get_parameter(self%A0hat, 'A0hat','m3 mmolC-1 d-1', 'Potential maximum nutrient affinity', default=0.15_rk,scale_factor=d_per_s)
+   !mortality/loss/respiration
+   call self%get_parameter(self%zetaN, 'zetaN','molC molN-1', 'C-cost of N uptake', default=0.6_rk)
+   call self%get_parameter(self%zetaChl, 'zetaChl','molC gChl-1', 'C-cost of Chlorophyll synthesis', default=0.8_rk)
    call self%get_parameter(self%kexc,  'kexc',  '-',    'excreted fraction of primary production',                          default=0.01_rk)
-   call self%get_parameter(self%M0p, 'M0p', 'm3/molN/d', 'sp. quad. mortality rate',              default=0.1_rk, scale_factor=d_per_s)
+   call self%get_parameter(self%M0p, 'M0p', 'm3 molN-1 d-1', 'sp. quad. mortality rate',              default=0.1_rk, scale_factor=d_per_s)
    call self%get_parameter(self%Mpart, 'Mpart', '-',   'part of the mortality that goes to detritus',default=0.5_rk)
-   call self%get_parameter(w_phy,       'w_phy',  'm d-1',    'vertical velocity (<0 for sinking)',      default=-1.0_rk, scale_factor=d_per_s)
+   
 
    ! Register state variables
    call self%register_state_variable(self%id_phyN,'N','mmol m-3','Phytoplankton-N concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy)
@@ -88,15 +113,22 @@
    call self%register_state_dependency(self%id_detN,'detN','mmol m-3','detrital nitrogen')
 
    ! Register diagnostic variables
-   call self%register_diagnostic_variable(self%id_GPP, 'GPP','mmol m-3',    'gross primary production',           &
-                                     output=output_time_step_integrated)
-   call self%register_diagnostic_variable(self%id_NCP, 'NCP','mmol m-3',    'net community production',           &
-                                     output=output_time_step_integrated)
+   call self%register_diagnostic_variable(self%id_Q, 'Q','molN molC-1',    'Cellular nitrogen Quota',           &
+                                     output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_mu, 'mu','d-1',    'net sp. growth rate',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_fV, 'fV','-',    'fV',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_fA, 'fA','-',    'fA',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_ThetaHat, 'ThetaHat','-', 'ThetaHat',           &
+                                     output=output_time_step_averaged)
+                                     
    call self%register_diagnostic_variable(self%id_PPR, 'PPR','mmol m-3 d-1','gross primary production rate',      &
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_NPR, 'NPR','mmol m-3 d-1','net community production rate',      &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_dPAR,'PAR','W m-2',       'photosynthetically active radiation',&
+   call self%register_diagnostic_variable(self%id_dPAR,'PAR','molE m-2 s-1',       'photosynthetically active radiation',&
                                      output=output_time_step_averaged)
 
    ! Register environmental dependencies
@@ -120,8 +152,9 @@
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
-   real(rk)                   :: din,phyN,par,I_0
-   real(rk)                   :: iopt,rpd,primprod
+   real(rk)                   :: din,phyN,parW,par,I_0
+   real(rk)                   :: ThetaHat,vNhat,muIhat
+   real(rk)                   :: Q,fV,fA,Rchl,I_zero,ZINT
    real(rk)                   :: tC,Tfac
    real(rk)                   :: mu,exc,mort
    real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn
@@ -137,7 +170,9 @@
    _GET_(self%id_din,din) ! nutrients
 
    ! Retrieve current environmental conditions.
-   _GET_(self%id_par,par)             ! local photosynthetically active radiation
+   _GET_(self%id_par,parW)             ! local photosynthetically active radiation
+   par=parW* 4.6 !* 1e-6  !mol Photons/m2/s   
+   ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
    _GET_HORIZONTAL_(self%id_I_0,I_0)  ! surface short wave radiation
    _GET_(self%id_temp,tC) ! temperature in Celcius
    
@@ -145,24 +180,81 @@
    !Temperature factor 
    Tfac = FofT(tC)
    
-   
-   !Calculate fluxes between pools
-   
    ! Primary production
-   ! Light acclimation formulation based on surface light intensity.
-   iopt = max(0.25*I_0,self%I_min)
-   mu = fnp(self,din,par,iopt) * Tfac
-   f_din_phy = mu * phyN
+   I_zero = self%zetaChl * self%RMchl * Tfac / self%aI   ! Threshold irradiance 
+   
+   !why is this at the end in the original code?
+   if( self%theta_opt ) then
+     if( par .gt. I_zero ) then
+       !Todo: lambert.f90 doesn't compile because of Div. by 0 error.
+       !larg = (1.0 + self%RMchl * Tfac/(self%mu0hat*Tfac)) * exp(1.0 + self%aI*par/(self%mu0hat*Tfac*self%zetaChl) )      
+       !ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par)
+       ThetaHat = self%TheHat_fixed
+     else
+       ThetaHat = 0.01  !  a small positive value 
+     end if
+   else
+     ThetaHat = self%TheHat_fixed
+   end if
+   
+   muIhat = self%mu0hat * Tfac * SIT(self%aI,self%mu0hat,par,ThetaHat,Tfac)
+   
+   if( self%fA_opt ) then
+     fA = 1.0 / ( 1.0 + sqrt(self%A0hat * din /(Tfac * self%V0hat)) ) 
+   else
+     fA =  self%fA_fixed
+   end if
+   
+   ! T-dependence only for V0, not for A0 (as suggested by M. Pahlow)
+   vNhat = vAff( din, fA, self%A0hat, self%V0hat * Tfac )
+   
+   ZINT = (self%zetaN + muIhat/vNhat) * self%Q0 / 2.0
+    
+   if( self%fV_opt .and.  par .gt. I_zero ) then
+     fV = (-1.0 + sqrt(1.0 + 1.0 / ZINT) ) * (self%Q0 / 2.0) * muIhat / vNhat
+   else
+     fV = self%fV_fixed 
+   end if
+   
+   !!$ ***  Calculating the optimal cell quota, based on the term ZINT, as calculated above
+   if( self%fV_opt ) then
+     Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
+   else
+     Q = 1.0/6.67 !Redfield
+   end if
+!!$ *** To correctly apply the Balanced Growth Assumption with this Non-adaptive model *** 
+!!$ * * * Calculate QN, the N cell quota [mol N / mol C],
+!!$ * * * based on the Balanced Growth Assumption ( V = mu*Q  <=>  Q = V/mu )
+!!$ *** Note:  This does NOT assume optimal resource allocation ***  
+!!$ * * * IF, fA and fV have both been optimized, this should give the same result as the caculation
+!!$ * * * based on the term ZINT. 
+!!$      Q(ci) = ( (Q0/2.0)*muIhat + fV*VNhat ) / ( (1.0-fV)*muIhat - fV*zetaN*VNhat )    
+
+!!$      dQdNbyQ(ci) = 0.0
+
+   ! Losses due to Chlorophyll
+   Rchl = (muIhat + self%RMchl*Tfac) * ( 1 - fV - self%Q0/(2.0*Q) ) * self%zetaChl * ThetaHat
+   
+   !  Net specific growth rate, assuming instantantaneous optimal resource allocation. 
+      !  Either equation gives the same result, provided fA, fV and QN have been optimized.  
+      !  The term with ZIN accounts for the cost of N assimilation, but not for chl maintenance. 
+      !  mu = muIhat * ( One + 2*( ZIN - sqrt(ZIN*(One + ZIN)) ) )           - Rchl 
+!!$      mu = muIhat*(1.0 + 2.0*(ZINT - sqrt(ZINT*(1.0+ZINT))) ) - Rchl
+   mu = muIhat * ( 1 - fV - self%Q0/(2.0*Q) ) - self%zetaN*fV*vNhat - Rchl
+   
+   !not used (?):
+   !PProd = (1.0-self%kexc) * max(0.0, mu*phyN / Q )  ! PP [ mmol C / m3 / s ]
    
    !Excretion:
    exc = self%kexc * mu * phyN
-   
    ! Mortality
    mort=self%M0p * Tfac * PhyN**2
+   
+   !Calculate fluxes between pools
+   f_din_phy = mu * phyN
    f_phy_detn =       self%Mpart  * mort 
    f_phy_don = (1.0 - self%Mpart) * mort + exc
    !write(*,'(A,3F7.4)')'Mpart,mort,f_phy_detN:',self%Mpart, mort*secs_pr_day, f_phy_detN * secs_pr_day
-   
    
    ! Set temporal derivatives
    _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn)
@@ -171,12 +263,16 @@
    _SET_ODE_(self%id_din, -f_din_phy)
    _SET_ODE_(self%id_don,  f_phy_don)
    _SET_ODE_(self%id_detN, f_phy_detn)
-   
 
    ! Export diagnostic variables
+   _SET_DIAGNOSTIC_(self%id_Q, Q)
+   _SET_DIAGNOSTIC_(self%id_mu, mu)
+   _SET_DIAGNOSTIC_(self%id_fV, fV)
+   _SET_DIAGNOSTIC_(self%id_fA, fA)
+   _SET_DIAGNOSTIC_(self%id_ThetaHat, ThetaHat) 
+   !todo: calc and save cellular Theta
+   !Standard Diagnostics
    _SET_DIAGNOSTIC_(self%id_dPAR, par)
-   _SET_DIAGNOSTIC_(self%id_GPP, f_din_phy)
-   _SET_DIAGNOSTIC_(self%id_NCP, f_din_phy - f_phy_don)
    _SET_DIAGNOSTIC_(self%id_PPR, f_din_phy*secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_NPR, (f_din_phy - f_phy_don)*secs_pr_day)
 
@@ -185,6 +281,7 @@
 
    end subroutine do
 !EOC
+
 
 !-----------------------------------------------------------------------
 !BOP
@@ -219,34 +316,103 @@
 
    end subroutine get_light_extinction
 !EOC
+!-----------------------------------------------------------------------
+
 
 !-----------------------------------------------------------------------
-!BOP
 !
-! !IROUTINE: Michaelis-Menten formulation for nutrient uptake
+! !IROUTINE: Light limitation for the FlexPFT model 
 !
 ! !INTERFACE:
-   pure real(rk) function fnp(self,n,par,iopt)
+   REALTYPE function SIT(aI,mu0hat,I,ThH,Tfac)
 !
 ! !DESCRIPTION:
-! Here, the classical Michaelis-Menten formulation for nutrient uptake
-! is formulated.
+! Here, the light limitation term (Pahlow and Oschlies MEPS 2013) is calculated. 
+! This term also depends on T, because the growth rate depends on T.  
+!
+! !USES:
+   IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
-   class (type_NflexPD_phy), intent(in) :: self
-   real(rk), intent(in)                       :: n,par,iopt
+   REALTYPE, intent(in)                 :: aI,mu0hat,I, ThH, Tfac 
 !
 ! !REVISION HISTORY:
-!  Original author(s): Hans Burchard, Karsten Bolding
+!  Original author(s): S. Lan Smith, 20141213
 !
 !EOP
 !-----------------------------------------------------------------------
 !BOC
-   fnp = self%rmax*par/iopt*exp(1.0_rk-par/iopt)*n/(self%alpha+n)
-
-   end function fnp
-!EOC
+   SIT = 1.0 - exp( - aI * ThH * I / (Tfac * mu0hat) )
+   return
+ end function SIT
 !-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!
+! !IROUTINE: Nutrient uptake rate based on Optimal Uptake (OU) kinetics 
+!
+! !INTERFACE:
+   REALTYPE function vOU(n,Apot,Vpot)
+!
+! !DESCRIPTION:
+!            The nutrient uptake rate calculated by Optimal Uptake (OU) kinetics assuming instantaneous 
+!            physiological acclimation of the allocation of internal resources for nutrient uptake 
+!            (Pahlow. MEPS, 2005; Smith et al. MEPS, 2009). In the FlexP model, based on the model of 
+!            Pahlow and Oschlies (MEPS, 2013), VNhat is the potential maximum rate of nutrient uptake 
+!            at the current ambient concentration, N. 
+!
+! !USES:
+   IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+   REALTYPE, intent(in)                :: N, Apot, Vpot
+!
+! !REVISION HISTORY:
+!  Original author(s): S. Lan Smith, 20141213
+!
+!EOP
+!-----------------------------------------------------------------------
+!BOC
+   vOU = Vpot * Apot * N / ( Vpot + 2*sqrt(Vpot*Apot*n) + Apot*N )
+   return
+ end function vOU
+!-----------------------------------------------------------------------
+
+
+!-----------------------------------------------------------------------
+!
+! !IROUTINE: Nutrient uptake rate based on Affinity-based kinetics with a trade-off 
+!
+! !INTERFACE:
+   REALTYPE function vAff(N,f,Apot,Vpot)
+!
+! !DESCRIPTION:
+!            The nutrient uptake rate calculated by the affinity-based equation including the trade-off
+!            postulated by Pahlow (MEPS, 2005) between affinity (initial slope) and maximum uptake rate. 
+!            This function accepts a value for the allocation factor, f, (f_A as defined by Pahlow), allowing the 
+!            uptake rate to be calculated for any allocation factor, whether it be optimal or not. 
+!            Optimal Uptake (OU) kinetics assuming instantaneous 
+!            In the FlexP model, based on the model of 
+!            Pahlow and Oschlies (MEPS, 2013), VNhat is the potential maximum rate of nutrient uptake 
+!            at the current ambient concentration, N. 
+!
+! !USES:
+   IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+   REALTYPE, intent(in)                :: N, f, Apot, Vpot
+!
+! !REVISION HISTORY:
+!  Original author(s): S. Lan Smith, 20141213
+!
+!EOP
+!-----------------------------------------------------------------------
+!BOC
+   vAff = (1-f)*Vpot * f*Apot * N / ( (1-f)*Vpot + f*Apot*N )
+   return
+ end function vAff
+!-----------------------------------------------------------------------
+
 
 !-----------------------------------------------------------------------
 !
