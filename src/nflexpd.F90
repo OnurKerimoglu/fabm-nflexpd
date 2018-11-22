@@ -3,8 +3,7 @@ module NflexPD_model_library
    use fabm_types, only: type_base_model_factory, type_base_model
 
    use NflexPD_phy
-   use NflexPD_nut
-   use NflexPD_det
+   use NflexPD_abio
    use NflexPD_version
    ! Add new components modules here
 
@@ -34,8 +33,7 @@ contains
 
       select case (name)
          case ('phy'); allocate(type_NflexPD_phy::model)
-         case ('nut'); allocate(type_NflexPD_nut::model)
-         case ('det'); allocate(type_NflexPD_det::model)
+         case ('abio'); allocate(type_NflexPD_abio::model)
          ! Add new components models here
       end select
    end subroutine create

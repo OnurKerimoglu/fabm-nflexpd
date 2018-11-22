@@ -1,11 +1,6 @@
 instances:
-  nut:
-    long_name: nutrient
-    model: nflexpd/nut
-    initialization:
-      c: 4.5                         # concentration (mmol m-3)
   phy:
-    long_name: phytoplankton
+    long_name: nflexpd phytoplankton
     model: nflexpd/phy
     parameters:
       p0: 0.0225                     # background concentration (mmol m-3), default = 0.0225
@@ -20,17 +15,16 @@ instances:
     initialization:
       c: 1e-15                       # concentration (mmol m-3)
     coupling:
-      uptake_target: nut/c           # nutrient source (mmol m-3)
-      excretion_target: nut/c        # sink for excreted matter (mmol m-3)
-      mortality_target: det/c        # sink for dead matter (mmol m-3)
-  det:
-    long_name: detritus
-    model: nflexpd/det
+      uptake_target: abio/din        # nutrient source (mmol m-3)
+      excretion_target: abio/din     # sink for excreted matter (mmol m-3)
+      mortality_target: abio/detn     # sink for dead matter (mmol m-3)
+  abio:
+    long_name: nlfexpd pelagic
+    model: nflexpd/abio
     parameters:
-      w_d: -5.0                      # vertical velocity (<0 for sinking) (m d-1), default = -5.0
+      w_det: -5.0                      # vertical velocity (<0 for sinking) (m d-1), default = -5.0
       kc: 0.03                       # specific light extinction (m2 mmol-1), default = 0.03
       rdn: 0.003                     # remineralization rate (d-1), default = 0.003
     initialization:
-      c: 4.5                         # concentration (mmol m-3)
-    coupling:
-      mineralisation_target: nut/c   # sink for remineralized matter (mmol m-3)
+      din: 4.5                         # concentration (mmol m-3)
+      detn: 4.5                         # concentration (mmol m-3)

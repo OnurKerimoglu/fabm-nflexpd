@@ -2,15 +2,13 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !MODULE: NflexPD_det - Fennel & Neumann 1996 NPZD model - detritus component
+! !MODULE: NflexPD_abio - abiotic component
 !
 ! !INTERFACE:
-   module NflexPD_det
+   module NflexPD_abio
 !
 ! !DESCRIPTION:
-! This model features a single detritus variable, characterized by a rate of decay (rdn)
-! and a sinking rate. Mineralized detritus feeds into a dissolved mineral pool that must
-! be provided by an external model (e.g., NflexPD_nut).
+! This model describes the abiotic processes
 !
 ! !USES:
    use fabm_types
@@ -20,10 +18,10 @@
    private
 !
 ! !PUBLIC DERIVED TYPES:
-   type,extends(type_base_model),public :: type_NflexPD_det
+   type,extends(type_base_model),public :: type_NflexPD_abio
 !     Variable identifiers
-      type (type_state_variable_id)     :: id_d
-      type (type_state_variable_id)     :: id_mintarget
+      type (type_state_variable_id)     :: id_din
+      type (type_state_variable_id)     :: id_detn
 
 !     Model parameters
       real(rk) :: rdn
@@ -49,35 +47,35 @@
    subroutine initialize(self,configunit)
 !
 ! !DESCRIPTION:
-!  Here, the NflexPD_det namelist is read and variables exported
+!  Here, the NflexPD_abio namelist is read and variables exported
 !  by the model are registered with FABM.
 !
 ! !INPUT PARAMETERS:
-   class (type_NflexPD_det), intent(inout), target :: self
+   class (type_NflexPD_abio), intent(inout), target :: self
    integer,                        intent(in)            :: configunit
 !
 ! !LOCAL VARIABLES:
    real(rk), parameter :: d_per_s = 1.0_rk/86400.0_rk
-   real(rk)            :: w_d, kc
+   real(rk)            :: w_det, kc
 !EOP
 !-----------------------------------------------------------------------
 !BOC
    ! Store parameter values in our own derived type
    ! NB: all rates must be provided in values per day and are converted here to values per second.
-   call self%get_parameter(w_d,     'w_d','m d-1',    'vertical velocity (<0 for sinking)',default=-5.0_rk,scale_factor=d_per_s)
+   call self%get_parameter(w_det,     'w_det','m d-1',    'vertical velocity (<0 for sinking)',default=-5.0_rk,scale_factor=d_per_s)
    call self%get_parameter(kc,      'kc', 'm2 mmol-1','specific light extinction',         default=0.03_rk)
    call self%get_parameter(self%rdn,'rdn','d-1',      'remineralization rate',             default=0.003_rk,scale_factor=d_per_s)
 
    ! Register state variables
-   call self%register_state_variable(self%id_d,'c','mmol m-3','concentration',    &
-                                4.5_rk,minimum=0.0_rk,vertical_movement=w_d, &
+   call self%register_state_variable(self%id_din,'din','mmol m-3','concentration',     &
+                                1.0_rk,minimum=0.0_rk,no_river_dilution=.true.)
+   call self%register_state_variable(self%id_detn,'detn','mmol m-3','concentration',    &
+                                4.5_rk,minimum=0.0_rk,vertical_movement=w_det, &
                                 specific_light_extinction=kc)
 
    ! Register contribution of state to global aggregate variables.
-   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_d)
-
-   ! Register dependencies on external state variables
-   call self%register_state_dependency(self%id_mintarget,'mineralisation_target','mmol m-3','sink for remineralized matter')
+   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_din)
+   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_detn)
 
    end subroutine initialize
 !EOC
@@ -85,17 +83,17 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Right hand sides of Detritus model
+! !IROUTINE: Right hand sides of Abiotic model
 !
 ! !INTERFACE:
    subroutine do(self,_ARGUMENTS_DO_)
 !
 ! !INPUT PARAMETERS:
-   class (type_NflexPD_det), intent(in)     :: self
+   class (type_NflexPD_abio), intent(in)     :: self
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
-   real(rk)                   :: d
+   real(rk)                   :: detn
 !EOP
 !-----------------------------------------------------------------------
 !BOC
@@ -103,13 +101,12 @@
    _LOOP_BEGIN_
 
    ! Retrieve current (local) state variable values.
-   _GET_(self%id_d,d) ! detritus
-
+   _GET_(self%id_detn,detn) ! detrital nitrogen
+   
    ! Set temporal derivatives
-   _SET_ODE_(self%id_d,-self%rdn*d)
-
-   ! If an externally maintained NUT pool is present, add mineralisation to it
-   _SET_ODE_(self%id_mintarget, self%rdn*d)
+   !Mineralization (det->dim)
+   _SET_ODE_(self%id_detn,-self%rdn*detn)
+   _SET_ODE_(self%id_din, self%rdn*detn)
 
    ! Leave spatial loops (if any)
    _LOOP_END_
@@ -120,17 +117,17 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Right hand sides of Detritus model exporting production/destruction matrices
+! !IROUTINE: Right hand sides of Abiotic model exporting production/destruction matrices
 !
 ! !INTERFACE:
    subroutine do_ppdd(self,_ARGUMENTS_DO_PPDD_)
 !
 ! !INPUT PARAMETERS:
-   class (type_NflexPD_det), intent(in)     :: self
+   class (type_NflexPD_abio), intent(in)     :: self
    _DECLARE_ARGUMENTS_DO_PPDD_
 !
 ! !LOCAL VARIABLES:
-   real(rk)                   :: d
+   real(rk)                   :: detn
 !EOP
 !-----------------------------------------------------------------------
 !BOC
@@ -138,12 +135,12 @@
    _LOOP_BEGIN_
 
    ! Retrieve current (local) state variable values.
-   _GET_(self%id_d,d) ! detritus
+   _GET_(self%id_detn,detn) ! detritus
 
    ! Assign destruction rates to different elements of the destruction matrix.
    ! By assigning with _SET_DD_SYM_ [as opposed to _SET_DD_], assignments to dd(i,j)
    ! are automatically assigned to pp(j,i) as well.
-   _SET_DD_SYM_(self%id_d,self%id_mintarget,self%rdn*d)
+   _SET_DD_SYM_(self%id_detn,self%id_din,self%rdn*detn)
 
    ! Leave spatial loops (if any)
    _LOOP_END_
@@ -153,8 +150,8 @@
 
 !-----------------------------------------------------------------------
 
-   end module NflexPD_det
+   end module NflexPD_abio
 
 !-----------------------------------------------------------------------
-! Copyright Bolding & Bruggeman ApS - GNU Public License - www.gnu.org
+! Copyright Onur Kerimoglu (kerimoglu.o@gmail.com) - GNU Public License - www.gnu.org
 !-----------------------------------------------------------------------

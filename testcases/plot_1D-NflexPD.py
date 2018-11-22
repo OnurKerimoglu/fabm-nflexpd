@@ -35,7 +35,7 @@ def plot_maecs_Bpoolx2_phy():
     
     if len(sys.argv) < 5: #this means no arguments were passed
 	varnames= [ 'temp','phy_PAR','phy_NPR',
-                'nut_c', 'phy_c','det_c'
+                'abio_n', 'phy_c','abio_d'
                  ]
 	numcol=3.0
     else: 

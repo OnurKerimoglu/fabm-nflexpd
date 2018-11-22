@@ -2,9 +2,8 @@ module nflexpd_model_library
 
    use fabm_types, only: type_base_model_factory, type_base_model
 
-   use nflexpd_det
-   use nflexpd_nut
    use nflexpd_phy
+   use nflexpd_abio
    ! Add new NflexPD modules here
 
    implicit none
@@ -26,9 +25,8 @@ contains
       class (type_base_model),pointer :: model
 
       select case (name)
-         case ('nut'); allocate(type_nflexpd_nut::model)
          case ('phy'); allocate(type_nflexpd_phy::model)
-         case ('det'); allocate(type_nflexpd_det::model)
+         case ('abio'); allocate(type_nflexpd_abio::model)
          ! Add new NflexPD models here
       end select
    end subroutine create
