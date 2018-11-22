@@ -21,9 +21,9 @@
 ! !PUBLIC DERIVED TYPES:
    type,extends(type_base_model),public :: type_NflexPD_phy
 !     Variable identifiers
-      type (type_state_variable_id)        :: id_p
-      type (type_state_variable_id)        :: id_exctarget,id_morttarget,id_upttarget
-      type (type_dependency_id)            :: id_par
+      type (type_state_variable_id)        :: id_phyn
+      type (type_state_variable_id)        :: id_din,id_don,id_detn
+      type (type_dependency_id)            :: id_par,id_temp
       type (type_horizontal_dependency_id) :: id_I_0
       type (type_diagnostic_variable_id)   :: id_GPP,id_NCP,id_PPR,id_NPR,id_dPAR
 
@@ -35,7 +35,6 @@
 
       procedure :: initialize
       procedure :: do
-      procedure :: do_ppdd
       procedure :: get_light_extinction
    end type
 !EOP
@@ -78,15 +77,15 @@
    call self%get_parameter(w_p,       'w_p',  'm d-1',    'vertical velocity (<0 for sinking)',      default=-1.0_rk, scale_factor=d_per_s)
 
    ! Register state variables
-   call self%register_state_variable(self%id_p,'c','mmol m-3','concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_p)
+   call self%register_state_variable(self%id_phyN,'N','mmol m-3','Phytoplankton-N concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_p)
 
    ! Register contribution of state to global aggregate variables.
-   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_p)
+   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_phyN)
 
    ! Register dependencies on external state variables
-   call self%register_state_dependency(self%id_upttarget, 'uptake_target',   'mmol m-3','nutrient source')
-   call self%register_state_dependency(self%id_exctarget, 'excretion_target','mmol m-3','sink for excreted matter')
-   call self%register_state_dependency(self%id_morttarget,'mortality_target','mmol m-3','sink for dead matter')
+   call self%register_state_dependency(self%id_din, 'din',   'mmol m-3','dissolved inorganic nitrogen')
+   call self%register_state_dependency(self%id_don, 'don','mmol m-3','dissolved organic nitrogen')
+   call self%register_state_dependency(self%id_detN,'detN','mmol m-3','detrital nitrogen')
 
    ! Register diagnostic variables
    call self%register_diagnostic_variable(self%id_GPP, 'GPP','mmol m-3',    'gross primary production',           &
@@ -103,7 +102,8 @@
    ! Register environmental dependencies
    call self%register_dependency(self%id_par, standard_variables%downwelling_photosynthetic_radiative_flux)
    call self%register_dependency(self%id_I_0, standard_variables%surface_downwelling_photosynthetic_radiative_flux)
-
+   call self%register_dependency(self%id_temp,standard_variables%temperature)
+   
    end subroutine initialize
 !EOC
 
@@ -120,8 +120,10 @@
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
-   real(rk)                   :: n,p,par,I_0
+   real(rk)                   :: din,phyN,par,I_0
    real(rk)                   :: iopt,rpd,primprod
+   real(rk)                   :: tC,Tfac
+   real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
 !-----------------------------------------------------------------------
@@ -130,40 +132,50 @@
    _LOOP_BEGIN_
 
    ! Retrieve current (local) state variable values.
-   _GET_(self%id_p,p)         ! phytoplankton
-   _GET_(self%id_upttarget,n) ! nutrients
+   _GET_(self%id_phyN,phyN)         ! phytoplankton
+   _GET_(self%id_din,din) ! nutrients
 
    ! Retrieve current environmental conditions.
    _GET_(self%id_par,par)             ! local photosynthetically active radiation
    _GET_HORIZONTAL_(self%id_I_0,I_0)  ! surface short wave radiation
-
+   _GET_(self%id_temp,tC) ! temperature in Celcius
+   
+   !Calculate intermediate terms:
+   !Temperature factor 
+   Tfac = FofT(tC)
+   
+   !Calculate fluxes between pools
+   
+   ! Primary production
    ! Light acclimation formulation based on surface light intensity.
    iopt = max(0.25*I_0,self%I_min)
-
+   f_din_phy = fnp(self,din,phyN,par,iopt) * Tfac
+   
+   !Excretion:
+   f_phy_don= self%rpn * Tfac * phyN
+   
    ! Loss rate of phytoplankton to detritus depends on local light intensity.
    if (par>=self%I_min) then
-      rpd = self%rpdu
+      f_phy_detn = self%rpdu * Tfac * phyN
    else
-      rpd = self%rpdl
+      f_phy_detn = self%rpdl * Tfac * phyN
    end if
-
-   ! Define some intermediate quantities that will be reused multiple times.
-   primprod = fnp(self,n,p,par,iopt)
-
+   
    ! Set temporal derivatives
-   _SET_ODE_(self%id_p,primprod - self%rpn*p - rpd*p)
+   _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn)
 
-   ! If an externally maintained ...
-   _SET_ODE_(self%id_upttarget,-primprod)
-   _SET_ODE_(self%id_morttarget,rpd*p)
-   _SET_ODE_(self%id_exctarget,self%rpn*p)
+   ! If externally maintained dim,dom und det pools are coupled:
+   _SET_ODE_(self%id_din, -f_din_phy)
+   _SET_ODE_(self%id_don,  f_phy_don)
+   _SET_ODE_(self%id_detN, f_phy_detn)
+   
 
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_dPAR,par)
-   _SET_DIAGNOSTIC_(self%id_GPP ,primprod)
-   _SET_DIAGNOSTIC_(self%id_NCP ,primprod - self%rpn*p)
-   _SET_DIAGNOSTIC_(self%id_PPR ,primprod*secs_pr_day)
-   _SET_DIAGNOSTIC_(self%id_NPR ,(primprod - self%rpn*p)*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_GPP ,f_din_phy)
+   _SET_DIAGNOSTIC_(self%id_NCP ,f_din_phy - f_phy_don)
+   _SET_DIAGNOSTIC_(self%id_PPR ,f_din_phy*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_NPR ,(f_din_phy - f_phy_don)*secs_pr_day)
 
    ! Leave spatial loops (if any)
    _LOOP_END_
@@ -185,7 +197,7 @@
    _DECLARE_ARGUMENTS_GET_EXTINCTION_
 !
 ! !LOCAL VARIABLES:
-   real(rk)                     :: p
+   real(rk)                     :: phyN
 !
 !EOP
 !-----------------------------------------------------------------------
@@ -194,81 +206,15 @@
    _LOOP_BEGIN_
 
    ! Retrieve current (local) state variable values.
-   _GET_(self%id_p,p) ! phytoplankton
+   _GET_(self%id_phyN,phyN) ! phytoplankton
 
    ! Self-shading with explicit contribution from background phytoplankton concentration.
-   _SET_EXTINCTION_(self%kc*(self%p0+p))
+   _SET_EXTINCTION_(self%kc*(self%p0+phyN))
 
    ! Leave spatial loops (if any)
    _LOOP_END_
 
    end subroutine get_light_extinction
-!EOC
-
-!-----------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Right hand sides of NPZD model exporting production/destruction matrices
-!
-! !INTERFACE:
-   subroutine do_ppdd(self,_ARGUMENTS_DO_PPDD_)
-!
-! !INPUT PARAMETERS:
-   class (type_NflexPD_phy), intent(in)     :: self
-   _DECLARE_ARGUMENTS_DO_PPDD_
-!
-! !REVISION HISTORY:
-!  Original author(s): Hans Burchard, Karsten Bolding
-!
-! !LOCAL VARIABLES:
-   real(rk)                   :: n,p,par,I_0
-   real(rk)                   :: iopt,rpd,primprod
-   real(rk), parameter        :: secs_pr_day = 86400.
-!EOP
-!-----------------------------------------------------------------------
-!BOC
-   ! Enter spatial loops (if any)
-   _LOOP_BEGIN_
-
-   ! Retrieve current (local) state variable values.
-   _GET_(self%id_p,p)         ! phytoplankton
-   _GET_(self%id_upttarget,n) ! nutrients
-
-   ! Retrieve current environmental conditions.
-   _GET_(self%id_par,par)     ! local photosynthetically active radiation
-   _GET_HORIZONTAL_(self%id_I_0,I_0)  ! surface short wave radiation
-
-   ! Light acclimation formulation based on surface light intensity.
-   iopt = max(0.25*I_0,self%I_min)
-
-   ! Loss rate of phytoplankton to detritus depends on local light intensity.
-   if (par>=self%I_min) then
-      rpd = self%rpdu
-   else
-      rpd = self%rpdl
-   end if
-
-   ! Rate of primary production will be reused multiple times - calculate it once.
-   primprod = fnp(self,n,p,par,iopt)
-
-   ! Assign destruction rates to different elements of the destruction matrix.
-   ! By assigning with _SET_DD_SYM_ [as opposed to _SET_DD_], assignments to dd(i,j)
-   ! are automatically assigned to pp(j,i) as well.
-   _SET_DD_SYM_(self%id_upttarget,self%id_p,primprod)
-   _SET_DD_SYM_(self%id_p,self%id_exctarget,self%rpn*p)
-   _SET_DD_SYM_(self%id_p,self%id_morttarget,rpd*p)
-
-   ! Export diagnostic variables
-   _SET_DIAGNOSTIC_(self%id_dPAR,par)
-   _SET_DIAGNOSTIC_(self%id_GPP,primprod)
-   _SET_DIAGNOSTIC_(self%id_NCP,primprod-self%rpn*p)
-   _SET_DIAGNOSTIC_(self%id_PPR,primprod*secs_pr_day)
-   _SET_DIAGNOSTIC_(self%id_NPR,(primprod-self%rpn*p)*secs_pr_day)
-
-   ! Leave spatial loops (if any)
-   _LOOP_END_
-
-   end subroutine do_ppdd
 !EOC
 
 !-----------------------------------------------------------------------
@@ -297,8 +243,38 @@
 
    end function fnp
 !EOC
+!-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
+!
+! !IROUTINE: Temperature dependence of rates for the FlexPFT model 
+!
+! !INTERFACE:
+   REALTYPE function FofT(tC)
+!
+! !DESCRIPTION:
+! Here, Arrhenius type temperature dependence is calcuated, for a reference temperature, Tr, 
+! and activation energy Ea [ J / mol ]. 
+!
+! !USES:
+   IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+   REALTYPE, intent(in)                :: tC            ! temperature [ degrees C ]
+   REALTYPE, parameter                 :: R = 8.31446   ! gas constant [ J /mol /K ]
+   REALTYPE, parameter                 :: Ea=4.82e4        ! [ J / mol ]
+   REALTYPE, parameter                 :: Tr=20.0          ! [ degrees C ]
+!
+! !REVISION HISTORY:
+!  Original author(s):  S. Lan Smith, 20141213
+!
+!EOP
+!-----------------------------------------------------------------------
+!BOC
+   FofT = exp( - (Ea/R)*( 1/(273.15+tC) - 1/(273.15+Tr) ) )
+   return
+   end function FofT
+!EOC
 
    end module NflexPD_phy
 

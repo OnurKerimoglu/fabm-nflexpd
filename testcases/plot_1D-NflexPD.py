@@ -36,7 +36,7 @@ def plot_maecs_Bpoolx2_phy():
     if len(sys.argv) < 5: #this means no arguments were passed
 	varnames= [ 'temp','phy_PAR','phy_NPR',
                 'abio_din','abio_don','abio_detn',
-                'phy_c']
+                'phy_N']
 	numcol=3.0
     else: 
 	varnames=sys.argv[4].split(',')
@@ -139,52 +139,10 @@ def plot_maecs_Bpoolx2_phy():
         #cbar.solids.set_edgecolor("face")
         #draw()
      
-    
-    if plotsed:
-        for i in xrange(0, numsedvars):
-            ax=subplot(ceil(numvar/numcol),numcol,i+len(varnames)+1)
-
-            if not (varnames2[i] in ncv):
-                ax.text(0.5,0.5,varnames2[i]+'\n\n was not found',
-                        horizontalalignment='center',
-                        verticalalignment='center',
-                        transform=ax.transAxes)
-                continue
-
-            #print(ncv[varnames2[i]].long_name)
-            title(ncv[varnames2[i]].long_name+' [$%s$]'%ncv[varnames2[i]].units,size=8.0)
-
-            if ncv[varnames2[i]].shape[1] > 1:
-                if plottype=='middlerow':
-                    middlerow=int(round(len(ncv[varnames2[i]][1,:])/2))
-                    dat=squeeze(ncv[varnames2[i]][:,middlerow])
-                elif plottype=='wc_int':
-                    dat=sum(squeeze(ncv[varnames2[i]][:,:]),1)
-                elif plottype=='wc_mean':
-                    dat=mean(squeeze(ncv[varnames2[i]][:,:]),1)
-            else:
-                dat=squeeze(ncv[varnames2[i]][:])
-
-            #crop the data for the time period requested
-            datC=dat[yeari[0]]
-
-            ax.plot(tvecC,datC,'r-')
-
-            #x-axis
-            format_date_axis(ax,[tvecC[0], tvecC[-1]])
-            ax.xaxis.grid(color='k',linestyle=':',linewidth=0.5)
-            xlabel('')
-
-            #y-axis
-            yt  = ax.get_yticks()
-            ytl = ax.get_yticklabels()
-            ax.set_yticks([yt[0],yt[-1]])
-            ax.set_yticklabels([str(yt[0]),str(yt[-1])])
-        
         
     nc.close()
-    savefig(fname+'_cont_'+plottype+'_phy.png')
-    disp('python contour plot saved in: '+fname+'_cont'+plottype+'_phy.png')
+    savefig(fname+'_cont.png')
+    disp('python contour plot saved in: '+fname+'_cont.png')
     #show()
         
     #if plotsed: return time,z,dz,data,datanames
