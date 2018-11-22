@@ -20,17 +20,16 @@
 ! !PUBLIC DERIVED TYPES:
    type,extends(type_base_model),public :: type_NflexPD_abio
 !     Variable identifiers
-      type (type_state_variable_id)     :: id_din
-      type (type_state_variable_id)     :: id_detn
+      type (type_state_variable_id)     :: id_din,id_don,id_detn
+      type (type_dependency_id)         :: id_temp
 
 !     Model parameters
-      real(rk) :: rdn
+      real(rk) :: kdet,kdon
 
       contains
 
       procedure :: initialize
       procedure :: do
-      procedure :: do_ppdd
 
    end type
 !EOP
@@ -64,19 +63,26 @@
    ! NB: all rates must be provided in values per day and are converted here to values per second.
    call self%get_parameter(w_det,     'w_det','m d-1',    'vertical velocity (<0 for sinking)',default=-5.0_rk,scale_factor=d_per_s)
    call self%get_parameter(kc,      'kc', 'm2 mmol-1','specific light extinction',         default=0.03_rk)
-   call self%get_parameter(self%rdn,'rdn','d-1',      'remineralization rate',             default=0.003_rk,scale_factor=d_per_s)
-
+   call self%get_parameter(self%kdet,'kdet','d-1',      'sp. rate for f_det_don',             default=0.003_rk,scale_factor=d_per_s)
+   call self%get_parameter(self%kdon,'kdon','d-1',      'sp. rate for f_don_din',             default=0.003_rk,scale_factor=d_per_s)
+   
    ! Register state variables
-   call self%register_state_variable(self%id_din,'din','mmol m-3','concentration',     &
+   call self%register_state_variable(self%id_din,'din','mmol m-3','DIN concentration',     &
                                 1.0_rk,minimum=0.0_rk,no_river_dilution=.true.)
-   call self%register_state_variable(self%id_detn,'detn','mmol m-3','concentration',    &
+   call self%register_state_variable(self%id_don,'don','mmol m-3','DON concentration',     &
+                                1.0_rk,minimum=0.0_rk,no_river_dilution=.true.)
+   call self%register_state_variable(self%id_detn,'detn','mmol m-3','Det-N concentration',    &
                                 4.5_rk,minimum=0.0_rk,vertical_movement=w_det, &
                                 specific_light_extinction=kc)
-
+   
    ! Register contribution of state to global aggregate variables.
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_din)
+   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_don)
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_detn)
-
+   
+   ! Register environmental dependencies
+   call self%register_dependency(self%id_temp,standard_variables%temperature)
+   
    end subroutine initialize
 !EOC
 
@@ -93,7 +99,9 @@
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
-   real(rk)                   :: detn
+   real(rk)                   :: detn, don
+   real(rk)                   :: f_det_don, f_don_din
+   real(rk)                   :: tC,Tfac
 !EOP
 !-----------------------------------------------------------------------
 !BOC
@@ -102,11 +110,23 @@
 
    ! Retrieve current (local) state variable values.
    _GET_(self%id_detn,detn) ! detrital nitrogen
+   _GET_(self%id_don,don) ! dissolved organic nitrogen
+   ! Retrieve environmental dependencies
+   _GET_(self%id_temp,tC) ! temperature in Celcius
+   
+   !Calculate intermediate terms:
+   !Temperature factor 
+   Tfac = FofT(tC)
+   
+   !Calculate fluxes between pools
+   f_det_don = self%kdet * Tfac * detn 
+   f_don_din = self%kdon * Tfac * don
+   
    
    ! Set temporal derivatives
-   !Mineralization (det->dim)
-   _SET_ODE_(self%id_detn,-self%rdn*detn)
-   _SET_ODE_(self%id_din, self%rdn*detn)
+   _SET_ODE_(self%id_detn, -f_det_don)
+   _SET_ODE_(self%id_don,   f_det_don - f_don_din)
+   _SET_ODE_(self%id_din,   f_don_din)
 
    ! Leave spatial loops (if any)
    _LOOP_END_
@@ -114,42 +134,41 @@
    end subroutine do
 !EOC
 
+
 !-----------------------------------------------------------------------
-!BOP
 !
-! !IROUTINE: Right hand sides of Abiotic model exporting production/destruction matrices
+! !IROUTINE: Temperature dependence of rates for the FlexPFT model 
 !
 ! !INTERFACE:
-   subroutine do_ppdd(self,_ARGUMENTS_DO_PPDD_)
+   REALTYPE function FofT(tC)
+!
+! !DESCRIPTION:
+! Here, Arrhenius type temperature dependence is calcuated, for a reference temperature, Tr, 
+! and activation energy Ea [ J / mol ]. 
+!
+! !USES:
+   IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
-   class (type_NflexPD_abio), intent(in)     :: self
-   _DECLARE_ARGUMENTS_DO_PPDD_
+   REALTYPE, intent(in)                :: tC            ! temperature [ degrees C ]
+   REALTYPE, parameter                 :: R = 8.31446   ! gas constant [ J /mol /K ]
+   REALTYPE, parameter                 :: Ea=4.82e4        ! [ J / mol ]
+   REALTYPE, parameter                 :: Tr=20.0          ! [ degrees C ]
 !
-! !LOCAL VARIABLES:
-   real(rk)                   :: detn
+! !REVISION HISTORY:
+!  Original author(s):  S. Lan Smith, 20141213
+!
 !EOP
 !-----------------------------------------------------------------------
 !BOC
-   ! Enter spatial loops (if any)
-   _LOOP_BEGIN_
-
-   ! Retrieve current (local) state variable values.
-   _GET_(self%id_detn,detn) ! detritus
-
-   ! Assign destruction rates to different elements of the destruction matrix.
-   ! By assigning with _SET_DD_SYM_ [as opposed to _SET_DD_], assignments to dd(i,j)
-   ! are automatically assigned to pp(j,i) as well.
-   _SET_DD_SYM_(self%id_detn,self%id_din,self%rdn*detn)
-
-   ! Leave spatial loops (if any)
-   _LOOP_END_
-
-   end subroutine do_ppdd
+   FofT = exp( - (Ea/R)*( 1/(273.15+tC) - 1/(273.15+Tr) ) )
+   return
+   end function FofT
 !EOC
-
-!-----------------------------------------------------------------------
-
+ 
+ 
+ !-----------------------------------------------------------------------
+ 
    end module NflexPD_abio
 
 !-----------------------------------------------------------------------

@@ -24,7 +24,9 @@ instances:
     parameters:
       w_det: -5.0                      # vertical velocity (<0 for sinking) (m d-1), default = -5.0
       kc: 0.03                       # specific light extinction (m2 mmol-1), default = 0.03
-      rdn: 0.003                     # remineralization rate (d-1), default = 0.003
+      kdet: 0.003                    # sp. rate for f_det_don
+      kdon: 0.003                    # sp. rate for f_don_din
     initialization:
-      din: 4.5                         # concentration (mmol m-3)
-      detn: 4.5                         # concentration (mmol m-3)
+      din: 4.5                         # DIN concentration (mmol m-3)
+      don: 4.5                         # DON concentration (mmol m-3)
+      detn: 4.5                        # Det-N concentration (mmol m-3)
