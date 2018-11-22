@@ -21,14 +21,14 @@
 ! !PUBLIC DERIVED TYPES:
    type,extends(type_base_model),public :: type_NflexPD_phy
 !     Variable identifiers
-      type (type_state_variable_id)        :: id_phyn
+      type (type_state_variable_id)        :: id_phyN
       type (type_state_variable_id)        :: id_din,id_don,id_detn
       type (type_dependency_id)            :: id_par,id_temp
       type (type_horizontal_dependency_id) :: id_I_0
       type (type_diagnostic_variable_id)   :: id_GPP,id_NCP,id_PPR,id_NPR,id_dPAR
 
 !     Model parameters
-      real(rk) :: p0,z0,kc,i_min,rmax,gmax,iv,alpha,rpn,rpdu,rpdl
+      real(rk) :: p0,z0,kc,i_min,rmax,gmax,iv,alpha,kexc,M0p,Mpart
       real(rk) :: dic_per_n
 
       contains
@@ -60,7 +60,7 @@
 !
 ! !LOCAL VARIABLES:
    real(rk), parameter :: d_per_s = 1.0_rk/86400.0_rk
-   real(rk)            :: w_p
+   real(rk)            :: w_phy
 !EOP
 !-----------------------------------------------------------------------
 !BOC
@@ -71,13 +71,13 @@
    call self%get_parameter(self%i_min,'i_min','W m-2',    'minimum light intensity in euphotic zone',default=25.0_rk)
    call self%get_parameter(self%rmax, 'rmax', 'd-1',      'maximum specific growth rate',            default=1.0_rk,  scale_factor=d_per_s)
    call self%get_parameter(self%alpha,'alpha','mmol m-3', 'half-saturation nutrient concentration',  default=0.3_rk)
-   call self%get_parameter(self%rpn,  'rpn',  'd-1',      'excretion rate',                          default=0.01_rk, scale_factor=d_per_s)
-   call self%get_parameter(self%rpdu, 'rpdu', 'd-1',      'mortality in euphotic zone',              default=0.02_rk, scale_factor=d_per_s)
-   call self%get_parameter(self%rpdl, 'rpdl', 'd-1',      'mortality below euphotic zone',           default=0.1_rk,  scale_factor=d_per_s)
-   call self%get_parameter(w_p,       'w_p',  'm d-1',    'vertical velocity (<0 for sinking)',      default=-1.0_rk, scale_factor=d_per_s)
+   call self%get_parameter(self%kexc,  'kexc',  '-',    'excreted fraction of primary production',                          default=0.01_rk)
+   call self%get_parameter(self%M0p, 'M0p', 'm3/molN/d', 'sp. quad. mortality rate',              default=0.1_rk, scale_factor=d_per_s)
+   call self%get_parameter(self%Mpart, 'Mpart', '-',   'part of the mortality that goes to detritus',default=0.5_rk)
+   call self%get_parameter(w_phy,       'w_phy',  'm d-1',    'vertical velocity (<0 for sinking)',      default=-1.0_rk, scale_factor=d_per_s)
 
    ! Register state variables
-   call self%register_state_variable(self%id_phyN,'N','mmol m-3','Phytoplankton-N concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_p)
+   call self%register_state_variable(self%id_phyN,'N','mmol m-3','Phytoplankton-N concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy)
 
    ! Register contribution of state to global aggregate variables.
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_phyN)
@@ -123,6 +123,7 @@
    real(rk)                   :: din,phyN,par,I_0
    real(rk)                   :: iopt,rpd,primprod
    real(rk)                   :: tC,Tfac
+   real(rk)                   :: mu,exc,mort
    real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
@@ -144,22 +145,24 @@
    !Temperature factor 
    Tfac = FofT(tC)
    
+   
    !Calculate fluxes between pools
    
    ! Primary production
    ! Light acclimation formulation based on surface light intensity.
    iopt = max(0.25*I_0,self%I_min)
-   f_din_phy = fnp(self,din,phyN,par,iopt) * Tfac
+   mu = fnp(self,din,par,iopt) * Tfac
+   f_din_phy = mu * phyN
    
    !Excretion:
-   f_phy_don= self%rpn * Tfac * phyN
+   exc = self%kexc * mu * phyN
    
-   ! Loss rate of phytoplankton to detritus depends on local light intensity.
-   if (par>=self%I_min) then
-      f_phy_detn = self%rpdu * Tfac * phyN
-   else
-      f_phy_detn = self%rpdl * Tfac * phyN
-   end if
+   ! Mortality
+   mort=self%M0p * Tfac * PhyN**2
+   f_phy_detn =       self%Mpart  * mort 
+   f_phy_don = (1.0 - self%Mpart) * mort + exc
+   !write(*,'(A,3F7.4)')'Mpart,mort,f_phy_detN:',self%Mpart, mort*secs_pr_day, f_phy_detN * secs_pr_day
+   
    
    ! Set temporal derivatives
    _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn)
@@ -171,11 +174,11 @@
    
 
    ! Export diagnostic variables
-   _SET_DIAGNOSTIC_(self%id_dPAR,par)
-   _SET_DIAGNOSTIC_(self%id_GPP ,f_din_phy)
-   _SET_DIAGNOSTIC_(self%id_NCP ,f_din_phy - f_phy_don)
-   _SET_DIAGNOSTIC_(self%id_PPR ,f_din_phy*secs_pr_day)
-   _SET_DIAGNOSTIC_(self%id_NPR ,(f_din_phy - f_phy_don)*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_dPAR, par)
+   _SET_DIAGNOSTIC_(self%id_GPP, f_din_phy)
+   _SET_DIAGNOSTIC_(self%id_NCP, f_din_phy - f_phy_don)
+   _SET_DIAGNOSTIC_(self%id_PPR, f_din_phy*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_NPR, (f_din_phy - f_phy_don)*secs_pr_day)
 
    ! Leave spatial loops (if any)
    _LOOP_END_
@@ -223,7 +226,7 @@
 ! !IROUTINE: Michaelis-Menten formulation for nutrient uptake
 !
 ! !INTERFACE:
-   pure real(rk) function fnp(self,n,p,par,iopt)
+   pure real(rk) function fnp(self,n,par,iopt)
 !
 ! !DESCRIPTION:
 ! Here, the classical Michaelis-Menten formulation for nutrient uptake
@@ -231,7 +234,7 @@
 !
 ! !INPUT PARAMETERS:
    class (type_NflexPD_phy), intent(in) :: self
-   real(rk), intent(in)                       :: n,p,par,iopt
+   real(rk), intent(in)                       :: n,par,iopt
 !
 ! !REVISION HISTORY:
 !  Original author(s): Hans Burchard, Karsten Bolding
@@ -239,7 +242,7 @@
 !EOP
 !-----------------------------------------------------------------------
 !BOC
-   fnp = self%rmax*par/iopt*exp(1.0_rk-par/iopt)*n/(self%alpha+n)*(p+self%p0)
+   fnp = self%rmax*par/iopt*exp(1.0_rk-par/iopt)*n/(self%alpha+n)
 
    end function fnp
 !EOC

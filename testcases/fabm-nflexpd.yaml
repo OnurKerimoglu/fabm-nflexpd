@@ -8,12 +8,12 @@ instances:
       i_min: 25.0                    # minimum light intensity in euphotic zone (W m-2), default = 25.0
       rmax: 1.0                      # maximum specific growth rate (d-1), default = 1.0
       alpha: 1.35                    # half-saturation nutrient concentration (mmol m-3), default = 0.3
-      rpn: 0.01                      # excretion rate (d-1), default = 0.01
-      rpdu: 0.02                     # mortality in euphotic zone (d-1), default = 0.02
-      rpdl: 0.1                      # mortality below euphotic zone (d-1), default = 0.1
-      w_p: -1.0                      # vertical velocity (<0 for sinking) (m d-1), default = -1.0
+      kexc: 0.01                      # excreted fraction of primary production
+      M0p: 0.01                      # sp. quad. mortality rate
+      Mpart: 0.5                      # part of the mortality that goes to detritus
+      w_phy: -0.5                      # vertical velocity (<0 for sinking) (m d-1), default = -1.0
     initialization:
-      N: 1e-15                       # Phytoplankton-N concentration (mmol m-3)
+      N: 0.15                       # Phytoplankton-N concentration (mmol m-3)
     coupling:
       din: abio/din        # nutrient source (mmol m-3)
       don: abio/don        # sink for excreted matter (mmol m-3)
