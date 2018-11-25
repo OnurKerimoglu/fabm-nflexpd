@@ -11,7 +11,7 @@
 ! !DESCRIPTION:
 !
 ! !USES:
-   !use lambert
+   use lambert
    use fabm_types
 
    implicit none
@@ -86,7 +86,7 @@
    call self%get_parameter(self%TheHat_fixed, 'TheHat_fixed','gChl molC-1', 'Theta_Hat to use when Theta_opt=false', default=0.6_rk)
    call self%get_parameter(self%RMchl, 'RMchl','d-1', 'loss rate of chlorophyll', default=0.1_rk,scale_factor=d_per_s)
    call self%get_parameter(self%mu0hat, 'mu0hat','d-1', 'max. potential growth rate', default=5.0_rk,scale_factor=d_per_s)
-   call self%get_parameter(self%aI, 'aI','(m^2 /molPhotons) (mol C) /(g chl)', 'Chl-specific slope of the PI curve', default=1.0_rk)
+   call self%get_parameter(self%aI, 'aI','(m^2 E-1 molC gChl-1)', 'Chl-specific slope of the PI curve', default=1.0_rk) ! really /mol or /micromol?
    !nutrient-related
    call self%get_parameter(self%fA_fixed, 'fA_fixed','-', 'fA to use when fa_opt=false', default=0.5_rk)
    call self%get_parameter(self%fV_fixed, 'fV_fixed','-', 'fV to use when fv_opt=false', default=0.25_rk)
@@ -128,7 +128,7 @@
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_NPR, 'NPR','mmol m-3 d-1','net community production rate',      &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_dPAR,'PAR','molE m-2 s-1',       'photosynthetically active radiation',&
+   call self%register_diagnostic_variable(self%id_dPAR,'PAR','E m-2 s-1',       'photosynthetically active radiation',&
                                      output=output_time_step_averaged)
 
    ! Register environmental dependencies
@@ -155,6 +155,7 @@
    real(rk)                   :: din,phyN,parW,par,I_0
    real(rk)                   :: ThetaHat,vNhat,muIhat
    real(rk)                   :: Q,fV,fA,Rchl,I_zero,ZINT
+   real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac
    real(rk)                   :: mu,exc,mort
    real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn
@@ -171,7 +172,7 @@
 
    ! Retrieve current environmental conditions.
    _GET_(self%id_par,parW)             ! local photosynthetically active radiation
-   par=parW* 4.6 !* 1e-6  !mol Photons/m2/s   
+   par=parW* 4.6 * 1e-6   !mumolE/m2/s
    ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
    _GET_HORIZONTAL_(self%id_I_0,I_0)  ! surface short wave radiation
    _GET_(self%id_temp,tC) ! temperature in Celcius
@@ -186,10 +187,8 @@
    !why is this at the end in the original code?
    if( self%theta_opt ) then
      if( par .gt. I_zero ) then
-       !Todo: lambert.f90 doesn't compile because of Div. by 0 error.
-       !larg = (1.0 + self%RMchl * Tfac/(self%mu0hat*Tfac)) * exp(1.0 + self%aI*par/(self%mu0hat*Tfac*self%zetaChl) )      
-       !ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par)
-       ThetaHat = self%TheHat_fixed
+       larg = (1.0 + self%RMchl * Tfac/(self%mu0hat*Tfac)) * exp(1.0 + self%aI*par/(self%mu0hat*Tfac*self%zetaChl) )      
+       ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par)
      else
        ThetaHat = 0.01  !  a small positive value 
      end if
@@ -266,13 +265,13 @@
 
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_Q, Q)
-   _SET_DIAGNOSTIC_(self%id_mu, mu)
    _SET_DIAGNOSTIC_(self%id_fV, fV)
    _SET_DIAGNOSTIC_(self%id_fA, fA)
+   _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_ThetaHat, ThetaHat) 
    !todo: calc and save cellular Theta
    !Standard Diagnostics
-   _SET_DIAGNOSTIC_(self%id_dPAR, par)
+   _SET_DIAGNOSTIC_(self%id_dPAR, par * secs_pr_day) !such that output is E m-2 d-1
    _SET_DIAGNOSTIC_(self%id_PPR, f_din_phy*secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_NPR, (f_din_phy - f_phy_don)*secs_pr_day)
 
