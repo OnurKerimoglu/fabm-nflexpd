@@ -35,7 +35,7 @@ def plot_maecs_Bpoolx2_phy():
     disp('plotting last '+str(numyears)+' year of the simulation')
     
     if len(sys.argv) < 5: #this means no arguments were passed
-	varnames= [ 'temp','nuh','abio_PAR',
+	varnames= [ 'temp','nuh','abio_PAR', #nuh
                 'abio_din','abio_don','abio_detn',
                 'phy1_PPR', 'phy2_PPR','total_PPR_calculator_result',
                 'phy1_N', 'phy1_Q', 'phy1_Chl2C',
@@ -115,6 +115,7 @@ def plot_maecs_Bpoolx2_phy():
         datC=dat[yeari[0],:]
         longname=ncv[varnames[i]].long_name
         shortname=longname.split('hzg_maecs ')[-1]
+        datC[datC<-1e10] = np.nan
 
         if (np.max(datC)-np.min(datC)<1e-10):
             ax.text(0.5,0.5,varnames[i]+'\n\n all: %3.2f'%np.max(datC),

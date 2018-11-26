@@ -12,6 +12,7 @@
 !
 ! !USES:
    use fabm_types
+   use fabm_expressions
 
    implicit none
 
@@ -21,8 +22,8 @@
    type,extends(type_base_model),public :: type_NflexPD_abio
 !     Variable identifiers
       type (type_state_variable_id)     :: id_din,id_don,id_detn
-      type (type_dependency_id)         :: id_temp,id_par
-      type (type_diagnostic_variable_id)   :: id_dPAR
+      type (type_dependency_id)         :: id_temp,id_parW,id_parW_dmean
+      type (type_diagnostic_variable_id)   :: id_dPAR,id_dPAR_dmean
 
 !     Model parameters
       real(rk) :: kdet,kdon
@@ -82,11 +83,13 @@
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_detn)
    
    ! Register diagnostic variables
-   call self%register_diagnostic_variable(self%id_dPAR,'PAR','E/m^2/d',       'photosynthetically active radiation', output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_dPAR,'PAR','E/m^2/d',       'photosynthetically active radiation')
+   call self%register_diagnostic_variable(self%id_dPAR_dmean, 'PAR_dmean','E/m^2/d','photosynthetically active radiation, daily averaged')
                                      
    ! Register environmental dependencies
    call self%register_dependency(self%id_temp,standard_variables%temperature)
-   call self%register_dependency(self%id_par, standard_variables%downwelling_photosynthetic_radiative_flux)
+   call self%register_dependency(self%id_parW, standard_variables%downwelling_photosynthetic_radiative_flux)
+   call self%register_dependency(self%id_parW_dmean,temporal_mean(self%id_parW,period=1._rk*86400._rk,resolution=1._rk))
    
    
    end subroutine initialize
@@ -107,7 +110,7 @@
 ! !LOCAL VARIABLES:
    real(rk)                   :: detn, don
    real(rk)                   :: f_det_don, f_don_din
-   real(rk)                   :: tC,Tfac,par,parW
+   real(rk)                   :: tC,Tfac,parW,parW_dm
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
 !-----------------------------------------------------------------------
@@ -121,9 +124,15 @@
    ! Retrieve environmental dependencies
    _GET_(self%id_temp,tC) ! temperature in Celcius
    
-   _GET_(self%id_par,parW) ! local photosynthetically active radiation
-   par=parW* 4.6 * 1e-6   !molE/m2/s
-   
+   _GET_(self%id_parW,parW) ! local photosynthetically active radiation
+   _GET_(self%id_parW_dmean,parW_dm)
+   ! for the first day, the daily mean value doesn't yet exist (with values in the order of -1e19), 
+   ! so just restore the instantaneous value
+   if ( parW_dm .lt. 0.0 ) then
+     parW_dm=parW
+     !write(*,*)'restored parW_dm'
+   end if   
+      
    !Calculate intermediate terms:
    !Temperature factor 
    Tfac = FofT(tC)
@@ -139,7 +148,9 @@
    _SET_ODE_(self%id_din,   f_don_din)
    
    ! Export diagnostic variables
-   _SET_DIAGNOSTIC_(self%id_dPAR, par * secs_pr_day) !*s_p_d such that output is in d-1
+   _SET_DIAGNOSTIC_(self%id_dPAR, parW * 4.6 * 1e-6 * secs_pr_day) ! mol/m2/d-1
+   _SET_DIAGNOSTIC_(self%id_dPAR_dmean, parW_dm * 4.6 * 1e-6 * secs_pr_day) !mol/m2/d
+    ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
    
    ! Leave spatial loops (if any)
    _LOOP_END_

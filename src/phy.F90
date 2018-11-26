@@ -26,8 +26,7 @@
 !     Variable identifiers
       type (type_state_variable_id)        :: id_phyN
       type (type_state_variable_id)        :: id_din,id_don,id_detn
-      type (type_dependency_id)            :: id_par,id_temp
-      type (type_horizontal_dependency_id) :: id_I_0
+      type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean
       type (type_diagnostic_variable_id)   :: id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR
       
@@ -134,8 +133,8 @@
    call self%add_to_aggregate_variable(total_PPR,self%id_PPR)
 
    ! Register environmental dependencies
-   call self%register_dependency(self%id_par, standard_variables%downwelling_photosynthetic_radiative_flux)
-   call self%register_dependency(self%id_I_0, standard_variables%surface_downwelling_photosynthetic_radiative_flux)
+   call self%register_dependency(self%id_parW, standard_variables%downwelling_photosynthetic_radiative_flux)
+   call self%register_dependency(self%id_par_dmean, 'PAR_dmean','E/m^2/d','photosynthetically active radiation, daily averaged')
    call self%register_dependency(self%id_temp,standard_variables%temperature)
    
    end subroutine initialize
@@ -154,7 +153,7 @@
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
-   real(rk)                   :: din,phyN,parW,par,I_0
+   real(rk)                   :: din,phyN,parW,par,par_dm,Ld
    real(rk)                   :: ThetaHat,vNhat,muIhat
    real(rk)                   :: Q,Theta,fV,fA,Rchl,I_zero,ZINT
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
@@ -173,14 +172,20 @@
    _GET_(self%id_din,din) ! nutrients
 
    ! Retrieve current environmental conditions.
-   _GET_(self%id_par,parW)             ! local photosynthetically active radiation
-   !_GET_(self%id_par,davg)
+   _GET_(self%id_parW,parW)             ! local photosynthetically active radiation
    par=parW* 4.6 * 1e-6   !molE/m2/s
-   
-   !todo: calculate ld (fractional day length)
-   
    ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
-   _GET_HORIZONTAL_(self%id_I_0,I_0)  ! surface short wave radiation
+   _GET_(self%id_par_dmean,par_dm) !in molE/m2/d
+   par_dm=par_dm/secs_pr_day !convert to molE/m2/s
+   
+   if ( par_dm .lt. 0.0 ) then
+     par_dm=par
+     write(*,*)'restored par_dm'
+   end if
+   
+   !todo: get ld (fractional day length)
+   Ld=1.0
+   
    _GET_(self%id_temp,tC) ! temperature in Celcius
    
    !Calculate intermediate terms:
@@ -189,15 +194,16 @@
    
    ! Primary production
    ! Optimization of ThetaHat (optimal Chl content in the chloroplasts)
-   I_zero = self%zetaChl * self%RMchl * Tfac / self%aI   ! Threshold irradiance (todo: include /Ld)
+   I_zero = self%zetaChl * self%RMchl * Tfac / (Ld*self%aI)   ! Threshold irradiance
    
    !why is this at the end in the original code?
    if( self%theta_opt ) then
      if( par .gt. I_zero ) then
        !argument for the Lambert's W function
-       larg = (1.0 + self%RMchl * Tfac/(self%mu0hat*Tfac)) * exp(1.0 + self%aI*par/(self%mu0hat*Tfac*self%zetaChl) )  !todo: use pardavg instead of par
+       larg = (1.0 + self%RMchl * Tfac/(Ld*self%mu0hat*Tfac)) * exp(1.0 + self%aI*par_dm/(self%mu0hat*Tfac*self%zetaChl))
        ! eq. 8 in Smith et al 2016
-       ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par)
+       ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par_dm)
+       ThetaHat=max(0.01,ThetaHat)
      else
        ThetaHat = 0.01  !  a small positive value 
      end if
