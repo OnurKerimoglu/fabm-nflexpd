@@ -5,6 +5,7 @@ from pylab import *
 import netCDF4 as nc4
 import netcdftime
 import sys
+import warnings
 
 def plot_maecs_Bpoolx2_phy():
     
@@ -34,10 +35,13 @@ def plot_maecs_Bpoolx2_phy():
     disp('plotting last '+str(numyears)+' year of the simulation')
     
     if len(sys.argv) < 5: #this means no arguments were passed
-	varnames= [ 'temp','phy_PAR','phy_PPR',
+	varnames= [ 'temp','nuh','abio_PAR',
                 'abio_din','abio_don','abio_detn',
-                'phy_N', 'phy_Q', 'phy_Chl2C',
-                'phy_fV', 'phy_fA', 'phy_ThetaHat']
+                'phy1_PPR', 'phy2_PPR','total_PPR_calculator_result',
+                'phy1_N', 'phy1_Q', 'phy1_Chl2C',
+                'phy2_N', 'phy2_Q', 'phy2_Chl2C',
+                'phy1_fV', 'phy1_fA', 'phy1_ThetaHat',
+                'phy2_fV', 'phy2_fA', 'phy2_ThetaHat']
 	numcol=3.0
     else: 
 	varnames=sys.argv[4].split(',')
@@ -60,15 +64,8 @@ def plot_maecs_Bpoolx2_phy():
     #print('available maecs variables:')        
     #disp(ncv)
     
-    depth=np.squeeze(ncv['z'][:])
-    if len(depth.shape)==2:
-        if all(depth[0]==depth[-1]):
-            depth=depth[0,:]
-        else:
-            depth = depth[0, :]
-            #raise(Warning('plotting for varying-depths is not implemented')) #eg., it needs interpolation on a fixed grid
-
-    #time=ncv['time'][:]/86400.
+    z=np.squeeze(ncv['z'][:]) #depths at layer centers (fabm variables, temp, salt, etc)
+    zi=np.squeeze(ncv['zi'][:]) #depths at layer interfaces (diffusivities, fluxes, etc)
 
     tv = nc.variables['time']
     utime=netcdftime.utime(tv.units)
@@ -87,6 +84,18 @@ def plot_maecs_Bpoolx2_phy():
 
     for i,varn in enumerate(varnames):       
         print varn
+        if varn in ['nuh','nus']:
+            depth=zi #depth at interfaces
+        else:
+            depth=z
+            
+        #if depth vector is 2-D (vary with time)
+        if len(depth.shape)==2:
+            # repeat the tvecC to obtain a matrix
+            t=np.transpose(array([tvecC,]*depth.shape[1]))
+        else:
+            t=tvecC
+            
         ax=subplot(ceil(numvar/numcol),numcol,i+1)
 
         if (varnames[i]=='skip'):
@@ -122,7 +131,11 @@ def plot_maecs_Bpoolx2_phy():
             else:
                 title(shortname + ' [$%s$]'%units, size=10.0)
 
-            pcf=ax.contourf(tvecC,depth,transpose(datC),cmap=plt.get_cmap(colmap))
+            if len(z.shape) == 2:
+                pcf = ax.contourf(t, depth, datC, cmap=plt.get_cmap(colmap))
+            else:
+                pcf=ax.contourf(tvecC,depth,transpose(datC),cmap=plt.get_cmap(colmap))
+
 
         #x-axis
         format_date_axis(ax,[tvecC[0], tvecC[-1]])

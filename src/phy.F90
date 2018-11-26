@@ -29,7 +29,7 @@
       type (type_dependency_id)            :: id_par,id_temp
       type (type_horizontal_dependency_id) :: id_I_0
       type (type_diagnostic_variable_id)   :: id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
-      type (type_diagnostic_variable_id)   :: id_PPR,id_dPAR
+      type (type_diagnostic_variable_id)   :: id_PPR
       
       
 !     Model parameters
@@ -47,6 +47,9 @@
       procedure :: do
       procedure :: get_light_extinction
    end type
+   
+   type (type_bulk_standard_variable),parameter :: total_PPR = type_bulk_standard_variable(name='total_PPR',units='mmolC/m^3/d',aggregate_variable=.true.)
+   
 !EOP
 !-----------------------------------------------------------------------
 
@@ -130,8 +133,7 @@
                                      
    call self%register_diagnostic_variable(self%id_PPR, 'PPR','mmolC/m^3/d','Primary production rate',      &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_dPAR,'PAR','E/m^2/d',       'photosynthetically active radiation',&
-                                     output=output_time_step_averaged)
+   call self%add_to_aggregate_variable(total_PPR,self%id_PPR)
 
    ! Register environmental dependencies
    call self%register_dependency(self%id_par, standard_variables%downwelling_photosynthetic_radiative_flux)
@@ -260,11 +262,11 @@
       !  mu = muIhat * ( 1 + 2*( ZINT - sqrt(ZINT*(1 + ZINT)) ) )           - Rchl 
 !!$      mu = muIhat*(1.0 + 2.0*(ZINT - sqrt(ZINT*(1.0+ZINT))) ) - Rchl
    ! eq. 5 in Pahlow and Oschlies 2013 (-Rchl)
-   mu = muIhat * ( 1 - fV - self%Q0/(2.0*Q) ) - self%zetaN*fV*vNhat - Rchl ![mmolN/m3/s]
+   mu = muIhat * ( 1 - fV - self%Q0/(2.0*Q) ) - self%zetaN*fV*vNhat - Rchl ![/s]
    
    !Just for the diagnostics:
    !Primary production rate:
-   PProd = (1.0-self%kexc) * max(0.0, mu*phyN / Q )  ! PP [ mmol C / m3 / s ]
+   PProd = (1.0-self%kexc) * max(0.0, mu*phyN / Q )  ! PP [ mmolC / m3 / s ]
 
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
    Theta= (1 - self%Q0 / 2 / Q - fV)* Q
@@ -278,7 +280,7 @@
    f_din_phy = mu * phyN
    f_phy_detn =       self%Mpart  * mort 
    f_phy_don = (1.0 - self%Mpart) * mort + exc
-   !write(*,'(A,3F7.4)')'Mpart,mort,f_phy_detN:',self%Mpart, mort*secs_pr_day, f_phy_detN * secs_pr_day
+   
    
    ! Set temporal derivatives
    _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn)
@@ -293,12 +295,9 @@
    _SET_DIAGNOSTIC_(self%id_Chl2C, Theta)
    _SET_DIAGNOSTIC_(self%id_fV, fV)
    _SET_DIAGNOSTIC_(self%id_fA, fA)
-   _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_ThetaHat, ThetaHat) 
-   !todo: calc and save cellular Theta
-   !Standard Diagnostics
-   _SET_DIAGNOSTIC_(self%id_dPAR, par * secs_pr_day) !such that output is E m-2 d-1
-   _SET_DIAGNOSTIC_(self%id_PPR, PProd*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_PPR, PProd*secs_pr_day) !*s_p_d such that output is in d-1
 
    ! Leave spatial loops (if any)
    _LOOP_END_

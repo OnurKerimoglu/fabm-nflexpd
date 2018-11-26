@@ -21,7 +21,8 @@
    type,extends(type_base_model),public :: type_NflexPD_abio
 !     Variable identifiers
       type (type_state_variable_id)     :: id_din,id_don,id_detn
-      type (type_dependency_id)         :: id_temp
+      type (type_dependency_id)         :: id_temp,id_par
+      type (type_diagnostic_variable_id)   :: id_dPAR
 
 !     Model parameters
       real(rk) :: kdet,kdon
@@ -80,8 +81,13 @@
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_don)
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_detn)
    
+   ! Register diagnostic variables
+   call self%register_diagnostic_variable(self%id_dPAR,'PAR','E/m^2/d',       'photosynthetically active radiation', output=output_time_step_averaged)
+                                     
    ! Register environmental dependencies
    call self%register_dependency(self%id_temp,standard_variables%temperature)
+   call self%register_dependency(self%id_par, standard_variables%downwelling_photosynthetic_radiative_flux)
+   
    
    end subroutine initialize
 !EOC
@@ -101,7 +107,8 @@
 ! !LOCAL VARIABLES:
    real(rk)                   :: detn, don
    real(rk)                   :: f_det_don, f_don_din
-   real(rk)                   :: tC,Tfac
+   real(rk)                   :: tC,Tfac,par,parW
+   real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
 !-----------------------------------------------------------------------
 !BOC
@@ -113,6 +120,9 @@
    _GET_(self%id_don,don) ! dissolved organic nitrogen
    ! Retrieve environmental dependencies
    _GET_(self%id_temp,tC) ! temperature in Celcius
+   
+   _GET_(self%id_par,parW) ! local photosynthetically active radiation
+   par=parW* 4.6 * 1e-6   !molE/m2/s
    
    !Calculate intermediate terms:
    !Temperature factor 
@@ -127,7 +137,10 @@
    _SET_ODE_(self%id_detn, -f_det_don)
    _SET_ODE_(self%id_don,   f_det_don - f_don_din)
    _SET_ODE_(self%id_din,   f_don_din)
-
+   
+   ! Export diagnostic variables
+   _SET_DIAGNOSTIC_(self%id_dPAR, par * secs_pr_day) !*s_p_d such that output is in d-1
+   
    ! Leave spatial loops (if any)
    _LOOP_END_
 
