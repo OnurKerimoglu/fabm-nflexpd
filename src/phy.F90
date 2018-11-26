@@ -33,7 +33,7 @@
       
       
 !     Model parameters
-      real(rk) :: p0,kc,w_phy
+      real(rk) :: kc,w_phy
       real(rk) :: zetaN,zetaChl,kexc,M0p,Mpart,RMChl
       real(rk) :: mu0hat,aI
       real(rk) :: A0hat,V0hat,Q0
@@ -45,7 +45,6 @@
 
       procedure :: initialize
       procedure :: do
-      procedure :: get_light_extinction
    end type
    
    type (type_bulk_standard_variable),parameter :: total_PPR = type_bulk_standard_variable(name='total_PPR',units='mmolC/m^3/d',aggregate_variable=.true.)
@@ -80,7 +79,6 @@
    ! Store parameter values in our own derived type
    ! NB: all rates must be provided in values per day and are converted here to values per second.
    ! General:
-   call self%get_parameter(self%p0,   'p0',   'mmol m-3', 'background concentration ',               default=0.0225_rk)
    call self%get_parameter(self%kc,   'kc',   'm2 mmol-1','specific light extinction',               default=0.03_rk)
    call self%get_parameter(self%w_phy,       'w_phy',  'm d-1',    'vertical velocity (<0 for sinking)',      default=-1.0_rk, scale_factor=d_per_s)
    !optimality switches
@@ -107,7 +105,7 @@
    
 
    ! Register state variables
-   call self%register_state_variable(self%id_phyN,'N','mmolN/m^3','bound-N concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy)
+   call self%register_state_variable(self%id_phyN,'N','mmolN/m^3','bound-N concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=self%kc)
 
    ! Register contribution of state to global aggregate variables.
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_phyN)
@@ -304,42 +302,6 @@
 
    end subroutine do
 !EOC
-
-
-!-----------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get the light extinction coefficient due to biogeochemical
-! variables
-!
-! !INTERFACE:
-   subroutine get_light_extinction(self,_ARGUMENTS_GET_EXTINCTION_)
-!
-! !INPUT PARAMETERS:
-   class (type_NflexPD_phy), intent(in)     :: self
-   _DECLARE_ARGUMENTS_GET_EXTINCTION_
-!
-! !LOCAL VARIABLES:
-   real(rk)                     :: phyN
-!
-!EOP
-!-----------------------------------------------------------------------
-!BOC
-   ! Enter spatial loops (if any)
-   _LOOP_BEGIN_
-
-   ! Retrieve current (local) state variable values.
-   _GET_(self%id_phyN,phyN) ! phytoplankton
-
-   ! Self-shading with explicit contribution from background phytoplankton concentration.
-   _SET_EXTINCTION_(self%kc*(self%p0+phyN))
-
-   ! Leave spatial loops (if any)
-   _LOOP_END_
-
-   end subroutine get_light_extinction
-!EOC
-!-----------------------------------------------------------------------
 
 
 !-----------------------------------------------------------------------
