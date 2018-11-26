@@ -27,6 +27,7 @@
       type (type_state_variable_id)        :: id_phyN
       type (type_state_variable_id)        :: id_din,id_don,id_detn
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean
+      type (type_horizontal_dependency_id) :: id_FDL
       type (type_diagnostic_variable_id)   :: id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR
       
@@ -135,7 +136,9 @@
    ! Register environmental dependencies
    call self%register_dependency(self%id_parW, standard_variables%downwelling_photosynthetic_radiative_flux)
    call self%register_dependency(self%id_par_dmean, 'PAR_dmean','E/m^2/d','photosynthetically active radiation, daily averaged')
+   call self%register_horizontal_dependency(self%id_FDL, 'FDL','-',       'fractional day length')
    call self%register_dependency(self%id_temp,standard_variables%temperature)
+   
    
    end subroutine initialize
 !EOC
@@ -180,11 +183,10 @@
    
    if ( par_dm .lt. 0.0 ) then
      par_dm=par
-     write(*,*)'restored par_dm'
    end if
    
-   !todo: get ld (fractional day length)
-   Ld=1.0
+   !get Ld (fractional day length)
+   _GET_HORIZONTAL_(self%id_FDL,Ld)
    
    _GET_(self%id_temp,tC) ! temperature in Celcius
    

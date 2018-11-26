@@ -1,5 +1,6 @@
 instances:
   phy1:
+    use: .true.
     long_name: Phytoplankton-1
     model: nflexpd/phy
     parameters:
@@ -25,6 +26,7 @@ instances:
     initialization:
       N: 0.15                       # Phytoplankton-N concentration (mmol m-3)
     coupling:
+      FDL: abio/FDL        # Fractional Day Length (-)
       PAR_dmean: abio/PAR_dmean  # PAR, daily mean (mol/m2/d)
       din: abio/din        # nutrient source (mmol m-3)
       don: abio/don        # sink for excreted matter (mmol m-3)
@@ -56,6 +58,7 @@ instances:
     initialization:
       N: 0.15                       # Phytoplankton-N concentration (mmol m-3)
     coupling:
+      FDL: abio/FDL        # Fractional Day Length (-)
       PAR_dmean: abio/PAR_dmean  # PAR, daily mean (mol/m2/d)
       din: abio/din        # nutrient source (mmol m-3)
       don: abio/don        # sink for excreted matter (mmol m-3)

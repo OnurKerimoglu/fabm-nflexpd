@@ -3,6 +3,7 @@
 !BOP
 !
 ! !MODULE: NflexPD_abio - abiotic component
+! Original Author(s): S. Lan Smith 2014-12-09, O. Kerimoglu 2018-11-27
 !
 ! !INTERFACE:
    module NflexPD_abio
@@ -23,8 +24,11 @@
 !     Variable identifiers
       type (type_state_variable_id)     :: id_din,id_don,id_detn
       type (type_dependency_id)         :: id_temp,id_parW,id_parW_dmean
-      type (type_diagnostic_variable_id)   :: id_dPAR,id_dPAR_dmean
-
+      type (type_horizontal_dependency_id)  :: id_lat
+      type (type_global_dependency_id)  :: id_doy
+      type (type_diagnostic_variable_id):: id_dPAR,id_dPAR_dmean
+      type (type_horizontal_diagnostic_variable_id):: id_dFDL
+      
 !     Model parameters
       real(rk) :: kdet,kdon
 
@@ -32,6 +36,7 @@
 
       procedure :: initialize
       procedure :: do
+      procedure :: do_surface
 
    end type
 !EOP
@@ -83,10 +88,13 @@
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_detn)
    
    ! Register diagnostic variables
+   call self%register_horizontal_diagnostic_variable(self%id_dFDL,'FDL','-',       'fractional day length')
    call self%register_diagnostic_variable(self%id_dPAR,'PAR','E/m^2/d',       'photosynthetically active radiation')
    call self%register_diagnostic_variable(self%id_dPAR_dmean, 'PAR_dmean','E/m^2/d','photosynthetically active radiation, daily averaged')
                                      
    ! Register environmental dependencies
+   call self%register_global_dependency(self%id_doy,standard_variables%number_of_days_since_start_of_the_year)
+   call self%register_horizontal_dependency(self%id_lat,standard_variables%latitude)
    call self%register_dependency(self%id_temp,standard_variables%temperature)
    call self%register_dependency(self%id_parW, standard_variables%downwelling_photosynthetic_radiative_flux)
    call self%register_dependency(self%id_parW_dmean,temporal_mean(self%id_parW,period=1._rk*86400._rk,resolution=1._rk))
@@ -110,7 +118,7 @@
 ! !LOCAL VARIABLES:
    real(rk)                   :: detn, don
    real(rk)                   :: f_det_don, f_don_din
-   real(rk)                   :: tC,Tfac,parW,parW_dm
+   real(rk)                   :: lat,doy,Ld,tC,Tfac,parW,parW_dm
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
 !-----------------------------------------------------------------------
@@ -132,7 +140,7 @@
      parW_dm=parW
      !write(*,*)'restored parW_dm'
    end if   
-      
+   
    !Calculate intermediate terms:
    !Temperature factor 
    Tfac = FofT(tC)
@@ -140,7 +148,6 @@
    !Calculate fluxes between pools
    f_det_don = self%kdet * Tfac * detn 
    f_don_din = self%kdon * Tfac * don
-   
    
    ! Set temporal derivatives
    _SET_ODE_(self%id_detn, -f_det_don)
@@ -158,6 +165,86 @@
    end subroutine do
 !EOC
 
+!-----------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Right hand sides of Abiotic model
+!
+! !INTERFACE:
+   subroutine do_surface(self,_ARGUMENTS_DO_SURFACE_)
+!
+! !INPUT PARAMETERS:
+   class (type_NflexPD_abio), intent(in)     :: self
+   _DECLARE_ARGUMENTS_DO_SURFACE_
+!
+! !LOCAL VARIABLES:
+   real(rk)                   :: lat,doy,Ld
+!EOP
+!-----------------------------------------------------------------------
+!BOC
+   ! Enter spatial loops (if any)
+   _HORIZONTAL_LOOP_BEGIN_
+   
+   _GET_HORIZONTAL_(self%id_lat,lat)
+   _GET_GLOBAL_(self%id_doy,doy)
+   Ld=FDL(lat,doy)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dFDL,Ld) !Fractional day length
+   ! Leave spatial loops (if any)
+   _HORIZONTAL_LOOP_END_
+
+   end subroutine do_surface
+!EOC
+
+!-----------------------------------------------------------------------
+!
+! !IROUTINE: Fractional Day Length
+!
+! !INTERFACE:
+   REALTYPE function FDL(L,doy)
+!
+! !DESCRIPTION:
+! Here, the sunrise and sunset are calculated based on latitude and day of year (doy)
+! based on astronomical formulations
+!
+! !USES:
+   IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+   REALTYPE, intent(in)    :: L,doy
+   REALTYPE                :: P,D,nom,denom
+   INTEGER                 :: J
+! !CONSTANTS   
+   REALTYPE,parameter      :: pi=3.14159
+   
+!
+! !REVISION HISTORY:
+!  Original author(s):  O. Kerimoglu 27.11.2018
+!
+!EOP
+!-----------------------------------------------------------------------
+!BOC
+   !http://mathforum.org/library/drmath/view/56478.html
+   !...
+   !_Ecological Modeling_, volume 80 (1995) pp. 87-95, "A Model  Comparison for Daylength as a Function of Latitude and Day of the  Year." This article presented a model that apparently does a very good job of estimating the daylight - the error is less than one minute within 40 degrees of the equator, and less than seven minutes within  60 degrees and usually within two minutes for these latitudes.
+
+   !D = daylength
+   !L = latitude
+   !J = day of the year
+   
+   J=floor(doy)
+
+   P = asin(.39795*cos(.2163108 + 2*atan(.9671396*tan(.00860*(J-186)))))
+   nom= sin(0.8333*pi/180) + sin(L*pi/180)*sin(P)
+   denom= cos(L*pi/180)*cos(P)  
+   D = 24 - (24/pi)*acos(nom/denom)
+   
+   !write(*,*)'L,J,D:',L,J,D
+   
+   FDL=D/24.
+   
+   return
+   end function FDL
+!EOC
 
 !-----------------------------------------------------------------------
 !
