@@ -34,9 +34,9 @@ def plot_maecs_Bpoolx2_phy():
     disp('plotting last '+str(numyears)+' year of the simulation')
     
     if len(sys.argv) < 5: #this means no arguments were passed
-	varnames= [ 'temp','phy_PAR','phy_NPR',
+	varnames= [ 'temp','phy_PAR','phy_PPR',
                 'abio_din','abio_don','abio_detn',
-                'phy_N', 'phy_Q', 'phy_mu',
+                'phy_N', 'phy_Q', 'phy_Chl2C',
                 'phy_fV', 'phy_fA', 'phy_ThetaHat']
 	numcol=3.0
     else: 

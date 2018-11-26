@@ -3,7 +3,9 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !MODULE: NflexPD_phy - Fennel & Neumann 1996 NPZD model - phytoplankton component
+! !MODULE: NflexPD - phytoplankton component
+! Original Authors: S. Lan Smith, 2014-12-09
+! FABM implementation: O. Kerimoglu 20181122
 !
 ! !INTERFACE:
    module NflexPD_phy
@@ -26,8 +28,8 @@
       type (type_state_variable_id)        :: id_din,id_don,id_detn
       type (type_dependency_id)            :: id_par,id_temp
       type (type_horizontal_dependency_id) :: id_I_0
-      type (type_diagnostic_variable_id)   :: id_Q,id_mu,id_fV,id_fA,id_ThetaHat
-      type (type_diagnostic_variable_id)   :: id_PPR,id_NPR,id_dPAR
+      type (type_diagnostic_variable_id)   :: id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
+      type (type_diagnostic_variable_id)   :: id_PPR,id_dPAR
       
       
 !     Model parameters
@@ -102,20 +104,22 @@
    
 
    ! Register state variables
-   call self%register_state_variable(self%id_phyN,'N','mmol m-3','Phytoplankton-N concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy)
+   call self%register_state_variable(self%id_phyN,'N','mmolN/m^3','bound-N concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy)
 
    ! Register contribution of state to global aggregate variables.
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_phyN)
 
    ! Register dependencies on external state variables
-   call self%register_state_dependency(self%id_din, 'din',   'mmol m-3','dissolved inorganic nitrogen')
-   call self%register_state_dependency(self%id_don, 'don','mmol m-3','dissolved organic nitrogen')
-   call self%register_state_dependency(self%id_detN,'detN','mmol m-3','detrital nitrogen')
+   call self%register_state_dependency(self%id_din, 'din',   'mmolN/m^3','dissolved inorganic nitrogen')
+   call self%register_state_dependency(self%id_don, 'don','mmolN/m^3','dissolved organic nitrogen')
+   call self%register_state_dependency(self%id_detN,'detN','mmolN/m^3','detrital nitrogen')
 
    ! Register diagnostic variables
-   call self%register_diagnostic_variable(self%id_Q, 'Q','molN molC-1',    'Cellular nitrogen Quota',           &
+   call self%register_diagnostic_variable(self%id_Q, 'Q','molN/molC',    'Cellular nitrogen Quota',           &
                                      output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_mu, 'mu','d-1',    'net sp. growth rate',           &
+   call self%register_diagnostic_variable(self%id_Chl2C, 'Chl2C','gChl/molC',    'Cellular chlorophyll content',           &
+                                     output=output_instantaneous)                                     
+   call self%register_diagnostic_variable(self%id_mu, 'mu','/d',    'net sp. growth rate',           &
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_fV, 'fV','-',    'fV',           &
                                      output=output_time_step_averaged)
@@ -124,11 +128,9 @@
    call self%register_diagnostic_variable(self%id_ThetaHat, 'ThetaHat','-', 'ThetaHat',           &
                                      output=output_time_step_averaged)
                                      
-   call self%register_diagnostic_variable(self%id_PPR, 'PPR','mmol m-3 d-1','gross primary production rate',      &
+   call self%register_diagnostic_variable(self%id_PPR, 'PPR','mmolC/m^3/d','Primary production rate',      &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_NPR, 'NPR','mmol m-3 d-1','net community production rate',      &
-                                     output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_dPAR,'PAR','E m-2 s-1',       'photosynthetically active radiation',&
+   call self%register_diagnostic_variable(self%id_dPAR,'PAR','E/m^2/d',       'photosynthetically active radiation',&
                                      output=output_time_step_averaged)
 
    ! Register environmental dependencies
@@ -142,7 +144,7 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Right hand sides of NPZD model
+! !IROUTINE: Right hand sides of the NflexPD model
 !
 ! !INTERFACE:
    subroutine do(self,_ARGUMENTS_DO_)
@@ -154,10 +156,10 @@
 ! !LOCAL VARIABLES:
    real(rk)                   :: din,phyN,parW,par,I_0
    real(rk)                   :: ThetaHat,vNhat,muIhat
-   real(rk)                   :: Q,fV,fA,Rchl,I_zero,ZINT
+   real(rk)                   :: Q,Theta,fV,fA,Rchl,I_zero,ZINT
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac
-   real(rk)                   :: mu,exc,mort
+   real(rk)                   :: mu,exc,mort,Pprod
    real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
@@ -172,7 +174,11 @@
 
    ! Retrieve current environmental conditions.
    _GET_(self%id_par,parW)             ! local photosynthetically active radiation
-   par=parW* 4.6 * 1e-6   !mumolE/m2/s
+   !_GET_(self%id_par,davg)
+   par=parW* 4.6 * 1e-6   !molE/m2/s
+   
+   !todo: calculate ld (fractional day length)
+   
    ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
    _GET_HORIZONTAL_(self%id_I_0,I_0)  ! surface short wave radiation
    _GET_(self%id_temp,tC) ! temperature in Celcius
@@ -182,12 +188,15 @@
    Tfac = FofT(tC)
    
    ! Primary production
-   I_zero = self%zetaChl * self%RMchl * Tfac / self%aI   ! Threshold irradiance 
+   ! Optimization of ThetaHat (optimal Chl content in the chloroplasts)
+   I_zero = self%zetaChl * self%RMchl * Tfac / self%aI   ! Threshold irradiance (todo: include /Ld)
    
    !why is this at the end in the original code?
    if( self%theta_opt ) then
      if( par .gt. I_zero ) then
-       larg = (1.0 + self%RMchl * Tfac/(self%mu0hat*Tfac)) * exp(1.0 + self%aI*par/(self%mu0hat*Tfac*self%zetaChl) )      
+       !argument for the Lambert's W function
+       larg = (1.0 + self%RMchl * Tfac/(self%mu0hat*Tfac)) * exp(1.0 + self%aI*par/(self%mu0hat*Tfac*self%zetaChl) )  !todo: use pardavg instead of par
+       ! eq. 8 in Smith et al 2016
        ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par)
      else
        ThetaHat = 0.01  !  a small positive value 
@@ -196,9 +205,12 @@
      ThetaHat = self%TheHat_fixed
    end if
    
+   ! Light limited growth rate (eq. 6 in Smith et al 2016)
    muIhat = self%mu0hat * Tfac * SIT(self%aI,self%mu0hat,par,ThetaHat,Tfac)
    
+   !Optimal allocation for affinity vs max. uptake
    if( self%fA_opt ) then
+     ! eq. 17 in Smith et al 2016) 
      fA = 1.0 / ( 1.0 + sqrt(self%A0hat * din /(Tfac * self%V0hat)) ) 
    else
      fA =  self%fA_fixed
@@ -207,9 +219,15 @@
    ! T-dependence only for V0, not for A0 (as suggested by M. Pahlow)
    vNhat = vAff( din, fA, self%A0hat, self%V0hat * Tfac )
    
+   ! Alternative way of calculating vNhat
+   !vNhat2=vOU(din,self%A0hat,self%V0hat * Tfac)
+   
+   !Optimization of fV (synthesis vs nut. uptake)
+   !Intermediate term  in brackets that appears in Smith et al 2016, eqs. 13 & 14
    ZINT = (self%zetaN + muIhat/vNhat) * self%Q0 / 2.0
     
    if( self%fV_opt .and.  par .gt. I_zero ) then
+     ! eq. 13  in Smith et al 2016
      fV = (-1.0 + sqrt(1.0 + 1.0 / ZINT) ) * (self%Q0 / 2.0) * muIhat / vNhat
    else
      fV = self%fV_fixed 
@@ -217,9 +235,10 @@
    
    !!$ ***  Calculating the optimal cell quota, based on the term ZINT, as calculated above
    if( self%fV_opt ) then
+     ! eq. 14 in Smith et al 2016
      Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
    else
-     Q = 1.0/6.67 !Redfield
+     Q = 1.0/6.67 !Almost Redfield? (106/16=6.625)
    end if
 !!$ *** To correctly apply the Balanced Growth Assumption with this Non-adaptive model *** 
 !!$ * * * Calculate QN, the N cell quota [mol N / mol C],
@@ -232,17 +251,23 @@
 !!$      dQdNbyQ(ci) = 0.0
 
    ! Losses due to Chlorophyll
+   ! eq. 26 in Smith et al 2016
    Rchl = (muIhat + self%RMchl*Tfac) * ( 1 - fV - self%Q0/(2.0*Q) ) * self%zetaChl * ThetaHat
    
    !  Net specific growth rate, assuming instantantaneous optimal resource allocation. 
       !  Either equation gives the same result, provided fA, fV and QN have been optimized.  
-      !  The term with ZIN accounts for the cost of N assimilation, but not for chl maintenance. 
-      !  mu = muIhat * ( One + 2*( ZIN - sqrt(ZIN*(One + ZIN)) ) )           - Rchl 
+      !  The term with ZINT accounts for the cost of N assimilation, but not for chl maintenance. 
+      !  mu = muIhat * ( 1 + 2*( ZINT - sqrt(ZINT*(1 + ZINT)) ) )           - Rchl 
 !!$      mu = muIhat*(1.0 + 2.0*(ZINT - sqrt(ZINT*(1.0+ZINT))) ) - Rchl
-   mu = muIhat * ( 1 - fV - self%Q0/(2.0*Q) ) - self%zetaN*fV*vNhat - Rchl
+   ! eq. 5 in Pahlow and Oschlies 2013 (-Rchl)
+   mu = muIhat * ( 1 - fV - self%Q0/(2.0*Q) ) - self%zetaN*fV*vNhat - Rchl ![mmolN/m3/s]
    
-   !not used (?):
-   !PProd = (1.0-self%kexc) * max(0.0, mu*phyN / Q )  ! PP [ mmol C / m3 / s ]
+   !Just for the diagnostics:
+   !Primary production rate:
+   PProd = (1.0-self%kexc) * max(0.0, mu*phyN / Q )  ! PP [ mmol C / m3 / s ]
+
+   !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
+   Theta= (1 - self%Q0 / 2 / Q - fV)* Q
    
    !Excretion:
    exc = self%kexc * mu * phyN
@@ -265,6 +290,7 @@
 
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_Q, Q)
+   _SET_DIAGNOSTIC_(self%id_Chl2C, Theta)
    _SET_DIAGNOSTIC_(self%id_fV, fV)
    _SET_DIAGNOSTIC_(self%id_fA, fA)
    _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day)
@@ -272,8 +298,7 @@
    !todo: calc and save cellular Theta
    !Standard Diagnostics
    _SET_DIAGNOSTIC_(self%id_dPAR, par * secs_pr_day) !such that output is E m-2 d-1
-   _SET_DIAGNOSTIC_(self%id_PPR, f_din_phy*secs_pr_day)
-   _SET_DIAGNOSTIC_(self%id_NPR, (f_din_phy - f_phy_don)*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_PPR, PProd*secs_pr_day)
 
    ! Leave spatial loops (if any)
    _LOOP_END_
@@ -341,6 +366,7 @@
 !EOP
 !-----------------------------------------------------------------------
 !BOC
+   !dependence of growth rate on light (eq. 7 in Smith et al 2016)
    SIT = 1.0 - exp( - aI * ThH * I / (Tfac * mu0hat) )
    return
  end function SIT
@@ -351,7 +377,7 @@
 ! !IROUTINE: Nutrient uptake rate based on Optimal Uptake (OU) kinetics 
 !
 ! !INTERFACE:
-   REALTYPE function vOU(n,Apot,Vpot)
+   REALTYPE function vOU(N,Apot,Vpot)
 !
 ! !DESCRIPTION:
 !            The nutrient uptake rate calculated by Optimal Uptake (OU) kinetics assuming instantaneous 
@@ -372,7 +398,10 @@
 !EOP
 !-----------------------------------------------------------------------
 !BOC
-   vOU = Vpot * Apot * N / ( Vpot + 2*sqrt(Vpot*Apot*n) + Apot*N )
+   ! eq. 20
+   !Original:
+   !vOU = Vpot * Apot * N / ( Vpot + 2*sqrt(Vpot*Apot*n) + Apot*N )
+   vOU = Vpot * N / ( Vpot/Apot  + 2*sqrt(Vpot*N/Apot) + N )
    return
  end function vOU
 !-----------------------------------------------------------------------
@@ -407,6 +436,7 @@
 !EOP
 !-----------------------------------------------------------------------
 !BOC
+   ! eq. 16 in Smith et al. 2016
    vAff = (1-f)*Vpot * f*Apot * N / ( (1-f)*Vpot + f*Apot*N )
    return
  end function vAff

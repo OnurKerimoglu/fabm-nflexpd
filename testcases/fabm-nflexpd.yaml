@@ -1,6 +1,6 @@
 instances:
   phy:
-    long_name: nflexpd phytoplankton
+    long_name: Phytoplankton
     model: nflexpd/phy
     parameters:
       p0: 0.0225                     # background concentration (mmol m-3)
@@ -30,7 +30,7 @@ instances:
       don: abio/don        # sink for excreted matter (mmol m-3)
       detN: abio/detn      # sink for dead matter (mmol m-3)
   abio:
-    long_name: nlfexpd pelagic
+    long_name: Abiotic
     model: nflexpd/abio
     parameters:
       w_det: -5.0                  # vertical velocity (<0 for sinking) (m d-1)

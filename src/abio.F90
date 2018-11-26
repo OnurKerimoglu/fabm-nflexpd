@@ -67,11 +67,11 @@
    call self%get_parameter(self%kdon,'kdon','d-1',      'sp. rate for f_don_din',             default=0.003_rk,scale_factor=d_per_s)
    
    ! Register state variables
-   call self%register_state_variable(self%id_din,'din','mmol m-3','DIN concentration',     &
+   call self%register_state_variable(self%id_din,'din','mmolN/m^3','DIN concentration',     &
                                 1.0_rk,minimum=0.0_rk,no_river_dilution=.true.)
-   call self%register_state_variable(self%id_don,'don','mmol m-3','DON concentration',     &
+   call self%register_state_variable(self%id_don,'don','mmolN/m^3','DON concentration',     &
                                 1.0_rk,minimum=0.0_rk,no_river_dilution=.true.)
-   call self%register_state_variable(self%id_detn,'detn','mmol m-3','Det-N concentration',    &
+   call self%register_state_variable(self%id_detn,'detn','mmolN/m^3','Det-N concentration',    &
                                 4.5_rk,minimum=0.0_rk,vertical_movement=w_det, &
                                 specific_light_extinction=kc)
    
