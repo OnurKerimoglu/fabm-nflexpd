@@ -19,7 +19,7 @@ First obtain the FABM source code:
 
 Obtain the NflexPD code for FABM:
 
-    git clone ??? <NFLEXPDDIR>
+    git clone git@bitbucket.org:OnurKerimoglu/nflexpd.git <NFLEXPDDIR>
 
 (Replace `<NFLEXPDDIR>` with the directory with the NFLEXPD code, e.g., ~/nflexpd-git.)
 
