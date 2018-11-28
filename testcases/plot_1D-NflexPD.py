@@ -16,7 +16,7 @@ def plot_maecs_Bpoolx2_phy():
     colmap='viridis'
     #import pdb
     if len(sys.argv) < 2: #this means no arguments were passed      
-      fname='/home/onur/setups/test-BGCmodels/NflexPD/1D-40m/test/1D-40m_NflexPD'
+      fname='/home/onur/setups/test-BGCmodels/NflexPD/1D-40m/test/1D-40m_NflexPD.nc'
       disp('plotting default file:'+fname)
     else:
       disp('plotting file specified:'+sys.argv[1])
@@ -59,7 +59,7 @@ def plot_maecs_Bpoolx2_phy():
         figuresize=(15,12) #(25,15)
     
     #pelagic variables
-    nc=nc4.Dataset(fname+'.nc')
+    nc=nc4.Dataset(fname)
     ncv=nc.variables
     #print('available maecs variables:')        
     #disp(ncv)
@@ -156,7 +156,7 @@ def plot_maecs_Bpoolx2_phy():
      
         
     nc.close()
-    savefig(fname+'_cont.png')
+    savefig(fname.split('.nc')[0]+'_cont.png')
     disp('python contour plot saved in: '+fname+'_cont.png')
     #show()
         
