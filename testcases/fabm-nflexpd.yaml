@@ -4,7 +4,7 @@ instances:
     long_name: Phytoplankton-1
     model: nflexpd/phy
     parameters:
-      kc: 0.03                       # specific light extinction (m2 mmol-1)
+      kc: 0.03                       # specific light extinction (m2 mmolN-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       Theta_opt : .true.            # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
@@ -36,7 +36,7 @@ instances:
     long_name: Phytoplankton-2
     model: nflexpd/phy
     parameters:
-      kc: 0.03                       # specific light extinction (m2 mmol-1)
+      kc: 0.03                       # specific light extinction (m2 mmolN-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       Theta_opt : .true.            # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)

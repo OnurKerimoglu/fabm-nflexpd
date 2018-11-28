@@ -79,7 +79,7 @@
    ! Store parameter values in our own derived type
    ! NB: all rates must be provided in values per day and are converted here to values per second.
    ! General:
-   call self%get_parameter(self%kc,   'kc',   'm2 mmol-1','specific light extinction',               default=0.03_rk)
+   call self%get_parameter(self%kc,   'kc',   'm2 mmolN-1','specific light extinction',               default=0.03_rk)
    call self%get_parameter(self%w_phy,       'w_phy',  'm d-1',    'vertical velocity (<0 for sinking)',      default=-1.0_rk, scale_factor=d_per_s)
    !optimality switches
    call self%get_parameter(self%Theta_opt, 'Theta_opt','-', 'whether to optimize theta', default=.false.)
@@ -116,9 +116,9 @@
    call self%register_state_dependency(self%id_detN,'detN','mmolN/m^3','detrital nitrogen')
 
    ! Register diagnostic variables
-   call self%register_diagnostic_variable(self%id_Q, 'Q','molN/molC',    'Cellular nitrogen Quota',           &
+   call self%register_diagnostic_variable(self%id_Q, 'Q','molN/molC',    'cellular nitrogen Quota',           &
                                      output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_Chl2C, 'Chl2C','gChl/molC',    'Cellular chlorophyll content',           &
+   call self%register_diagnostic_variable(self%id_Chl2C, 'Chl2C','gChl/molC',    'cellular chlorophyll content',           &
                                      output=output_instantaneous)                                     
    call self%register_diagnostic_variable(self%id_mu, 'mu','/d',    'net sp. growth rate',           &
                                      output=output_time_step_averaged)
