@@ -23,14 +23,14 @@
    type,extends(type_base_model),public :: type_NflexPD_abio
 !     Variable identifiers
       type (type_state_variable_id)     :: id_din,id_don,id_detn
-      type (type_dependency_id)         :: id_temp,id_parW,id_parW_dmean
+      type (type_dependency_id)         :: id_temp,id_depth,id_parW,id_parW_dmean
       type (type_horizontal_dependency_id)  :: id_lat
       type (type_global_dependency_id)  :: id_doy
       type (type_diagnostic_variable_id):: id_dPAR,id_dPAR_dmean
       type (type_horizontal_diagnostic_variable_id):: id_dFDL
       
 !     Model parameters
-      real(rk) :: kdet,kdon
+      real(rk) :: kdet,kdon,par0_dt0,kc_dt0
 
       contains
 
@@ -72,6 +72,9 @@
    call self%get_parameter(kc,      'kc', 'm2 mmol-1','specific light extinction',         default=0.03_rk)
    call self%get_parameter(self%kdet,'kdet','d-1',      'sp. rate for f_det_don',             default=0.003_rk,scale_factor=d_per_s)
    call self%get_parameter(self%kdon,'kdon','d-1',      'sp. rate for f_don_din',             default=0.003_rk,scale_factor=d_per_s)
+   call self%get_parameter(self%par0_dt0,'par0_dt0','W m-2', 'daily average par at the surface on the first time step',  default=4.5_rk)
+   call self%get_parameter(self%kc_dt0,'kc_dt0','m-1', 'attenuaton coefficient on the first time step',  default=0.2_rk)
+   
    
    ! Register state variables
    call self%register_state_variable(self%id_din,'din','mmolN/m^3','DIN concentration',     &
@@ -95,6 +98,7 @@
    ! Register environmental dependencies
    call self%register_global_dependency(self%id_doy,standard_variables%number_of_days_since_start_of_the_year)
    call self%register_horizontal_dependency(self%id_lat,standard_variables%latitude)
+   call self%register_dependency(self%id_depth,standard_variables%depth)
    call self%register_dependency(self%id_temp,standard_variables%temperature)
    call self%register_dependency(self%id_parW, standard_variables%downwelling_photosynthetic_radiative_flux)
    call self%register_dependency(self%id_parW_dmean,temporal_mean(self%id_parW,period=1._rk*86400._rk,resolution=1._rk))
@@ -118,7 +122,8 @@
 ! !LOCAL VARIABLES:
    real(rk)                   :: detn, don
    real(rk)                   :: f_det_don, f_don_din
-   real(rk)                   :: lat,doy,Ld,tC,Tfac,parW,parW_dm
+   real(rk)                   :: Ld,Tfac,parE,parE_dm
+   real(rk)                   :: lat,depth,doy,tC,parW,parW_dm
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
 !-----------------------------------------------------------------------
@@ -134,12 +139,18 @@
    
    _GET_(self%id_parW,parW) ! local photosynthetically active radiation
    _GET_(self%id_parW_dmean,parW_dm)
-   ! for the first day, the daily mean value doesn't yet exist (with values in the order of -1e19), 
-   ! so just restore the instantaneous value
-   if ( parW_dm .lt. 0.0 ) then
-     parW_dm=parW
-     !write(*,*)'restored parW_dm'
-   end if   
+   ! for the first day, the daily mean value doesn't yet exist (resulting in values in the order of -1e19), 
+   ! so just restore it with a value obtained with an exp decay function to account for depth
+   if ( parW_dm .lt. 0.0001 ) then
+     _GET_(self%id_depth,depth)
+     parW_dm=self%par0_dt0*exp(-depth*self%kc_dt0) !todo: make the I0_det0&kc0 yaml pars?
+     !write(*,*)'*** depth,parW_dm',depth,parW_dm
+   !else
+   !  write(*,*)'          parW_dm',parW_dm
+   end if
+   parE = parW * 4.6 * 1e-6 * secs_pr_day
+   parE_dm= parW_dm * 4.6 * 1e-6 * secs_pr_day
+   ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
    
    !Calculate intermediate terms:
    !Temperature factor 
@@ -155,8 +166,8 @@
    _SET_ODE_(self%id_din,   f_don_din)
    
    ! Export diagnostic variables
-   _SET_DIAGNOSTIC_(self%id_dPAR, parW * 4.6 * 1e-6 * secs_pr_day) ! mol/m2/d-1
-   _SET_DIAGNOSTIC_(self%id_dPAR_dmean, parW_dm * 4.6 * 1e-6 * secs_pr_day) !mol/m2/d
+   _SET_DIAGNOSTIC_(self%id_dPAR, parE) ! mol/m2/d-1
+   _SET_DIAGNOSTIC_(self%id_dPAR_dmean, parE_dm) ! mol/m2/d-1
     ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
    
    ! Leave spatial loops (if any)

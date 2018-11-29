@@ -71,6 +71,8 @@ instances:
       kc: 0.03                      # specific light extinction (m2 mmol-1)
       kdet: 0.003                    # Degredation rate of Detritus (d-1)
       kdon: 0.003                    # Remineralization rate of DON
+      par0_dt0: 4.5                   # daily average par at the surface on the first time step
+      kc_dt0: 0.2                   # attenuaton coefficient on the first time step
     initialization:
       din: 4.5                         # DIN concentration (mmol m-3)
       don: 4.5                         # DON concentration (mmol m-3)

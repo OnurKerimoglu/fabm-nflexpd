@@ -233,7 +233,8 @@
    !Optimization of fV (synthesis vs nut. uptake)
    !Intermediate term  in brackets that appears in Smith et al 2016, eqs. 13 & 14
    ZINT = (self%zetaN + muIhat/vNhat) * self%Q0 / 2.0
-    
+   !write(*,'(A,4F12.5)')'  (phy) ZINT, muIhat/vNhat:',ZINT,muIhat/vNhat
+   
    if( self%fV_opt .and.  par .gt. I_zero ) then
      ! eq. 13  in Smith et al 2016
      fV = (-1.0 + sqrt(1.0 + 1.0 / ZINT) ) * (self%Q0 / 2.0) * muIhat / vNhat
