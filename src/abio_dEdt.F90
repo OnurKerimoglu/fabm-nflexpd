@@ -13,6 +13,7 @@
 !
 ! !USES:
    use fabm_types
+   use NflexPD_common
    use fabm_expressions
 
    implicit none
@@ -319,40 +320,7 @@
    return
    end function FDL
 !EOC
-
-!-----------------------------------------------------------------------
-!
-! !IROUTINE: Temperature dependence of rates for the FlexPFT model 
-!
-! !INTERFACE:
-   REALTYPE function FofT(tC)
-!
-! !DESCRIPTION:
-! Here, Arrhenius type temperature dependence is calcuated, for a reference temperature, Tr, 
-! and activation energy Ea [ J / mol ]. 
-!
-! !USES:
-   IMPLICIT NONE
-!
-! !INPUT PARAMETERS:
-   REALTYPE, intent(in)                :: tC            ! temperature [ degrees C ]
-   REALTYPE, parameter                 :: R = 8.31446   ! gas constant [ J /mol /K ]
-   REALTYPE, parameter                 :: Ea=4.82e4        ! [ J / mol ]
-   REALTYPE, parameter                 :: Tr=20.0          ! [ degrees C ]
-!
-! !REVISION HISTORY:
-!  Original author(s):  S. Lan Smith, 20141213
-!
-!EOP
-!-----------------------------------------------------------------------
-!BOC
-   FofT = exp( - (Ea/R)*( 1/(273.15+tC) - 1/(273.15+Tr) ) )
-   return
-   end function FofT
-!EOC
- 
- 
- !-----------------------------------------------------------------------
+!----------------------------------------------------------------------- 
  
    end module NflexPD_abio_dEdt
 
