@@ -3,12 +3,11 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !MODULE: NflexPD - phytoplankton component
-! Original Authors: S. Lan Smith, 2014-12-09
-! FABM implementation: O. Kerimoglu 20181122
+! !MODULE: NflexPD - IOQ (Instantaneously Optimized Quota) phytoplankton component
+! Original Authors: O. Kerimoglu & L. Smith 20181128
 !
 ! !INTERFACE:
-   module NflexPD_phy
+   module NflexPD_phy_IOQ
 !
 ! !DESCRIPTION:
 !
@@ -22,15 +21,17 @@
    private
 !
 ! !PUBLIC DERIVED TYPES:
-   type,extends(type_base_model),public :: type_NflexPD_phy
+   type,extends(type_base_model),public :: type_NflexPD_phy_IOQ
 !     Variable identifiers
-      type (type_state_variable_id)        :: id_phyN
+      type (type_state_variable_id)        :: id_phyC
       type (type_state_variable_id)        :: id_din,id_don,id_detn
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean
       type (type_horizontal_dependency_id) :: id_FDL
-      type (type_diagnostic_variable_id)   :: id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
+      type (type_diagnostic_variable_id)   :: id_phyN,id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR
       
+      type (type_global_dependency_id)     :: id_doy
+      type (type_dependency_id)            :: id_delta_t,id_delta_din,id_delta_par
       
 !     Model parameters
       real(rk) :: kc,w_phy
@@ -63,15 +64,16 @@
    subroutine initialize(self,configunit)
 !
 ! !DESCRIPTION:
-!  Here, the NflexPD_phy namelist is read and variables exported
+!  Here, the NflexPD_phy_IOQ namelist is read and variables exported
 !  by the model are registered with FABM.
 !
 ! !INPUT PARAMETERS:
-   class (type_NflexPD_phy), intent(inout), target :: self
+   class (type_NflexPD_phy_IOQ), intent(inout), target :: self
    integer,                        intent(in)            :: configunit
 !
 ! !LOCAL VARIABLES:
    real(rk), parameter :: d_per_s = 1.0_rk/86400.0_rk
+   real(rk), parameter :: N2C_RF = 16._rk/106._rk !Redfield N:C ratio
    real(rk)            :: w_phy
 !EOP
 !-----------------------------------------------------------------------
@@ -79,7 +81,7 @@
    ! Store parameter values in our own derived type
    ! NB: all rates must be provided in values per day and are converted here to values per second.
    ! General:
-   call self%get_parameter(self%kc,   'kc',   'm2 mmolN-1','specific light extinction',               default=0.03_rk)
+   call self%get_parameter(self%kc,   'kc',   'm2 mmolC-1','specific light extinction',               default=0.03_rk, scale_factor=N2C_RF)
    call self%get_parameter(self%w_phy,       'w_phy',  'm d-1',    'vertical velocity (<0 for sinking)',      default=-1.0_rk, scale_factor=d_per_s)
    !optimality switches
    call self%get_parameter(self%Theta_opt, 'Theta_opt','-', 'whether to optimize theta', default=.false.)
@@ -105,10 +107,11 @@
    
 
    ! Register state variables
-   call self%register_state_variable(self%id_phyN,'N','mmolN/m^3','bound-N concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=self%kc)
-
+   call self%register_state_variable(self%id_phyC,'C','mmolC/m^3','bound-C concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=self%kc)
+   
+   !todo: register phyN as a diagnostic
    ! Register contribution of state to global aggregate variables.
-   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_phyN)
+   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_phyC)
 
    ! Register dependencies on external state variables
    call self%register_state_dependency(self%id_din, 'din',   'mmolN/m^3','dissolved inorganic nitrogen')
@@ -118,6 +121,8 @@
    ! Register diagnostic variables
    call self%register_diagnostic_variable(self%id_Q, 'Q','molN/molC',    'cellular nitrogen Quota',           &
                                      output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_phyN, 'N','mmolC/m^3',    'bound-N concentration (diag)',           &
+                                     output=output_instantaneous)                                     
    call self%register_diagnostic_variable(self%id_Chl2C, 'Chl2C','gChl/molC',    'cellular chlorophyll content',           &
                                      output=output_instantaneous)                                     
    call self%register_diagnostic_variable(self%id_mu, 'mu','/d',    'net sp. growth rate',           &
@@ -138,7 +143,11 @@
    call self%register_dependency(self%id_par_dmean, 'PAR_dmean','E/m^2/d','photosynthetically active radiation, daily averaged')
    call self%register_horizontal_dependency(self%id_FDL, 'FDL','-',       'fractional day length')
    call self%register_dependency(self%id_temp,standard_variables%temperature)
+   call self%register_global_dependency(self%id_doy,standard_variables%number_of_days_since_start_of_the_year)
    
+   call self%register_dependency(self%id_delta_t, 'delta_t','s','diff betw current and prev time step')
+   call self%register_dependency(self%id_delta_din, 'delta_din','mmolN/m^3','diff in DIN betw current and prev time step')
+   call self%register_dependency(self%id_delta_par, 'delta_par','E/m^2/d','diff in PAR betw current and prev time step')
    
    end subroutine initialize
 !EOC
@@ -152,13 +161,18 @@
    subroutine do(self,_ARGUMENTS_DO_)
 !
 ! !INPUT PARAMETERS:
-   class (type_NflexPD_phy), intent(in) :: self
+   class (type_NflexPD_phy_IOQ), intent(in) :: self
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
-   real(rk)                   :: din,phyN,parW,par,par_dm,Ld
+   real(rk)                   :: din,phyC,parW,par,par_dm,Ld
    real(rk)                   :: ThetaHat,vNhat,muIhat
-   real(rk)                   :: Q,Theta,fV,fA,Rchl,I_zero,ZINT
+   real(rk)                   :: Q,Theta,fV,fA,Rchl,I_zero,ZINT,valSIT
+   real(rk)                   :: phyN,vN,Vhat_fNT
+   real(rk)                   :: doy,doy_prev
+   real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt
+   real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN
+   real(rk)                   :: delta_t,delta_din,delta_par
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac
    real(rk)                   :: mu,exc,mort,Pprod
@@ -171,9 +185,9 @@
    _LOOP_BEGIN_
 
    ! Retrieve current (local) state variable values.
-   _GET_(self%id_phyN,phyN)         ! phytoplankton
-   _GET_(self%id_din,din) ! nutrients
-
+   _GET_(self%id_phyC,phyC)  ! phytoplankton-C
+   _GET_(self%id_din,din)    ! nutrients
+   
    ! Retrieve current environmental conditions.
    _GET_(self%id_parW,parW)             ! local photosynthetically active radiation
    par=parW* 4.6 * 1e-6   !molE/m2/s
@@ -189,6 +203,14 @@
    _GET_HORIZONTAL_(self%id_FDL,Ld)
    
    _GET_(self%id_temp,tC) ! temperature in Celcius
+   
+   ! delta_t,delta_par,delta_din
+   _GET_GLOBAL_(self%id_doy,doy)  ! day of year
+   !_GET_HORIZONTAL_(self%id_ddoy_dep,doy_prev)  ! day of year at the previous time step
+   _GET_(self%id_delta_t,delta_t)
+   _GET_(self%id_delta_din,delta_din)
+   _GET_(self%id_delta_par,delta_par)
+   write(*,'(A,F10.1,3F12.5)')'  (phy) doy(s),delta_t,delta_I,delta_N:',doy*secs_pr_day,delta_t,delta_par,delta_din
    
    !Calculate intermediate terms:
    !Temperature factor 
@@ -214,7 +236,8 @@
    end if
    
    ! Light limited growth rate (eq. 6 in Smith et al 2016)
-   muIhat = self%mu0hat * Tfac * SIT(self%aI,self%mu0hat,par,ThetaHat,Tfac)
+   valSIT=SIT(self%aI,self%mu0hat,par,ThetaHat,Tfac)
+   muIhat = self%mu0hat * Tfac * valSIT 
    
    !Optimal allocation for affinity vs max. uptake
    if( self%fA_opt ) then
@@ -258,7 +281,12 @@
 !!$      Q(ci) = ( (Q0/2.0)*muIhat + fV*VNhat ) / ( (1.0-fV)*muIhat - fV*zetaN*VNhat )    
 
 !!$      dQdNbyQ(ci) = 0.0
-
+   
+   
+   !Calculate a Phy-N based on Q 
+   !To save as a diagnostic and to use in some calculations below
+   PhyN = PhyC * Q
+   
    ! Losses due to Chlorophyll
    ! eq. 26 in Smith et al 2016
    Rchl = (muIhat + self%RMchl*Tfac) * ( 1 - fV - self%Q0/(2.0*Q) ) * self%zetaChl * ThetaHat
@@ -273,7 +301,7 @@
    
    !Just for the diagnostics:
    !Primary production rate:
-   PProd = (1.0-self%kexc) * max(0.0, mu*phyN / Q )  ! PP [ mmolC / m3 / s ]
+   PProd = (1.0-self%kexc) * max(0.0, mu*phyC )  ! PP [ mmolC / m3 / s ]
 
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
    Theta= (1 - self%Q0 / 2 / Q - fV)* Q
@@ -283,14 +311,35 @@
    ! Mortality
    mort=self%M0p * Tfac * PhyN**2
    
+   Vhat_fNT= self%V0hat*din/(self%V0hat/self%A0hat + 2.0 * sqrt((self%V0hat*din/self%A0hat)) + din) !eq.20 in S16
+   write(*,'(A,5F12.5)')'  (phy) Vhat_fNT, self%V0hat*din, self%V0hat/self%A0hat, 2.0*sqrt((self%V0hat*din/self%A0hat)), din', Vhat_fNT, self%V0hat*din, self%V0hat/self%A0hat, 2.0*sqrt((self%V0hat*din/self%A0hat)), din
+   !N-uptake:
+   !through changes in Q (re-location of N)
+   !ZINT=0.01170 obtained in the first time step is too small
+   delQ_delZ= -self%Q0/(4*ZINT*sqrt(ZINT*(1.+ZINT))) !delQ/delZ, eq. A-2&3 (Z=ZINT)
+   !write(*,'(A,4F12.5)')'  (phy) delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT)):',delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT))
+   !(exp(-ai*ThetaHat*par_dm/(mu0hat*Tfac))=1-valSIT
+   delZ_delI= self%Q0*self%aI*ThetaHat/(2*din*Vhat_fNT)*(1-valSIT) !delZ/delI, eq.A-4 in S16
+   !write(*,'(A,4F12.5)')'  (phy) delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)',delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)
+   delZ_delN= -self%Q0*muIhat/(2*din*Vhat_fNT)*(1-(Vhat_fNT/self%V0hat)-(Vhat_fNT/sqrt(self%V0hat*self%A0hat*din))) !delZ/delN, eq.A-5 in S16
+   delQ_delI=delQ_delZ*delZ_delI !delQ/delI, eq. A-2 in S16
+   !write(*,'(A,3F12.5)')'  (phy) delQ_delI,delQ_delZ,delZ_delI:',delQ_delI,delQ_delZ,delZ_delI
+   delQ_delN=delQ_delZ*delZ_delN !delQ/delN, eq. A-3 in S16
+   dI_dt = delta_par / delta_t   !dI/dt
+   dN_dt = delta_din / delta_t  !dN/dt
+   delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt !delQ/delt, eq. A-6 in S16
+   vN = mu*Q + delQ_delt !eq. A-6 in S16
+   !write(*,'(A,5F12.5)')'  (phy) mu*Q,delQ_delI,dI_dt,delQ_delN,dN_dt:',mu*Q,delQ_delI,dI_dt,delQ_delN,dN_dt
+   
+   
    !Calculate fluxes between pools
-   f_din_phy = mu * phyN
+   f_din_phy = vN * phyC
    f_phy_detn =       self%Mpart  * mort 
    f_phy_don = (1.0 - self%Mpart) * mort + exc
    
    
    ! Set temporal derivatives
-   _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn)
+   _SET_ODE_(self%id_phyC, f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
 
    ! If externally maintained dim,dom und det pools are coupled:
    _SET_ODE_(self%id_din, -f_din_phy)
@@ -298,6 +347,7 @@
    _SET_ODE_(self%id_detN, f_phy_detn)
 
    ! Export diagnostic variables
+   _SET_DIAGNOSTIC_(self%id_phyN, phyN)
    _SET_DIAGNOSTIC_(self%id_Q, Q)
    _SET_DIAGNOSTIC_(self%id_Chl2C, Theta)
    _SET_DIAGNOSTIC_(self%id_fV, fV)
@@ -444,7 +494,7 @@
    end function FofT
 !EOC
 
-   end module NflexPD_phy
+   end module NflexPD_phy_IOQ
 
 !-----------------------------------------------------------------------
 ! Copyright Bolding & Bruggeman ApS - GNU Public License - www.gnu.org

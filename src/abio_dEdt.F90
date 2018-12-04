@@ -2,11 +2,11 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !MODULE: NflexPD_abio_Cbased - abiotic component
-! Original Author(s): S. Lan Smith 2014-12-09, O. Kerimoglu 2018-11-27
+! !MODULE: NflexPD_abio_dEdt - abiotic component that provides the delta_N,delta_I,delta_t required by the IOQ model
+! Original Author(s): O. Kerimoglu 2018-11-27
 !
 ! !INTERFACE:
-   module NflexPD_abio_Cbased
+   module NflexPD_abio_dEdt
 !
 ! !DESCRIPTION:
 ! This model describes the abiotic processes
@@ -20,7 +20,7 @@
    private
 !
 ! !PUBLIC DERIVED TYPES:
-   type,extends(type_base_model),public :: type_NflexPD_abio_Cbased
+   type,extends(type_base_model),public :: type_NflexPD_abio_dEdt
 !     Variable identifiers
       type (type_state_variable_id)     :: id_din,id_don,id_detn
       type (type_dependency_id)         :: id_temp,id_depth,id_parW,id_parW_dmean
@@ -62,11 +62,11 @@
    subroutine initialize(self,configunit)
 !
 ! !DESCRIPTION:
-!  Here, the NflexPD_abio_Cbased namelist is read and variables exported
+!  Here, the NflexPD_abio_dEdt namelist is read and variables exported
 !  by the model are registered with FABM.
 !
 ! !INPUT PARAMETERS:
-   class (type_NflexPD_abio_Cbased), intent(inout), target :: self
+   class (type_NflexPD_abio_dEdt), intent(inout), target :: self
    integer,                        intent(in)            :: configunit
 !
 ! !LOCAL VARIABLES:
@@ -143,7 +143,7 @@
    subroutine do(self,_ARGUMENTS_DO_)
 !
 ! !INPUT PARAMETERS:
-   class (type_NflexPD_abio_Cbased), intent(in)     :: self
+   class (type_NflexPD_abio_dEdt), intent(in)     :: self
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
@@ -247,7 +247,7 @@
    subroutine do_surface(self,_ARGUMENTS_DO_SURFACE_)
 !
 ! !INPUT PARAMETERS:
-   class (type_NflexPD_abio_Cbased), intent(in)     :: self
+   class (type_NflexPD_abio_dEdt), intent(in)     :: self
    _DECLARE_ARGUMENTS_DO_SURFACE_
 !
 ! !LOCAL VARIABLES:
@@ -354,7 +354,7 @@
  
  !-----------------------------------------------------------------------
  
-   end module NflexPD_abio_Cbased
+   end module NflexPD_abio_dEdt
 
 !-----------------------------------------------------------------------
 ! Copyright Onur Kerimoglu (kerimoglu.o@gmail.com) - GNU Public License - www.gnu.org

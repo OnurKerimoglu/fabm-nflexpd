@@ -4,10 +4,10 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.F90.in ${CMAKE_CURRENT_BINARY
 add_library(fabm_models_nflexpd OBJECT
             nflexpd_model_library.F90
             ${CMAKE_CURRENT_BINARY_DIR}/version.F90
-            phy.F90
             abio.F90
-            phy_Cbased.F90
-            abio_Cbased.F90
+            abio_dEdt.F90
+            phy_IOQ.F90
+            phy_IOQ_Nbased.F90
             lambert_modified.f90
            )
 

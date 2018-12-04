@@ -1,8 +1,8 @@
 instances:
   phy1:
     use: .true.
-    long_name: Phytoplankton-1
-    model: nflexpd/phy
+    long_name: Phytoplankton-1 (IOQ-N)
+    model: nflexpd/phy_IOQ_Nbased
     parameters:
       kc: 0.03                       # specific light extinction (m2 mmolN-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
@@ -33,8 +33,8 @@ instances:
       detN: abio/detn      # sink for dead matter (mmol m-3)
   phy2:
     use: .true.
-    long_name: Phytoplankton-2
-    model: nflexpd/phy
+    long_name: Phytoplankton-2 (IOQ-N)
+    model: nflexpd/phy_IOQ_Nbased
     parameters:
       kc: 0.03                       # specific light extinction (m2 mmolN-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)

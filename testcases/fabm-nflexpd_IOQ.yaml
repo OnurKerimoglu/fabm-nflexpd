@@ -1,8 +1,8 @@
 instances:
-  phy:
-    use: .false.
-    long_name: Phytoplankton-Nbased
-    model: nflexpd/phy
+  phy_IOQ_Nbased:
+    use: .true.
+    long_name: Phytoplankton (IOQ-N)
+    model: nflexpd/phy_IOQ_Nbased
     parameters:
       kc: 0.03                       # specific light extinction (m2 mmol-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
@@ -31,10 +31,10 @@ instances:
       din: abio/din        # nutrient source (mmol m-3)
       don: abio/don        # sink for excreted matter (mmol m-3)
       detN: abio/detn      # sink for dead matter (mmol m-3)
-  phyC:
+  phy_IOQ:
     use: .true.
-    long_name: Phytoplankton-Cbased
-    model: nflexpd/phy_Cbased
+    long_name: Phytoplankton (IOQ)
+    model: nflexpd/phy_IOQ
     parameters:
       kc: 0.03                       # specific light extinction (m2 mmol-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
@@ -58,17 +58,17 @@ instances:
     initialization:
       C: 1.0                      # Phytoplankton-N concentration (mmol m-3)
     coupling:
-      delta_t: abio_Cbased/delta_t # integ. time step (s)
-      delta_din: abio_Cbased/delta_din # difference in DIN since the prev. time step
-      delta_par: abio_Cbased/delta_par # difference in par since the prev. time step
-      FDL: abio_Cbased/FDL        # Fractional Day Length (-)
-      PAR_dmean: abio_Cbased/PAR_dmean  # PAR, daily mean (mol/m2/d)
-      din: abio_Cbased/din        # nutrient source (mmol m-3)
-      don: abio_Cbased/don        # sink for excreted matter (mmol m-3)
-      detN: abio_Cbased/detn      # sink for dead matter (mmol m-3)
-  abio_Cbased:
+      delta_t: abio/delta_t # integ. time step (s)
+      delta_din: abio/delta_din # difference in DIN since the prev. time step
+      delta_par: abio/delta_par # difference in par since the prev. time step
+      FDL: abio/FDL        # Fractional Day Length (-)
+      PAR_dmean: abio/PAR_dmean  # PAR, daily mean (mol/m2/d)
+      din: abio/din        # nutrient source (mmol m-3)
+      don: abio/don        # sink for excreted matter (mmol m-3)
+      detN: abio/detn      # sink for dead matter (mmol m-3)
+  abio:
     long_name: Abiotic
-    model: nflexpd/abio_Cbased
+    model: nflexpd/abio_dEdt
     parameters:
       w_det: -5.0                  # vertical velocity (<0 for sinking) (m d-1)
       kc: 0.03                      # specific light extinction (m2 mmol-1)

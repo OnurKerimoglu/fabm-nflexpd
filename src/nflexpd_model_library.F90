@@ -2,10 +2,10 @@ module nflexpd_model_library
 
    use fabm_types, only: type_base_model_factory, type_base_model
 
-   use nflexpd_phy
-   use nflexpd_phy_Cbased
+   use nflexpd_phy_IOQ_Nbased
+   use nflexpd_phy_IOQ
    use nflexpd_abio
-   use nflexpd_abio_Cbased
+   use nflexpd_abio_dEdt
    ! Add new NflexPD modules here
 
    implicit none
@@ -27,10 +27,10 @@ contains
       class (type_base_model),pointer :: model
 
       select case (name)
-         case ('phy'); allocate(type_nflexpd_phy::model)
-         case ('phy_Cbased'); allocate(type_nflexpd_phy_Cbased::model)
+         case ('phy_IOQ'); allocate(type_nflexpd_phy_IOQ::model)
+         case ('phy_IOQ_Nbased'); allocate(type_nflexpd_phy_IOQ_Nbased::model)
          case ('abio'); allocate(type_nflexpd_abio::model)
-         case ('abio_Cbased'); allocate(type_nflexpd_abio_Cbased::model)
+         case ('abio_dEdt'); allocate(type_nflexpd_abio_dEdt::model)
          ! Add new NflexPD models here
       end select
    end subroutine create
