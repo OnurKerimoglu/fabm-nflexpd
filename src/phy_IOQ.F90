@@ -219,17 +219,21 @@
    ! Primary production
    ! Optimization of ThetaHat (optimal Chl content in the chloroplasts)
    I_zero = self%zetaChl * self%RMchl * Tfac / (Ld*self%aI)   ! Threshold irradiance
-   
-   !why is this at the end in the original code?
    if( self%theta_opt ) then
-     if( par .gt. I_zero ) then
+     if( par_dm .gt. I_zero ) then
        !argument for the Lambert's W function
        larg = (1.0 + self%RMchl * Tfac/(Ld*self%mu0hat*Tfac)) * exp(1.0 + self%aI*par_dm/(self%mu0hat*Tfac*self%zetaChl))
+       !larg=min(1e38,larg) !larg can explode if aI is too large compared to mu0hat*zetaChl
        ! eq. 8 in Smith et al 2016
        ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par_dm)
-       ThetaHat=max(0.01,ThetaHat)
+       ThetaHat=max(0.1,ThetaHat) !  a small positive value 
+       !if (ThetaHat .lt. 0.09)then
+       !  write(*,*)'larg, self%aI*par_dm, self%mu0hat*Tfac*self%zetaChl',larg, self%aI*par_dm, self%mu0hat*Tfac*self%zetaChl
+         !write(*,*)'ThetaHat,larg,WAPR',ThetaHat,larg,WAPR(larg,0,0)
+       !end if
      else
-       ThetaHat = 0.01  !  a small positive value 
+       !write(*,*)'par_dm,I_0',par_dm,I_zero
+       ThetaHat = 0.1  !  a small positive value 
      end if
    else
      ThetaHat = self%TheHat_fixed
@@ -304,7 +308,7 @@
    PProd = (1.0-self%kexc) * max(0.0, mu*phyC )  ! PP [ mmolC / m3 / s ]
 
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
-   Theta= (1 - self%Q0 / 2 / Q - fV)* Q
+   Theta= (1 - self%Q0 / 2 / Q - fV) * ThetaHat
    
    !Uptake rate
    !Calculate the delQ_delt (effect of inst. quota adjustment on the DIN pool)
