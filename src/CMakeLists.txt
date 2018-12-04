@@ -7,6 +7,7 @@ add_library(fabm_models_nflexpd OBJECT
             common.F90
             abio.F90
             abio_dEdt.F90
+            phy_DOQ.F90
             phy_IOQ.F90
             phy_IOQ_Nbased.F90
             lambert_modified.f90

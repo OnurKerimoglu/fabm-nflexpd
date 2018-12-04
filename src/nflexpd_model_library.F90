@@ -2,8 +2,9 @@ module nflexpd_model_library
 
    use fabm_types, only: type_base_model_factory, type_base_model
 
-   use nflexpd_phy_IOQ_Nbased
+   use nflexpd_phy_DOQ
    use nflexpd_phy_IOQ
+   use nflexpd_phy_IOQ_Nbased
    use nflexpd_abio
    use nflexpd_abio_dEdt
    ! Add new NflexPD modules here
@@ -27,6 +28,7 @@ contains
       class (type_base_model),pointer :: model
 
       select case (name)
+         case ('phy_DOQ'); allocate(type_nflexpd_phy_DOQ::model)
          case ('phy_IOQ'); allocate(type_nflexpd_phy_IOQ::model)
          case ('phy_IOQ_Nbased'); allocate(type_nflexpd_phy_IOQ_Nbased::model)
          case ('abio'); allocate(type_nflexpd_abio::model)
