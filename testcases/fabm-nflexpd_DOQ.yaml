@@ -1,5 +1,5 @@
 instances:
-  phy_IOQ_Nbased:
+  phy_IOQ:
     use: .true.
     long_name: Phytoplankton (IOQ-N)
     model: nflexpd/phy_IOQ_Nbased
@@ -12,19 +12,19 @@ instances:
       TheHat_fixed: 0.6              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
       RMchl: 0.1                     # loss rate of chlorophyll (d-1)
       mu0hat: 5.0                    # max. potential growth rate (d-1)
-      aI: 1.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
+      aI: 2.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
       fA_fixed: 0.5                  # fA to use when fa_opt=false (-)
       fV_fixed: 0.25                 # fV to use when fv_opt=false (-)
       Q0: 0.039                      # Subsistence cell quota (molN molC-1)
-      V0hat: 5.0                     # Potential maximum uptake rate (molN molC-1 d-1)
-      A0hat: 0.15                    # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
-      zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
-      zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
-      kexc: 0.01                     # excreted fraction of primary production
-      M0p: 0.01                      # sp. quad. mortality rate (m3 molN-1 d-1)
+      V0hat: 0.5                     # Potential maximum uptake rate (molN molC-1 d-1)
+      A0hat: 0.08                    # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
+      zetaN: 0.7                     # C-cost of N uptake (molC molN-1)
+      zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
+      kexc: 0.05                     # excreted fraction of primary production
+      M0p: 0.5                      # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 0.5                     # part of the mortality that goes to detritus
     initialization:
-      N: 0.15                       # Phytoplankton-N concentration (mmol m-3)
+      N: 0.16                       # Phytoplankton-N concentration (mmol m-3)
     coupling:
       FDL: abio/FDL        # Fractional Day Length (-)
       PAR_dmean: abio/PAR_dmean  # PAR, daily mean (mol/m2/d)
@@ -36,66 +36,29 @@ instances:
     long_name: Phytoplankton (DOQ)
     model: nflexpd/phy_DOQ
     parameters:
-      kc: 0.03                       # specific light extinction (m2 mmol-1)
+      kc: 0.03                      # specific light extinction (m2 mmol-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       Theta_opt : .true.            # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
       fV_opt : .true.                # whether to optimize fV (true/false)
       TheHat_fixed: 0.6              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
       RMchl: 0.1                     # loss rate of chlorophyll (d-1)
-      mu0hat: 3.0                    # max. potential growth rate (d-1)
-      aI: 1.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
+      mu0hat: 5.0                    # max. potential growth rate (d-1)
+      aI: 2.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
       fA_fixed: 0.5                  # fA to use when fa_opt=false (-)
       fV_fixed: 0.25                 # fV to use when fv_opt=false (-)
       Q0: 0.039                      # Subsistence cell quota (molN molC-1)
-      V0hat: 5.0                     # Potential maximum uptake rate (molN molC-1 d-1)
-      A0hat: 0.3                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
-      zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
-      zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
-      kexc: 0.01                     # excreted fraction of primary production
-      M0p: 0.01                      # sp. quad. mortality rate (m3 molN-1 d-1)
+      V0hat: 0.5                     # Potential maximum uptake rate (molN molC-1 d-1)
+      A0hat: 0.08                    # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
+      zetaN: 0.7                     # C-cost of N uptake (molC molN-1)
+      zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
+      kexc: 0.05                     # excreted fraction of primary production
+      M0p: 0.5                      # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 0.5                     # part of the mortality that goes to detritus
     initialization:
-      C: 1.0                      # Phytoplankton-N concentration (mmol m-3)
+      C: 1.0                         # Phytoplankton-N concentration (mmol m-3) 
+      N: 0.16
     coupling:
-      delta_t: abio/delta_t # integ. time step (s)
-      delta_din: abio/delta_din # difference in DIN since the prev. time step
-      delta_par: abio/delta_par # difference in par since the prev. time step
-      FDL: abio/FDL        # Fractional Day Length (-)
-      PAR_dmean: abio/PAR_dmean  # PAR, daily mean (mol/m2/d)
-      din: abio/din        # nutrient source (mmol m-3)
-      don: abio/don        # sink for excreted matter (mmol m-3)
-      detN: abio/detn      # sink for dead matter (mmol m-3)
-  phy_IOQ:
-    use: .false.
-    long_name: Phytoplankton (IOQ)
-    model: nflexpd/phy_IOQ
-    parameters:
-      kc: 0.03                       # specific light extinction (m2 mmol-1)
-      w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
-      Theta_opt : .true.            # whether to optimize theta (true/false)
-      fA_opt : .true.                # whether to optimize fA (true/false)
-      fV_opt : .true.                # whether to optimize fV (true/false)
-      TheHat_fixed: 0.6              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
-      RMchl: 0.1                     # loss rate of chlorophyll (d-1)
-      mu0hat: 3.0                    # max. potential growth rate (d-1)
-      aI: 1.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
-      fA_fixed: 0.5                  # fA to use when fa_opt=false (-)
-      fV_fixed: 0.25                 # fV to use when fv_opt=false (-)
-      Q0: 0.039                      # Subsistence cell quota (molN molC-1)
-      V0hat: 5.0                     # Potential maximum uptake rate (molN molC-1 d-1)
-      A0hat: 0.3                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
-      zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
-      zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
-      kexc: 0.01                     # excreted fraction of primary production
-      M0p: 0.01                      # sp. quad. mortality rate (m3 molN-1 d-1)
-      Mpart: 0.5                     # part of the mortality that goes to detritus
-    initialization:
-      C: 1.0                      # Phytoplankton-N concentration (mmol m-3)
-    coupling:
-      delta_t: abio/delta_t # integ. time step (s)
-      delta_din: abio/delta_din # difference in DIN since the prev. time step
-      delta_par: abio/delta_par # difference in par since the prev. time step
       FDL: abio/FDL        # Fractional Day Length (-)
       PAR_dmean: abio/PAR_dmean  # PAR, daily mean (mol/m2/d)
       din: abio/din        # nutrient source (mmol m-3)
@@ -103,12 +66,12 @@ instances:
       detN: abio/detn      # sink for dead matter (mmol m-3)
   abio:
     long_name: Abiotic
-    model: nflexpd/abio_dEdt
+    model: nflexpd/abio
     parameters:
-      w_det: -5.0                  # vertical velocity (<0 for sinking) (m d-1)
+      w_det: -2.0                  # vertical velocity (<0 for sinking) (m d-1)
       kc: 0.03                      # specific light extinction (m2 mmol-1)
-      kdet: 0.003                    # Degredation rate of Detritus (d-1)
-      kdon: 0.003                    # Remineralization rate of DON
+      kdet: 0.03                    # Degredation rate of Detritus (d-1)
+      kdon: 0.03                    # Remineralization rate of DON
       par0_dt0: 4.5                 # daily average par at the surface on the first time step
       kc_dt0: 0.2                   # attenuaton coefficient on the first time step
     initialization:

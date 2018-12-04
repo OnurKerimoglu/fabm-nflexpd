@@ -37,11 +37,11 @@ def plot_maecs_Bpoolx2_phy():
     if len(sys.argv) < 5: #this means no arguments were passed
 	varnames= [ 'temp','nuh','abio_PAR',
                 'abio_din','abio_don','abio_detn',
-                'phy1_PPR', 'phy2_PPR','total_PPR_calculator_result',
-                'phy1_N', 'phy1_Q', 'phy1_Chl2C',
-                'phy2_N', 'phy2_Q', 'phy2_Chl2C',
-                'phy1_fV', 'phy1_fA', 'phy1_ThetaHat',
-                'phy2_fV', 'phy2_fA', 'phy2_ThetaHat']
+                'phy_IOQ_PPR', 'phy_DOQ_PPR','total_PPR_calculator_result',
+                'phy_IOQ_N', 'phy_IOQ_Q', 'phy_IOQ_Chl2C',
+                'phy_DOQ_N', 'phy_DOQ_Q', 'phy_DOQ_Chl2C',
+                'phy_IOQ_fV', 'phy_IOQ_fA', 'phy_IOQ_ThetaHat',
+                'phy_DOQ_fV', 'phy_DOQ_fA', 'phy_DOQ_ThetaHat']
 	numcol=3.0
     else: 
 	varnames=sys.argv[4].split(',')
