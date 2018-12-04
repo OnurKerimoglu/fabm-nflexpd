@@ -108,9 +108,7 @@
    ! Register state variables
    call self%register_state_variable(self%id_phyC,'C','mmolC/m^3','bound-C concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=self%kc)
    
-   !todo: register phyN as a diagnostic
    ! Register contribution of state to global aggregate variables.
-   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_phyC)
 
    ! Register dependencies on external state variables
    call self%register_state_dependency(self%id_din, 'din',   'mmolN/m^3','dissolved inorganic nitrogen')
@@ -120,7 +118,7 @@
    ! Register diagnostic variables
    call self%register_diagnostic_variable(self%id_Q, 'Q','molN/molC',    'cellular nitrogen Quota',           &
                                      output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_phyN, 'N','mmolC/m^3',    'bound-N concentration (diag)',           &
+   call self%register_diagnostic_variable(self%id_phyN, 'N','mmolN/m^3',    'bound-N concentration (diag)',           &
                                      output=output_instantaneous)                                     
    call self%register_diagnostic_variable(self%id_Chl2C, 'Chl2C','gChl/molC',    'cellular chlorophyll content',           &
                                      output=output_instantaneous)                                     
@@ -135,6 +133,9 @@
                                      
    call self%register_diagnostic_variable(self%id_PPR, 'PPR','mmolC/m^3/d','Primary production rate',      &
                                      output=output_time_step_averaged)
+   
+   ! Register contribution of diagnostic to global aggregate variables.
+   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_phyN)
    call self%add_to_aggregate_variable(total_PPR,self%id_PPR)
 
    ! Register environmental dependencies
@@ -305,11 +306,8 @@
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
    Theta= (1 - self%Q0 / 2 / Q - fV)* Q
    
-   !Excretion:
-   exc = self%kexc * mu * phyN
-   ! Mortality
-   mort=self%M0p * Tfac * PhyN**2
-   
+   !Uptake rate
+   !Calculate the delQ_delt (effect of inst. quota adjustment on the DIN pool)
    Vhat_fNT= self%V0hat*din/(self%V0hat/self%A0hat + 2.0 * sqrt((self%V0hat*din/self%A0hat)) + din) !eq.20 in S16
    write(*,'(A,5F12.5)')'  (phy) Vhat_fNT, self%V0hat*din, self%V0hat/self%A0hat, 2.0*sqrt((self%V0hat*din/self%A0hat)), din', Vhat_fNT, self%V0hat*din, self%V0hat/self%A0hat, 2.0*sqrt((self%V0hat*din/self%A0hat)), din
    !N-uptake:
@@ -330,6 +328,10 @@
    vN = mu*Q + delQ_delt !eq. A-6 in S16
    !write(*,'(A,5F12.5)')'  (phy) mu*Q,delQ_delI,dI_dt,delQ_delN,dN_dt:',mu*Q,delQ_delI,dI_dt,delQ_delN,dN_dt
    
+   !Excretion:
+   exc = self%kexc * mu * phyN
+   ! Mortality
+   mort=self%M0p * Tfac * PhyN**2
    
    !Calculate fluxes between pools
    f_din_phy = vN * phyC

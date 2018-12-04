@@ -56,7 +56,7 @@ instances:
       M0p: 0.01                      # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 0.5                     # part of the mortality that goes to detritus
     initialization:
-      C: 1.0                      # Phytoplankton-N concentration (mmol m-3)
+      C: 1.0                         # Phytoplankton-C concentration (mmol m-3)
     coupling:
       delta_t: abio/delta_t # integ. time step (s)
       delta_din: abio/delta_din # difference in DIN since the prev. time step
