@@ -47,8 +47,6 @@
       procedure :: do
    end type
    
-   type (type_bulk_standard_variable),parameter :: total_PPR = type_bulk_standard_variable(name='total_PPR',units='mmolC/m^3/d',aggregate_variable=.true.)
-   
 !EOP
 !-----------------------------------------------------------------------
 

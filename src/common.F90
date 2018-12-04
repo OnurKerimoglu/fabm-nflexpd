@@ -6,7 +6,12 @@ module NflexPD_common
    use fabm_standard_variables
 
    implicit none
-
+   
+   public
+   
+   ! Aggregate diagnostics for e.g., carbon budgets.
+   type (type_bulk_standard_variable),parameter :: total_PPR = type_bulk_standard_variable(name='total_PPR',units='mmolC/m^3/d',aggregate_variable=.true.)
+   
    contains
    
 !-----------------------------------------------------------------------
