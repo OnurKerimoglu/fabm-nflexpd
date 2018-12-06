@@ -141,14 +141,14 @@
 
    ! Register environmental dependencies
    call self%register_dependency(self%id_parW, standard_variables%downwelling_photosynthetic_radiative_flux)
-   call self%register_dependency(self%id_par_dmean, 'PAR_dmean','E/m^2/d','photosynthetically active radiation, daily averaged')
+   call self%register_dependency(self%id_par_dmean, 'PAR_dmean','E/m^2/s','photosynthetically active radiation, daily averaged')
    call self%register_horizontal_dependency(self%id_FDL, 'FDL','-',       'fractional day length')
    call self%register_dependency(self%id_temp,standard_variables%temperature)
    call self%register_global_dependency(self%id_doy,standard_variables%number_of_days_since_start_of_the_year)
    
    call self%register_dependency(self%id_delta_t, 'delta_t','s','diff betw current and prev time step')
    call self%register_dependency(self%id_delta_din, 'delta_din','mmolN/m^3','diff in DIN betw current and prev time step')
-   call self%register_dependency(self%id_delta_par, 'delta_par','E/m^2/d','diff in PAR betw current and prev time step')
+   call self%register_dependency(self%id_delta_par, 'delta_par','E/m^2/s','diff in PAR betw current and prev time step')
    call self%register_dependency(self%id_dep_ThetaHat, 'ThetaHat','-', 'ThetaHat')
    
    end subroutine initialize
@@ -194,12 +194,7 @@
    _GET_(self%id_parW,parW)             ! local photosynthetically active radiation
    par=parW* 4.6 * 1e-6   !molE/m2/s
    ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
-   _GET_(self%id_par_dmean,par_dm) !in molE/m2/d
-   par_dm=par_dm/secs_pr_day !convert to molE/m2/s
-   
-   if ( par_dm .lt. 0.0 ) then
-     par_dm=par
-   end if
+   _GET_(self%id_par_dmean,par_dm) !in molE/m2/s
    
    !get Ld (fractional day length)
    _GET_HORIZONTAL_(self%id_FDL,Ld)
@@ -211,8 +206,8 @@
    !_GET_HORIZONTAL_(self%id_ddoy_dep,doy_prev)  ! day of year at the previous time step
    _GET_(self%id_delta_t,delta_t)
    _GET_(self%id_delta_din,delta_din)
-   _GET_(self%id_delta_par,delta_par)
-   write(*,'(A,F10.1,5F12.5)')'  (phy.1) doy(s),delta_I,delta_N,par,din,phyC:',doy*secs_pr_day,delta_par,delta_din,par,din,phyC
+   _GET_(self%id_delta_par,delta_par) !mol/m2/s
+   write(*,'(A,F10.1,5F12.5)')'  (phy.1) doy(s),delta_I,delta_N,par,din,phyC:',doy*secs_pr_day,delta_par,delta_din,par_dm,din,phyC
    
    !Calculate intermediate terms:
    !Temperature factor 
@@ -224,7 +219,7 @@
    
    !why is this at the end in the original code?
    if( self%theta_opt ) then
-     if( par_dm .gt. I_zero ) then
+      if( par_dm .gt. I_zero ) then
        !argument for the Lambert's W function
        larg = (1.0 + self%RMchl * Tfac/(Ld*self%mu0hat*Tfac)) * exp(1.0 + self%aI*par_dm/(self%mu0hat*Tfac*self%zetaChl))
        ! eq. 8 in Smith et al 2016
@@ -244,16 +239,16 @@
 !!$          ThetaHat = ThetaHat_pr
 !!$       end if
        ThetaHat=max(0.1,ThetaHat)
-     else
-       ThetaHat = 0.1  !  a relatively large positive value 
+    else
+       ThetaHat = 0.0  
     end if
-   else
+ else
      ThetaHat = self%TheHat_fixed
-   end if
+  end if
 
 
    ! Light limited growth rate (eq. 6 in Smith et al 2016)
-   valSIT=SIT(self%aI,self%mu0hat,par,ThetaHat,Tfac)
+   valSIT=SIT(self%aI,self%mu0hat,par_dm,ThetaHat,Tfac)
    muIhat = self%mu0hat * Tfac * valSIT 
    
    !Optimal allocation for affinity vs max. uptake
@@ -275,7 +270,7 @@
    ZINT = (self%zetaN + muIhat/vNhat) * self%Q0 / 2.0
    ! write(*,'(A,4F12.5)')'  (phy.2) ZINT, muIhat/vNhat:',ZINT,muIhat/vNhat
    
-   if( self%fV_opt .and.  par .gt. I_zero ) then
+   if( self%fV_opt .and.  par_dm .gt. I_zero ) then
      ! eq. 13  in Smith et al 2016
      fV = (-1.0 + sqrt(1.0 + 1.0 / ZINT) ) * (self%Q0 / 2.0) * muIhat / vNhat
    else
@@ -337,7 +332,11 @@
    delQ_delZ= -self%Q0/(4*ZINT*sqrt(ZINT*(1.+ZINT))) !delQ/delZ, eq. A-2&3 (Z=ZINT)
    !write(*,'(A,4F12.5)')'  (phy) delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT)):',delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT))
    !(exp(-ai*ThetaHat*par_dm/(mu0hat*Tfac))=1-valSIT
+
+!!$   delZ_delI= self%Q0*self%aI*ThetaHat/(2*din*Vhat_fNT)*(1-valSIT) !delZ/delI, eq.A-4 in S16
+!!$ SLS (20181205): factor of 'din' in denominator not found in FlexPFT code, omitting here
    delZ_delI= self%Q0*self%aI*ThetaHat/(2*Vhat_fNT)*(1-valSIT) !delZ/delI, eq.A-4 in S16
+
    write(*,'(A,4F15.5)')'  (phy.2) delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)',delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)
    delZ_delN= -self%Q0*muIhat/(2*din*Vhat_fNT)*(1-(Vhat_fNT/self%V0hat)-(Vhat_fNT/sqrt(self%V0hat*self%A0hat*din))) !delZ/delN, eq.A-5 in S16
    delQ_delI=delQ_delZ*delZ_delI !delQ/delI, eq. A-2 in S16
@@ -345,8 +344,11 @@
    delQ_delN=delQ_delZ*delZ_delN !delQ/delN, eq. A-3 in S16
    dI_dt = delta_par / delta_t   !dI/dt
    dN_dt = delta_din / delta_t  !dN/dt
+
+!!$   dI_dt = 0.0  ! with this, the model runs: very small changes in I, during darkness, cause crashes.
+
    delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt !delQ/delt, eq. A-6 in S16
-   write(*,'(A,4F20.10)')'  (phy.4) delQ_delI,dI_dt,delQ_delN,dN_dt:',delQ_delI,dI_dt,delQ_delN,dN_dt
+   write(*,'(A,5F20.10)')'  (phy.4) delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt:',delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt
    vN = mu*Q + delQ_delt !eq. A-6 in S16
    write(*,'(A,3F15.10)')'  (phy.5) mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt:',mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt
    
@@ -359,9 +361,8 @@
    
    !write(*,'(A,5F12.5)')'  (phy) dphyC*dt,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q: ', (f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)*12,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q
    ! Set temporal derivatives
-   _SET_ODE_(self%id_phyC, f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
-   write(*,'(A,3F15.10)')'  (phy.6) f_din_phy/Q*dt, f_phy_don/Q*dt, f_phy_detn/Q)*dt',f_din_phy/Q*delta_t, f_phy_don/Q*delta_t, f_phy_detn/Q*delta_t
-   write(*,'(A,3F15.10)')'  (phy.7) phyC,delta_phyC,phyC+delta_phyC',phyC,(f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)*secs_pr_day*delta_t,phyC+ (f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)*delta_t
+   _SET_ODE_(self%id_phyC, mu*phyC - f_phy_don/Q - f_phy_detn/Q)  !  f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
+   write(*,'(A,2F15.10)')'  (phy.6) phyC,delta_phyC',phyC,(mu*phyC - f_phy_don/Q - f_phy_detn/Q)*delta_t
    
    ! If externally maintained dim,dom und det pools are coupled:
    _SET_ODE_(self%id_din, -f_din_phy)

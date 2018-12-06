@@ -35,7 +35,7 @@
       type (type_dependency_id)            :: id_ddoy_dep
       !for delta_par and delta_din we need 3-D diagnostics anyway
       type (type_diagnostic_variable_id)   :: id_ddin,id_delta_din,id_delta_par
-      type (type_dependency_id)            :: id_ddin_dep,id_dpar_dep
+      type (type_dependency_id)            :: id_ddin_dep,id_dpardm_dep
       
 !     Model parameters
       real(rk) :: kdet,kdon,par0_dt0,kc_dt0
@@ -101,7 +101,7 @@
    ! Register diagnostic variables
    call self%register_horizontal_diagnostic_variable(self%id_dFDL,'FDL','-',       'fractional day length')
    call self%register_diagnostic_variable(self%id_dPAR,'PAR','E/m^2/d',       'photosynthetically active radiation')
-   call self%register_diagnostic_variable(self%id_dPAR_dmean, 'PAR_dmean','E/m^2/d','photosynthetically active radiation, daily averaged')
+   call self%register_diagnostic_variable(self%id_dPAR_dmean, 'PAR_dmean','E/m^2/s','photosynthetically active radiation, daily averaged')
                                      
    ! Register environmental dependencies
    call self%register_global_dependency(self%id_doy,standard_variables%number_of_days_since_start_of_the_year)
@@ -126,8 +126,8 @@
    call self%register_diagnostic_variable(self%id_delta_din,'delta_din','mmolN/m^3','diff betw current and prev time step',&
                      output=output_instantaneous)
    
-   call self%register_dependency(self%id_dpar_dep,'PAR','E/m^2/d',       'diagn. photosynthetically active radiation')
-   call self%register_diagnostic_variable(self%id_delta_par,'delta_par','E/m^2/d','diff betw current and prev time step',&
+   call self%register_dependency(self%id_dpardm_dep,'PAR_dmean','E/m^2/s',       'photosynthetically active radiation, daily averaged')
+   call self%register_diagnostic_variable(self%id_delta_par,'delta_par','E/m^2/s','diff betw current and prev time step',&
                      output=output_instantaneous)
    
    
@@ -153,7 +153,7 @@
    real(rk)                   :: lat,depth,doy,tC,parW,parW_dm
    real(rk)                   :: doy_prev,delta_t
    real(rk)                   :: din_prev,delta_din
-   real(rk)                   :: parE_prev,delta_par
+   real(rk)                   :: parEdm_prev,delta_par
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
 !-----------------------------------------------------------------------
@@ -167,55 +167,58 @@
    ! Retrieve environmental dependencies
    _GET_(self%id_temp,tC) ! temperature in Celcius
    
-   _GET_(self%id_parW,parW) ! local photosynthetically active radiation
-   _GET_(self%id_parW_dmean,parW_dm)
-   ! for the first day, the daily mean value doesn't yet exist (with values in the order of -1e19), 
-   ! so just restore it with a value obtained with an exp decay function to account for depth
-   if ( parW_dm .lt. 0.0 ) then 
-     _GET_(self%id_depth,depth)
-     parW_dm=self%par0_dt0*exp(-depth*self%kc_dt0)
-     !write(*,*)'*** depth,parW_dm',depth,parW_dm
-   !else
-   !write(*,*)'          parW_dm',parW_dm
-   end if
-   parE = parW * 4.6 * 1e-6 * secs_pr_day
-   parE_dm= parW_dm * 4.6 * 1e-6 * secs_pr_day
+   _GET_(self%id_parW,parW) ! local photosynthetically active radiation (PAR)
+   _GET_(self%id_parW_dmean,parW_dm) !current daily average PAR
+   parE = parW * 4.6 * 1e-6 ![mol/m2/s]
+   parE_dm= parW_dm * 4.6 * 1e-6  ![mol/m2/s]
    ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
-   
+   if (parE_dm .lt. 0.0) then
+     parE_dm=0.0
+   end if
    !For providing the delta_t,delta_din and delta_par between the current and previous time step
    
    _GET_(self%id_ddoy_dep,doy_prev)  ! day of year at the previous time step
    _GET_GLOBAL_(self%id_doy,doy)  ! day of year
-   
-   write(*,'(A,2F10.1)')' (abio.1) doy_prev(s),doy(s)',doy_prev*secs_pr_day,doy*secs_pr_day
+   write(*,*)' (abio.1) doy_prev(s),doy(s)',doy_prev,doy
    !Access the par and din at the previous time step and set the diagnostic only if the time step has really advanced
    if (doy .gt. doy_prev) then
-     delta_t=(doy-doy_prev)*secs_pr_day !days to secs
      
+     !Access the values at the prev. time step as recorded by the diagnostic variables
      _GET_(self%id_din,din) ! din
      _GET_(self%id_ddin_dep,din_prev)
-     delta_din= din-din_prev
-     _GET_(self%id_dPAR_dep,parE_prev)
-     delta_par= parE-parE_prev
-     
-     write(*,'(A,2F12.5,A,2F12.5)')' (abio.2) parE_prev,parE',parE_prev,parE,'  din_prev,din',din_prev,din
+     _GET_(self%id_dPARdm_dep,parEdm_prev) !mol/m2/s
      
      !in the first time step, strange things may happen, as the diagnostics are not available yet
-     !if (delta_t .gt. 1e10) then
-     ! delta_t=360
-     !end if
+     if (doy_prev .lt. 0.0) then
+       doy_prev = -1.0 ! just an arbitrary finite number, as the delta_din&par will be 0      
+       din_prev=din ! such that delta_din=0
+       parEdm_prev=parE_dm ! such that delta_par=0
+     end if
+     
+     !calculate the deltas
+     delta_t=(doy-doy_prev)*secs_pr_day !days to secs
+     delta_din=din-din_prev      
+     delta_par= parE_dm-parEdm_prev !mol/m2/s
+     
+     !assume no change in par within the first day
+     if (doy .lt. 1.0+3*delta_t/86400) then
+       delta_par=0.0
+     end if
+     
+!     write(*,'(A,2F12.5,A,2F12.5)')' (abio.2) parE_prev,parE',parE_prev,parE,'  din_prev,din',din_prev,din
+     write(*,*)' (abio.2) parEdm_prev,parEdm,delta_par',parEdm_prev,parE_dm,delta_par,'  din_prev,din',din_prev,din
      
      !set the diagnostics
      
      ! Export diagnostic variables
      _SET_DIAGNOSTIC_(self%id_ddoy,doy)
      _SET_DIAGNOSTIC_(self%id_ddin, din)
-     _SET_DIAGNOSTIC_(self%id_dPAR, parE) ! mol/m2/d-1
-     _SET_DIAGNOSTIC_(self%id_dPAR_dmean, parE_dm) !mol/m2/d
+     _SET_DIAGNOSTIC_(self%id_dPAR, parE) ! mol/m2/s
+     _SET_DIAGNOSTIC_(self%id_dPAR_dmean, parE_dm) !mol/m2/s
      
      _SET_DIAGNOSTIC_(self%id_delta_t,delta_t)
      _SET_DIAGNOSTIC_(self%id_delta_din,delta_din)
-     _SET_DIAGNOSTIC_(self%id_delta_par,delta_par)
+     _SET_DIAGNOSTIC_(self%id_delta_par,delta_par) !mol/m2/s
    end if
    
    !Calculate intermediate terms:
