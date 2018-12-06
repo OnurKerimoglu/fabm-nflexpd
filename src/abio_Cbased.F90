@@ -187,8 +187,7 @@
    _GET_(self%id_ddoy_dep,doy_prev)  ! day of year at the previous time step
    _GET_GLOBAL_(self%id_doy,doy)  ! day of year
    
-   !write(*,*)'.'
-   write(*,'(A,2F10.1)')'doy_prev(s),doy(s)',doy_prev*secs_pr_day,doy*secs_pr_day
+   write(*,'(A,2F10.1)')' (abio.1) doy_prev(s),doy(s)',doy_prev*secs_pr_day,doy*secs_pr_day
    !Access the par and din at the previous time step and set the diagnostic only if the time step has really advanced
    if (doy .gt. doy_prev) then
      delta_t=(doy-doy_prev)*secs_pr_day !days to secs
@@ -199,7 +198,7 @@
      _GET_(self%id_dPAR_dep,parE_prev)
      delta_par= parE-parE_prev
      
-     !write(*,'(A,2F12.5,A,2F12.5)')'  parE_prev,parE',parE_prev,parE,'  din_prev,din',din_prev,din
+     write(*,'(A,2F12.5,A,2F12.5)')' (abio.2) parE_prev,parE',parE_prev,parE,'  din_prev,din',din_prev,din
      
      !in the first time step, strange things may happen, as the diagnostics are not available yet
      !if (delta_t .gt. 1e10) then

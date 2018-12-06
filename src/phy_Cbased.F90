@@ -26,7 +26,7 @@
 !     Variable identifiers
       type (type_state_variable_id)        :: id_phyC
       type (type_state_variable_id)        :: id_din,id_don,id_detn
-      type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean
+      type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_dep_ThetaHat
       type (type_horizontal_dependency_id) :: id_FDL
       type (type_diagnostic_variable_id)   :: id_phyN,id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR
@@ -133,7 +133,7 @@
    call self%register_diagnostic_variable(self%id_fA, 'fA','-',    'fA',           &
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_ThetaHat, 'ThetaHat','-', 'ThetaHat',           &
-                                     output=output_time_step_averaged)
+                                     output=output_instantaneous)
                                      
    call self%register_diagnostic_variable(self%id_PPR, 'PPR','mmolC/m^3/d','Primary production rate',      &
                                      output=output_time_step_averaged)
@@ -149,6 +149,7 @@
    call self%register_dependency(self%id_delta_t, 'delta_t','s','diff betw current and prev time step')
    call self%register_dependency(self%id_delta_din, 'delta_din','mmolN/m^3','diff in DIN betw current and prev time step')
    call self%register_dependency(self%id_delta_par, 'delta_par','E/m^2/d','diff in PAR betw current and prev time step')
+   call self%register_dependency(self%id_dep_ThetaHat, 'ThetaHat','-', 'ThetaHat')
    
    end subroutine initialize
 !EOC
@@ -167,7 +168,7 @@
 !
 ! !LOCAL VARIABLES:
    real(rk)                   :: din,phyC,parW,par,par_dm,Ld
-   real(rk)                   :: ThetaHat,vNhat,muIhat
+   real(rk)                   :: ThetaHat,ThetaHat_pr,vNhat,muIhat
    real(rk)                   :: Q,Theta,fV,fA,Rchl,I_zero,ZINT,valSIT
    real(rk)                   :: phyN,vN,Vhat_fNT
    real(rk)                   :: doy,doy_prev
@@ -211,7 +212,7 @@
    _GET_(self%id_delta_t,delta_t)
    _GET_(self%id_delta_din,delta_din)
    _GET_(self%id_delta_par,delta_par)
-   write(*,'(A,F10.1,3F12.5)')'  (phy) doy(s),delta_t,delta_I,delta_N:',doy*secs_pr_day,delta_t,delta_par,delta_din
+   write(*,'(A,F10.1,5F12.5)')'  (phy.1) doy(s),delta_I,delta_N,par,din,phyC:',doy*secs_pr_day,delta_par,delta_din,par,din,phyC
    
    !Calculate intermediate terms:
    !Temperature factor 
@@ -223,19 +224,34 @@
    
    !why is this at the end in the original code?
    if( self%theta_opt ) then
-     if( par .gt. I_zero ) then
+     if( par_dm .gt. I_zero ) then
        !argument for the Lambert's W function
        larg = (1.0 + self%RMchl * Tfac/(Ld*self%mu0hat*Tfac)) * exp(1.0 + self%aI*par_dm/(self%mu0hat*Tfac*self%zetaChl))
        ! eq. 8 in Smith et al 2016
        ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par_dm)
-       ThetaHat=max(0.01,ThetaHat)
+!!$       _GET_(self%id_dep_ThetaHat,ThetaHat_pr)
+       
+!!$       if( ThetaHat .ne. ThetaHat_pr ) then
+!!$          write(*,'(A,3F12.5)')'  (phy) ThetaHat_pr, ThetaHat, fr_TheHat: ',ThetaHat_pr,ThetaHat,(ThetaHat - ThetaHat_pr)/ThetaHat_pr
+!!$       end if
+
+!!$       if( ThetaHat_pr .gt. 10.0 ) then
+!!$          ThetaHat_pr =  self%TheHat_fixed
+!!$       else if( ThetaHat_pr .lt. 0.01 ) then
+!!$          ThetaHat_pr =  self%TheHat_fixed
+!!$       end if
+!!$       if( abs((ThetaHat - ThetaHat_pr)/ThetaHat_pr) .gt. 0.40  ) then
+!!$          ThetaHat = ThetaHat_pr
+!!$       end if
+       ThetaHat=max(0.1,ThetaHat)
      else
-       ThetaHat = 0.01  !  a small positive value 
-     end if
+       ThetaHat = 0.1  !  a relatively large positive value 
+    end if
    else
      ThetaHat = self%TheHat_fixed
    end if
-   
+
+
    ! Light limited growth rate (eq. 6 in Smith et al 2016)
    valSIT=SIT(self%aI,self%mu0hat,par,ThetaHat,Tfac)
    muIhat = self%mu0hat * Tfac * valSIT 
@@ -257,7 +273,7 @@
    !Optimization of fV (synthesis vs nut. uptake)
    !Intermediate term  in brackets that appears in Smith et al 2016, eqs. 13 & 14
    ZINT = (self%zetaN + muIhat/vNhat) * self%Q0 / 2.0
-   !write(*,'(A,4F12.5)')'  (phy) ZINT, muIhat/vNhat:',ZINT,muIhat/vNhat
+   ! write(*,'(A,4F12.5)')'  (phy.2) ZINT, muIhat/vNhat:',ZINT,muIhat/vNhat
    
    if( self%fV_opt .and.  par .gt. I_zero ) then
      ! eq. 13  in Smith et al 2016
@@ -299,13 +315,14 @@
 !!$      mu = muIhat*(1.0 + 2.0*(ZINT - sqrt(ZINT*(1.0+ZINT))) ) - Rchl
    ! eq. 5 in Pahlow and Oschlies 2013 (-Rchl)
    mu = muIhat * ( 1 - fV - self%Q0/(2.0*Q) ) - self%zetaN*fV*vNhat - Rchl ![/s]
+   !write(*,'(A,4F15.5)')'  (phy) mu, muIhat * ( 1 - fV - self%Q0/(2.0*Q) ), -self%zetaN*fV*vNhat, -Rchl:',mu*secs_pr_day,muIhat * ( 1 - fV - self%Q0/(2.0*Q) )*secs_pr_day, -self%zetaN*fV*vNhat*secs_pr_day, -Rchl*secs_pr_day
    
    !Just for the diagnostics:
    !Primary production rate:
    PProd = (1.0-self%kexc) * max(0.0, mu*phyC )  ! PP [ mmolC / m3 / s ]
 
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
-   Theta= (1 - self%Q0 / 2 / Q - fV)* Q
+   Theta= (1 - self%Q0 / 2 / Q - fV)* ThetaHat 
    
    !Excretion:
    exc = self%kexc * mu * phyN
@@ -313,24 +330,25 @@
    mort=self%M0p * Tfac * PhyN**2
    
    Vhat_fNT= self%V0hat*din/(self%V0hat/self%A0hat + 2.0 * sqrt((self%V0hat*din/self%A0hat)) + din) !eq.20 in S16
-   write(*,'(A,5F12.5)')'  (phy) Vhat_fNT, self%V0hat*din, self%V0hat/self%A0hat, 2.0*sqrt((self%V0hat*din/self%A0hat)), din', Vhat_fNT, self%V0hat*din, self%V0hat/self%A0hat, 2.0*sqrt((self%V0hat*din/self%A0hat)), din
+   !write(*,'(A,5F12.5)')'  (phy) Vhat_fNT, self%V0hat*din, self%V0hat/self%A0hat, 2.0*sqrt((self%V0hat*din/self%A0hat)), din', Vhat_fNT, self%V0hat*din, self%V0hat/self%A0hat, 2.0*sqrt((self%V0hat*din/self%A0hat)), din
    !N-uptake:
    !through changes in Q (re-location of N)
    !ZINT=0.01170 obtained in the first time step is too small
    delQ_delZ= -self%Q0/(4*ZINT*sqrt(ZINT*(1.+ZINT))) !delQ/delZ, eq. A-2&3 (Z=ZINT)
    !write(*,'(A,4F12.5)')'  (phy) delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT)):',delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT))
    !(exp(-ai*ThetaHat*par_dm/(mu0hat*Tfac))=1-valSIT
-   delZ_delI= self%Q0*self%aI*ThetaHat/(2*din*Vhat_fNT)*(1-valSIT) !delZ/delI, eq.A-4 in S16
-   !write(*,'(A,4F12.5)')'  (phy) delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)',delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)
+   delZ_delI= self%Q0*self%aI*ThetaHat/(2*Vhat_fNT)*(1-valSIT) !delZ/delI, eq.A-4 in S16
+   write(*,'(A,4F15.5)')'  (phy.2) delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)',delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)
    delZ_delN= -self%Q0*muIhat/(2*din*Vhat_fNT)*(1-(Vhat_fNT/self%V0hat)-(Vhat_fNT/sqrt(self%V0hat*self%A0hat*din))) !delZ/delN, eq.A-5 in S16
    delQ_delI=delQ_delZ*delZ_delI !delQ/delI, eq. A-2 in S16
-   !write(*,'(A,3F12.5)')'  (phy) delQ_delI,delQ_delZ,delZ_delI:',delQ_delI,delQ_delZ,delZ_delI
+   write(*,'(A,3F15.5)')'  (phy.3) delQ_delI,delQ_delZ,delZ_delI:',delQ_delI,delQ_delZ,delZ_delI
    delQ_delN=delQ_delZ*delZ_delN !delQ/delN, eq. A-3 in S16
    dI_dt = delta_par / delta_t   !dI/dt
    dN_dt = delta_din / delta_t  !dN/dt
    delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt !delQ/delt, eq. A-6 in S16
+   write(*,'(A,4F20.10)')'  (phy.4) delQ_delI,dI_dt,delQ_delN,dN_dt:',delQ_delI,dI_dt,delQ_delN,dN_dt
    vN = mu*Q + delQ_delt !eq. A-6 in S16
-   !write(*,'(A,5F12.5)')'  (phy) mu*Q,delQ_delI,dI_dt,delQ_delN,dN_dt:',mu*Q,delQ_delI,dI_dt,delQ_delN,dN_dt
+   write(*,'(A,3F15.10)')'  (phy.5) mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt:',mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt
    
    
    !Calculate fluxes between pools
@@ -339,9 +357,12 @@
    f_phy_don = (1.0 - self%Mpart) * mort + exc
    
    
+   !write(*,'(A,5F12.5)')'  (phy) dphyC*dt,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q: ', (f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)*12,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q
    ! Set temporal derivatives
    _SET_ODE_(self%id_phyC, f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
-
+   write(*,'(A,3F15.10)')'  (phy.6) f_din_phy/Q*dt, f_phy_don/Q*dt, f_phy_detn/Q)*dt',f_din_phy/Q*delta_t, f_phy_don/Q*delta_t, f_phy_detn/Q*delta_t
+   write(*,'(A,3F15.10)')'  (phy.7) phyC,delta_phyC,phyC+delta_phyC',phyC,(f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)*secs_pr_day*delta_t,phyC+ (f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)*delta_t
+   
    ! If externally maintained dim,dom und det pools are coupled:
    _SET_ODE_(self%id_din, -f_din_phy)
    _SET_ODE_(self%id_don,  f_phy_don)
