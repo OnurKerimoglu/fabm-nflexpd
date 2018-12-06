@@ -200,9 +200,10 @@
    
    ! Primary production
    ! Optimization of ThetaHat (optimal Chl content in the chloroplasts)
+   ! in cmo, mu0=phy%V0*ft/(phy%rdl + phy%daylen)
    I_zero = self%zetaChl * self%RMchl * Tfac / (Ld*self%aI)   ! Threshold irradiance
    if( self%theta_opt ) then
-     if( par_dm .gt. I_zero ) then
+     if( par_dm .gt. I_zero ) then !in cmo: .and. (mu0>0.0)
        !argument for the Lambert's W function
        larg = (1.0 + self%RMchl * Tfac/(Ld*self%mu0hat*Tfac)) * exp(1.0 + self%aI*par_dm/(self%mu0hat*Tfac*self%zetaChl))
        !larg=min(1e38,larg) !larg can explode if aI is too large compared to mu0hat*zetaChl
@@ -215,15 +216,21 @@
        !end if
      else
        !write(*,*)'par_dm,I_0',par_dm,I_zero
-       ThetaHat = 0.1  !  a small positive value 
+       ThetaHat = 0.1  !  a small positive value
+       !in cmo: ThetaHat=0.0 
      end if
    else
      ThetaHat = self%TheHat_fixed
    end if
    
    ! Light limited growth rate (eq. 6 in Smith et al 2016)
-   valSIT=SIT(self%aI,self%mu0hat,par,ThetaHat,Tfac)
-   muIhat = self%mu0hat * Tfac * valSIT 
+   if (par_dm .gt. I_zero) then !in cmo: .and. (mu0>0.0)
+     valSIT=SIT(self%aI,self%mu0hat,par,ThetaHat,Tfac)
+     muIhat = self%mu0hat * Tfac * valSIT 
+   else
+     valSIT=0.0
+     muIhat=0.0
+   end if
    
    !Optimal allocation for affinity vs max. uptake
    if( self%fA_opt ) then
