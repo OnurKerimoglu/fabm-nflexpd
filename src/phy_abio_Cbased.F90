@@ -587,7 +587,10 @@
    write(*,'(A,2F15.10)')'  (phy.6) phyC,delta_phyC',phyC,(mu*phyC - f_phy_don/Q - f_phy_detn/Q)*delta_t
    
    ! If externally maintained dim,dom und det pools are coupled:
-   _SET_ODE_(self%id_din, (f_don_din -f_din_phy))
+   !dN/dt: based on explicit delQ/delN*deltaN/deltat (eq.44 in OptScale.v2)
+   !_SET_ODE_(self%id_din, (f_don_din -f_din_phy))
+   !dN/dt: after rearranging eq. 44 and isolating dN/dt (eq.45)
+   _SET_ODE_(self%id_din, (f_don_din - (mu*Q+delQ_delI*dI_dt)*phyC)/(1+phyC*delQ_delN))
    _SET_ODE_(self%id_don,  f_phy_don + f_det_don - f_don_din)
    _SET_ODE_(self%id_detN, f_phy_detn - f_det_don)
    
