@@ -109,10 +109,6 @@
 
    ! Register state variables
    call self%register_state_variable(self%id_phyC,'C','mmolC/m^3','bound-C concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=self%kc)
-   
-   !todo: register phyN as a diagnostic
-   ! Register contribution of state to global aggregate variables.
-   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_phyC)
 
    ! Register dependencies on external state variables
    call self%register_state_dependency(self%id_din, 'din',   'mmolN/m^3','dissolved inorganic nitrogen')
@@ -122,8 +118,10 @@
    ! Register diagnostic variables
    call self%register_diagnostic_variable(self%id_Q, 'Q','molN/molC',    'cellular nitrogen Quota',           &
                                      output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_phyN, 'N','mmolC/m^3',    'bound-N concentration (diag)',           &
-                                     output=output_instantaneous)                                     
+   call self%register_diagnostic_variable(self%id_phyN, 'N','mmolN/m^3',    'bound-N concentration (diag)',           &
+                                     output=output_instantaneous)
+   ! Register contribution of diagnostic to global aggregate variables.
+   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_phyN)
    call self%register_diagnostic_variable(self%id_Chl2C, 'Chl2C','gChl/molC',    'cellular chlorophyll content',           &
                                      output=output_instantaneous)                                     
    call self%register_diagnostic_variable(self%id_mu, 'mu','/d',    'net sp. growth rate',           &
@@ -171,7 +169,7 @@
    real(rk)                   :: ThetaHat,ThetaHat_pr,vNhat,muIhat
    real(rk)                   :: Q,Theta,fV,fA,Rchl,I_zero,ZINT,valSIT
    real(rk)                   :: phyN,vN,Vhat_fNT
-   real(rk)                   :: doy,doy_prev
+   real(rk)                   :: doy!,doy_prev
    real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN
    real(rk)                   :: delta_t,delta_din,delta_par
@@ -378,7 +376,7 @@
    _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_ThetaHat, ThetaHat) 
    _SET_DIAGNOSTIC_(self%id_PPR, PProd*secs_pr_day) !*s_p_d such that output is in d-1
-
+   write(*,*)'!'
    ! Leave spatial loops (if any)
    _LOOP_END_
 
