@@ -3,17 +3,17 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !MODULE: NflexPD - DOQ (Dynamically Optimized Quota) phytoplankton component
+! !MODULE: PMbench - DOQ (Dynamically Optimized Quota) phytoplankton component
 ! Original Authors: O. Kerimoglu 20181204
 !
 ! !INTERFACE:
-   module NflexPD_phy_DOQ
+   module PMbench_phy_DOQ
 !
 ! !DESCRIPTION:
 !
 ! !USES:
    use lambert
-   use NflexPD_common
+   use PMbench_common
    use fabm_types
 
    implicit none
@@ -22,7 +22,7 @@
    private
 !
 ! !PUBLIC DERIVED TYPES:
-   type,extends(type_base_model),public :: type_NflexPD_phy_DOQ
+   type,extends(type_base_model),public :: type_PMbench_phy_DOQ
 !     Variable identifiers
       type (type_state_variable_id)        :: id_phyC,id_phyN
       type (type_state_variable_id)        :: id_din,id_don,id_detn
@@ -60,11 +60,11 @@
    subroutine initialize(self,configunit)
 !
 ! !DESCRIPTION:
-!  Here, the NflexPD_phy_DOQ namelist is read and variables exported
+!  Here, the PMbench_phy_DOQ namelist is read and variables exported
 !  by the model are registered with FABM.
 !
 ! !INPUT PARAMETERS:
-   class (type_NflexPD_phy_DOQ), intent(inout), target :: self
+   class (type_PMbench_phy_DOQ), intent(inout), target :: self
    integer,                        intent(in)            :: configunit
 !
 ! !LOCAL VARIABLES:
@@ -144,13 +144,13 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Right hand sides of the NflexPD model
+! !IROUTINE: Right hand sides of the PMbench model
 !
 ! !INTERFACE:
    subroutine do(self,_ARGUMENTS_DO_)
 !
 ! !INPUT PARAMETERS:
-   class (type_NflexPD_phy_DOQ), intent(in) :: self
+   class (type_PMbench_phy_DOQ), intent(in) :: self
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
@@ -319,7 +319,7 @@
 !EOC
 !-----------------------------------------------------------------------
 
-   end module NflexPD_phy_DOQ
+   end module PMbench_phy_DOQ
 
 !-----------------------------------------------------------------------
 ! Copyright Onur Kerimoglu (kerimoglu.o@gmail.com) - GNU Public License - www.gnu.org

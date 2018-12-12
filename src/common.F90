@@ -1,6 +1,6 @@
 #include "fabm_driver.h"
 
-module NflexPD_common
+module PMbench_common
 
    use fabm_types
    use fabm_standard_variables

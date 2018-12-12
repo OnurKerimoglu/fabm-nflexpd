@@ -2,18 +2,18 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !MODULE: NflexPD_abio - abiotic component
+! !MODULE: PMbench_abio - abiotic component
 ! Original Author(s): S. Lan Smith 2014-12-09, O. Kerimoglu 2018-11-27
 !
 ! !INTERFACE:
-   module NflexPD_abio
+   module PMbench_abio
 !
 ! !DESCRIPTION:
 ! This model describes the abiotic processes
 !
 ! !USES:
    use fabm_types
-   use NflexPD_common
+   use PMbench_common
    use fabm_expressions
 
    implicit none
@@ -21,7 +21,7 @@
    private
 !
 ! !PUBLIC DERIVED TYPES:
-   type,extends(type_base_model),public :: type_NflexPD_abio
+   type,extends(type_base_model),public :: type_PMbench_abio
 !     Variable identifiers
       type (type_state_variable_id)     :: id_din,id_don,id_detn
       type (type_dependency_id)         :: id_temp,id_depth,id_parW,id_parW_dmean
@@ -54,11 +54,11 @@
    subroutine initialize(self,configunit)
 !
 ! !DESCRIPTION:
-!  Here, the NflexPD_abio namelist is read and variables exported
+!  Here, the PMbench_abio namelist is read and variables exported
 !  by the model are registered with FABM.
 !
 ! !INPUT PARAMETERS:
-   class (type_NflexPD_abio), intent(inout), target :: self
+   class (type_PMbench_abio), intent(inout), target :: self
    integer,                        intent(in)            :: configunit
 !
 ! !LOCAL VARIABLES:
@@ -117,7 +117,7 @@
    subroutine do(self,_ARGUMENTS_DO_)
 !
 ! !INPUT PARAMETERS:
-   class (type_NflexPD_abio), intent(in)     :: self
+   class (type_PMbench_abio), intent(in)     :: self
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
@@ -186,7 +186,7 @@
    subroutine do_surface(self,_ARGUMENTS_DO_SURFACE_)
 !
 ! !INPUT PARAMETERS:
-   class (type_NflexPD_abio), intent(in)     :: self
+   class (type_PMbench_abio), intent(in)     :: self
    _DECLARE_ARGUMENTS_DO_SURFACE_
 !
 ! !LOCAL VARIABLES:
@@ -259,7 +259,7 @@
 !EOC
 !-----------------------------------------------------------------------
 
-   end module NflexPD_abio
+   end module PMbench_abio
 
 !-----------------------------------------------------------------------
 ! Copyright Onur Kerimoglu (kerimoglu.o@gmail.com) - GNU Public License - www.gnu.org

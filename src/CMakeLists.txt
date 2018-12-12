@@ -1,8 +1,8 @@
-# Generate placeholder "ersem_version" module (versions all set to "unknown" - updated at build time if FABM_EMBED_VERSION is set)
+# Generate placeholder "PMbench_version" module (versions all set to "unknown" - updated at build time if FABM_EMBED_VERSION is set)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.F90.in ${CMAKE_CURRENT_BINARY_DIR}/version.F90)
 
-add_library(fabm_models_nflexpd OBJECT
-            nflexpd_model_library.F90
+add_library(fabm_models_pmbench OBJECT
+            pmbench_model_library.F90
             ${CMAKE_CURRENT_BINARY_DIR}/version.F90
             common.F90
             abio.F90
@@ -13,17 +13,17 @@ add_library(fabm_models_nflexpd OBJECT
             lambert_modified.f90
            )
 
-add_dependencies(fabm_models_nflexpd fabm_base)
+add_dependencies(fabm_models_pmbench fabm_base)
 
 if(FABM_EMBED_VERSION)
-  # Dynamically generate "ersem_version" module with git commit/branch information at every build.
-  add_custom_target(fabm_models_nflexpd_version
+  # Dynamically generate "PMbench_version" module with git commit/branch information at every build.
+  add_custom_target(fabm_models_pmbench_version
      ${CMAKE_COMMAND} -DINFILE=${CMAKE_CURRENT_SOURCE_DIR}/version.F90.in -DOUTFILE=${CMAKE_CURRENT_BINARY_DIR}/version.F90 -P ${GET_GIT_INFO_SCRIPT}
      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-     COMMENT "Retrieving description of last NflexPD commit..." 
+     COMMENT "Retrieving description of last PMbench commit..." 
      SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/version.F90.in ${GET_GIT_INFO_SCRIPT}
      VERBATIM
   )
-  add_dependencies(fabm_models_nflexpd fabm_models_nflexpd_version)
+  add_dependencies(fabm_models_pmbench fabm_models_pmbench_version)
 endif()
 
