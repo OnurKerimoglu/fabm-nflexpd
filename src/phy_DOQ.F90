@@ -158,10 +158,6 @@
    real(rk)                   :: ThetaHat,vNhat,muIhat
    real(rk)                   :: Q,Theta,fV,fA,Rchl,I_zero,ZINT,valSIT
    real(rk)                   :: vN,Vhat_fNT
-   !real(rk)                   :: doy,doy_prev
-   !real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt
-   !real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN
-   !real(rk)                   :: delta_t,delta_din,delta_par
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac
    real(rk)                   :: mu,exc,mort,Pprod
