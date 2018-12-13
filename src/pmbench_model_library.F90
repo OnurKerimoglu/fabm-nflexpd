@@ -2,6 +2,7 @@ module pmbench_model_library
 
    use fabm_types, only: type_base_model_factory, type_base_model
 
+   use pmbench_phy_classic
    use pmbench_phy_DOQ
    use pmbench_phy_IOQ
    use pmbench_phy_IOQ_Nbased
@@ -28,6 +29,7 @@ contains
       class (type_base_model),pointer :: model
 
       select case (name)
+         case ('phy_classic'); allocate(type_pmbench_phy_classic::model)
          case ('phy_DOQ'); allocate(type_pmbench_phy_DOQ::model)
          case ('phy_IOQ'); allocate(type_pmbench_phy_IOQ::model)
          case ('phy_IOQ_Nbased'); allocate(type_pmbench_phy_IOQ_Nbased::model)

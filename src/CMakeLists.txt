@@ -7,6 +7,7 @@ add_library(fabm_models_pmbench OBJECT
             common.F90
             abio.F90
             abio_dEdt.F90
+            phy_classic.F90
             phy_DOQ.F90
             phy_IOQ.F90
             phy_IOQ_Nbased.F90
