@@ -347,7 +347,7 @@
    _GET_(self%id_din,din) ! din
    _GET_(self%id_ddoy_dep,doy_prev)  ! day of year at the previous time step
    _GET_GLOBAL_(self%id_doy,doy)  ! day of year
-   write(*,*)' (abio.1) doy_prev(s),doy(s)',doy_prev,doy
+   write(*,*)' (abio.1) doy_prev(s),doy(s)',doy_prev*secs_pr_day,doy*secs_pr_day
    !Access the par and din at the previous time step and set the diagnostic only if the time step has really advanced
    if (doy .gt. doy_prev) then
      
