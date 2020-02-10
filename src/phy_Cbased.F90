@@ -389,7 +389,7 @@
 ! !IROUTINE: Light limitation for the FlexPFT model 
 !
 ! !INTERFACE:
-   REALTYPE function SIT(aI,mu0hat,I,ThH,Tfac)
+   real(rk) function SIT(aI,mu0hat,I,ThH,Tfac)
 !
 ! !DESCRIPTION:
 ! Here, the light limitation term (Pahlow and Oschlies MEPS 2013) is calculated. 
@@ -399,7 +399,7 @@
    IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
-   REALTYPE, intent(in)                 :: aI,mu0hat,I, ThH, Tfac 
+   real(rk), intent(in)                 :: aI,mu0hat,I, ThH, Tfac 
 !
 ! !REVISION HISTORY:
 !  Original author(s): S. Lan Smith, 20141213
@@ -418,7 +418,7 @@
 ! !IROUTINE: Nutrient uptake rate based on Optimal Uptake (OU) kinetics 
 !
 ! !INTERFACE:
-   REALTYPE function vOU(N,Apot,Vpot)
+   real(rk) function vOU(N,Apot,Vpot)
 !
 ! !DESCRIPTION:
 !            The nutrient uptake rate calculated by Optimal Uptake (OU) kinetics assuming instantaneous 
@@ -431,7 +431,7 @@
    IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
-   REALTYPE, intent(in)                :: N, Apot, Vpot
+   real(rk), intent(in)                :: N, Apot, Vpot
 !
 ! !REVISION HISTORY:
 !  Original author(s): S. Lan Smith, 20141213
@@ -453,7 +453,7 @@
 ! !IROUTINE: Nutrient uptake rate based on Affinity-based kinetics with a trade-off 
 !
 ! !INTERFACE:
-   REALTYPE function vAff(N,f,Apot,Vpot)
+   real(rk) function vAff(N,f,Apot,Vpot)
 !
 ! !DESCRIPTION:
 !            The nutrient uptake rate calculated by the affinity-based equation including the trade-off
@@ -469,7 +469,7 @@
    IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
-   REALTYPE, intent(in)                :: N, f, Apot, Vpot
+   real(rk), intent(in)                :: N, f, Apot, Vpot
 !
 ! !REVISION HISTORY:
 !  Original author(s): S. Lan Smith, 20141213
@@ -489,7 +489,7 @@
 ! !IROUTINE: Temperature dependence of rates for the FlexPFT model 
 !
 ! !INTERFACE:
-   REALTYPE function FofT(tC)
+   real(rk) function FofT(tC)
 !
 ! !DESCRIPTION:
 ! Here, Arrhenius type temperature dependence is calcuated, for a reference temperature, Tr, 
@@ -499,10 +499,10 @@
    IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
-   REALTYPE, intent(in)                :: tC            ! temperature [ degrees C ]
-   REALTYPE, parameter                 :: R = 8.31446   ! gas constant [ J /mol /K ]
-   REALTYPE, parameter                 :: Ea=4.82e4        ! [ J / mol ]
-   REALTYPE, parameter                 :: Tr=20.0          ! [ degrees C ]
+   real(rk), intent(in)                :: tC            ! temperature [ degrees C ]
+   real(rk), parameter                 :: R = 8.31446   ! gas constant [ J /mol /K ]
+   real(rk), parameter                 :: Ea=4.82e4        ! [ J / mol ]
+   real(rk), parameter                 :: Tr=20.0          ! [ degrees C ]
 !
 ! !REVISION HISTORY:
 !  Original author(s):  S. Lan Smith, 20141213
