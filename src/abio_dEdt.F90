@@ -275,7 +275,7 @@
 ! !IROUTINE: Fractional Day Length
 !
 ! !INTERFACE:
-   REALTYPE function FDL(L,doy)
+   real(rk) function FDL(L,doy)
 !
 ! !DESCRIPTION:
 ! Here, the sunrise and sunset are calculated based on latitude and day of year (doy)
@@ -285,11 +285,11 @@
    IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
-   REALTYPE, intent(in)    :: L,doy
-   REALTYPE                :: P,D,nom,denom
+   real(rk), intent(in)    :: L,doy
+   real(rk)                :: P,D,nom,denom
    INTEGER                 :: J
 ! !CONSTANTS   
-   REALTYPE,parameter      :: pi=3.14159
+   real(rk),parameter      :: pi=3.14159
    
 !
 ! !REVISION HISTORY:
