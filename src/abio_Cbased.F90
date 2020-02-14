@@ -99,7 +99,7 @@
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_detn)
    
    ! Register diagnostic variables
-   call self%register_horizontal_diagnostic_variable(self%id_dFDL,'FDL','-',       'fractional day length')
+   call self%register_diagnostic_variable(self%id_dFDL,'FDL','-',       'fractional day length',source=source_do_surface) !,domain=domain_surface)
    call self%register_diagnostic_variable(self%id_dPAR,'PAR','E/m^2/d',       'photosynthetically active radiation')
    call self%register_diagnostic_variable(self%id_dPAR_dmean, 'PAR_dmean','E/m^2/s','photosynthetically active radiation, daily averaged')
                                      

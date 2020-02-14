@@ -29,7 +29,7 @@
       type (type_state_variable_id)        :: id_phyC
       !type (type_state_variable_id)        :: id_din,id_don,id_detn
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_dep_ThetaHat
-      type (type_horizontal_dependency_id) :: id_FDL
+      type (type_horizontal_dependency_id) :: id_depFDL
       type (type_diagnostic_variable_id)   :: id_phyN,id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR
       
@@ -141,7 +141,6 @@
    call self%get_parameter(self%kc_dt0,'kc_dt0','m-1', 'attenuaton coefficient on the first time step',  default=0.2_rk)
 
    ! Register state and diagnostic variables
-   
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
    !ABIO:
    call self%register_state_variable(self%id_din,'din','mmolN/m^3','DIN concentration',     &
@@ -161,7 +160,7 @@
    
    ! Register diagnostic variables
    !ABIO
-   call self%register_horizontal_diagnostic_variable(self%id_dFDL,'FDL','-',       'fractional day length')
+   call self%register_diagnostic_variable(self%id_dFDL,'FDL','-',       'fractional day length',source=source_do_surface) !,domain=domain_surface)
    call self%register_diagnostic_variable(self%id_dPAR,'PAR','E/m^2/d',       'photosynthetically active radiation')
    call self%register_diagnostic_variable(self%id_dPAR_dmean, 'PAR_dmean','E/m^2/s','photosynthetically active radiation, daily averaged')
                                      
@@ -236,16 +235,15 @@
    !PHY
    !call self%register_dependency(self%id_parW, standard_variables%downwelling_photosynthetic_radiative_flux)
    call self%register_dependency(self%id_par_dmean, 'PAR_dmean','E/m^2/s','photosynthetically active radiation, daily averaged')
-   call self%register_horizontal_dependency(self%id_FDL, 'FDL','-',       'fractional day length')
+   call self%register_horizontal_dependency(self%id_depFDL, 'FDL','-',       'previous val of fractional day length')
    !call self%register_dependency(self%id_temp,standard_variables%temperature)
    !call self%register_global_dependency(self%id_doy,standard_variables%number_of_days_since_start_of_the_year)
    
    call self%register_dependency(self%id_dep_delta_t, 'delta_t','s','diff betw current and prev time step')
    call self%register_dependency(self%id_dep_delta_din, 'delta_din','mmolN/m^3','diff in DIN betw current and prev time step')
    call self%register_dependency(self%id_dep_delta_par, 'delta_par','E/m^2/s','diff in PAR betw current and prev time step')
+   
    !call self%register_dependency(self%id_dep_ThetaHat, 'ThetaHat','-', 'ThetaHat')
-   
-   
    
    end subroutine initialize
 !EOC
@@ -342,6 +340,7 @@
    if (par_dm .lt. 0.0) then
      par_dm=0.0
    end if
+
    !For providing the delta_t,delta_din and delta_par between the current and previous time step
    
    _GET_(self%id_din,din) ! din
@@ -419,7 +418,7 @@
    !_GET_(self%id_par_dmean,par_dm) !in molE/m2/s
    
    !get Ld (fractional day length)
-   _GET_HORIZONTAL_(self%id_FDL,Ld)
+   _GET_HORIZONTAL_(self%id_depFDL,Ld)
    !write(*,'(A,1F12.5)')'  (phy.0) Ld:',Ld
    !_GET_(self%id_temp,tC) ! temperature in Celcius
    
