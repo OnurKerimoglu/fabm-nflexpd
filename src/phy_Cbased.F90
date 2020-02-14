@@ -363,7 +363,10 @@
    write(*,'(A,2F15.10)')'  (phy.6) phyC,delta_phyC',phyC,(mu*phyC - f_phy_don/Q - f_phy_detn/Q)*delta_t
    
    ! If externally maintained dim,dom und det pools are coupled:
-   _SET_ODE_(self%id_din, -f_din_phy)
+   !_SET_ODE_(self%id_din, -f_din_phy)
+   _SET_ODE_(self%id_din, -(mu*Q+delQ_delI*dI_dt)*phyC/(1+phyC*delQ_delN))
+   !NOTE THAT THIS IS NOT EXACT. THE EXACT SOLUTION INCLUDES f_don_din term:
+   !_SET_ODE_(self%id_din, (f_don_din - (mu*Q+delQ_delI*dI_dt)*phyC)/(1+phyC*delQ_delN))
    _SET_ODE_(self%id_don,  f_phy_don)
    _SET_ODE_(self%id_detN, f_phy_detn)
 
