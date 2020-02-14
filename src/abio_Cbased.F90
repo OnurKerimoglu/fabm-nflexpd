@@ -34,6 +34,7 @@
       type (type_diagnostic_variable_id)   :: id_ddoy,id_delta_t
       type (type_dependency_id)            :: id_ddoy_dep
       !for delta_par and delta_din we need 3-D diagnostics anyway
+      type (type_dependency_id)            :: id_dep_delta_t,id_dep_delta_din,id_dep_delta_par
       type (type_diagnostic_variable_id)   :: id_ddin,id_delta_din,id_delta_par
       type (type_dependency_id)            :: id_ddin_dep,id_dpardm_dep
       
@@ -115,20 +116,25 @@
    !for saving and accessing the doy,din and par of the previous integration time step
    call self%register_diagnostic_variable(self%id_ddoy,'ddoy','d', 'diagn_number_of_days_since_start_of_the_year',&
                      output=output_instantaneous)
-   call self%register_dependency(self%id_ddoy_dep,'ddoy','d','diagn_number_of_days_since_start_of_the_year')
+   call self%register_dependency(self%id_ddoy_dep,'ddoy','d','prev. val of diagn_number_of_days_since_start_of_the_year')
+   
    call self%register_diagnostic_variable(self%id_delta_t,'delta_t','s','diff betw current and prev time step',&
                      output=output_instantaneous)
+   call self%register_dependency(self%id_dep_delta_t, 'delta_t','s','prev. val of diff betw current and prev time step dependency')
    
    
    call self%register_diagnostic_variable(self%id_ddin,'ddin','mmolN/m^3', 'diagn. din conc',&
                      output=output_instantaneous)
-   call self%register_dependency(self%id_ddin_dep,'ddin','mmolN/m^3', 'diagn din conc')
+   call self%register_dependency(self%id_ddin_dep,'ddin','mmolN/m^3', 'prev. val of diagn din conc')
+   
    call self%register_diagnostic_variable(self%id_delta_din,'delta_din','mmolN/m^3','diff betw current and prev time step',&
                      output=output_instantaneous)
+   call self%register_dependency(self%id_dep_delta_din, 'delta_din','mmolN/m^3','prev. val of diff in DIN betw current and prev time step')
    
-   call self%register_dependency(self%id_dpardm_dep,'PAR_dmean','E/m^2/s',       'photosynthetically active radiation, daily averaged')
+   call self%register_dependency(self%id_dpardm_dep,'PAR_dmean','E/m^2/s',       'prev. val of photosynthetically active radiation, daily averaged')
    call self%register_diagnostic_variable(self%id_delta_par,'delta_par','E/m^2/s','diff betw current and prev time step',&
                      output=output_instantaneous)
+   call self%register_dependency(self%id_dep_delta_par, 'delta_par','E/m^2/s','prev. val of diff in PAR betw current and prev time step')
    
    
    end subroutine initialize
@@ -179,7 +185,7 @@
    
    _GET_(self%id_ddoy_dep,doy_prev)  ! day of year at the previous time step
    _GET_GLOBAL_(self%id_doy,doy)  ! day of year
-   write(*,*)' (abio.1) doy_prev(s),doy(s)',doy_prev,doy
+   write(*,*)' (abio.1) doy_prev(s),doy(s)',doy_prev*secs_pr_day,doy*secs_pr_day
    !Access the par and din at the previous time step and set the diagnostic only if the time step has really advanced
    if (doy .gt. doy_prev) then
      
@@ -189,6 +195,7 @@
      _GET_(self%id_dPARdm_dep,parEdm_prev) !mol/m2/s
      
      !in the first time step, strange things may happen, as the diagnostics are not available yet
+     !if (parEdm_prev .lt.  0.01/secs_pr_day) then
      if (doy_prev .lt. 0.0) then
        doy_prev = -1.0 ! just an arbitrary finite number, as the delta_din&par will be 0      
        din_prev=din ! such that delta_din=0
@@ -206,7 +213,7 @@
      end if
      
 !     write(*,'(A,2F12.5,A,2F12.5)')' (abio.2) parE_prev,parE',parE_prev,parE,'  din_prev,din',din_prev,din
-     write(*,*)' (abio.2) parEdm_prev,parEdm,delta_par',parEdm_prev,parE_dm,delta_par,'  din_prev,din',din_prev,din
+     write(*,*)' (abio.2) pardm_prev,pardm,delta_par',parEdm_prev,parE_dm,delta_par,'  din_prev,din',din_prev,din
      
      !set the diagnostics
      
@@ -219,6 +226,14 @@
      _SET_DIAGNOSTIC_(self%id_delta_t,delta_t)
      _SET_DIAGNOSTIC_(self%id_delta_din,delta_din)
      _SET_DIAGNOSTIC_(self%id_delta_par,delta_par) !mol/m2/s
+   else
+     !_GET_(self%id_par_dmean,par_dm) !in molE/m2/s
+     _GET_(self%id_parW_dmean,parW_dm) !current daily average PAR
+     parE = parW * 4.6 * 1e-6 ![mol/m2/s]
+     parE_dm= parW_dm * 4.6 * 1e-6  ![mol/m2/s]
+     _GET_(self%id_dep_delta_t,delta_t)
+     _GET_(self%id_dep_delta_din,delta_din)
+     _GET_(self%id_dep_delta_par,delta_par) !mol/m2/s
    end if
    
    !Calculate intermediate terms:
