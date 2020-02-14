@@ -28,8 +28,8 @@
       !phy
       type (type_state_variable_id)        :: id_phyC
       !type (type_state_variable_id)        :: id_din,id_don,id_detn
-      type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_dep_ThetaHat
-      type (type_horizontal_dependency_id) :: id_depFDL
+      type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_dep_ThetaHat,id_depFDL
+      !type (type_horizontal_dependency_id) :: id_depFDL
       type (type_diagnostic_variable_id)   :: id_phyN,id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR
       
@@ -42,8 +42,8 @@
       type (type_dependency_id)         :: id_parW_dmean
       type (type_horizontal_dependency_id)  :: id_lat
       !type (type_global_dependency_id)  :: id_doy
-      type (type_diagnostic_variable_id):: id_dPAR,id_dPAR_dmean
-      type (type_horizontal_diagnostic_variable_id):: id_dFDL
+      type (type_diagnostic_variable_id):: id_dPAR,id_dPAR_dmean,id_dFDL
+      !type (type_horizontal_diagnostic_variable_id):: id_dFDL
       
       !for saving and accessing the doy,din and par of the previous integration time step
       !for doy and delta_t, global diagnostic and dependency would be better but they don't exist
@@ -70,7 +70,7 @@
       contains
 
       procedure :: initialize
-      procedure :: do_surface
+      !procedure :: do_surface
       procedure :: do
    end type
    
@@ -160,7 +160,8 @@
    
    ! Register diagnostic variables
    !ABIO
-   call self%register_diagnostic_variable(self%id_dFDL,'FDL','-',       'fractional day length',source=source_do_surface) !,domain=domain_surface)
+   !call self%register_diagnostic_variable(self%id_dFDL,'FDL','-',       'fractional day length',source=source_do_surface) !,domain=domain_surface)
+   call self%register_diagnostic_variable(self%id_dFDL,'FDL','-',       'fractional day length')
    call self%register_diagnostic_variable(self%id_dPAR,'PAR','E/m^2/d',       'photosynthetically active radiation')
    call self%register_diagnostic_variable(self%id_dPAR_dmean, 'PAR_dmean','E/m^2/s','photosynthetically active radiation, daily averaged')
                                      
@@ -235,7 +236,8 @@
    !PHY
    !call self%register_dependency(self%id_parW, standard_variables%downwelling_photosynthetic_radiative_flux)
    call self%register_dependency(self%id_par_dmean, 'PAR_dmean','E/m^2/s','photosynthetically active radiation, daily averaged')
-   call self%register_horizontal_dependency(self%id_depFDL, 'FDL','-',       'previous val of fractional day length')
+   call self%register_dependency(self%id_depFDL, 'FDL','-',       'fractional day length dependency')
+   !call self%register_horizontal_dependency(self%id_depFDL, 'FDL','-',       'fractional day length dependency')
    !call self%register_dependency(self%id_temp,standard_variables%temperature)
    !call self%register_global_dependency(self%id_doy,standard_variables%number_of_days_since_start_of_the_year)
    
@@ -249,37 +251,37 @@
 !EOC
 
 
-!-----------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Right hand sides of Abiotic model
-!
-! !INTERFACE:
-   subroutine do_surface(self,_ARGUMENTS_DO_SURFACE_)
-!
-! !INPUT PARAMETERS:
-   class (type_NflexPD_phyabio_Cbased), intent(in)     :: self
-   _DECLARE_ARGUMENTS_DO_SURFACE_
-!
-! !LOCAL VARIABLES:
-   real(rk)                   :: lat,doy,Ld
-!EOP
-!-----------------------------------------------------------------------
-!BOC
-   ! Enter spatial loops (if any)
-   _HORIZONTAL_LOOP_BEGIN_
-   
-   _GET_HORIZONTAL_(self%id_lat,lat)
-   _GET_GLOBAL_(self%id_doy,doy)
-   Ld=FDL(lat,doy)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dFDL,Ld) !Fractional day length
-   
-   ! Leave spatial loops (if any)
-   _HORIZONTAL_LOOP_END_
-
-   end subroutine do_surface
-!EOC
-!-----------------------------------------------------------------------
+! !-----------------------------------------------------------------------
+! !BOP
+! !
+! ! !IROUTINE: Right hand sides of Abiotic model
+! !
+! ! !INTERFACE:
+!    subroutine do_surface(self,_ARGUMENTS_DO_SURFACE_)
+! !
+! ! !INPUT PARAMETERS:
+!    class (type_NflexPD_phyabio_Cbased), intent(in)     :: self
+!    _DECLARE_ARGUMENTS_DO_SURFACE_
+! !
+! ! !LOCAL VARIABLES:
+!    real(rk)                   :: lat,doy,Ld
+! !EOP
+! !-----------------------------------------------------------------------
+! !BOC
+!    ! Enter spatial loops (if any)
+!    _HORIZONTAL_LOOP_BEGIN_
+!    
+!    _GET_HORIZONTAL_(self%id_lat,lat)
+!    _GET_GLOBAL_(self%id_doy,doy)
+!    Ld=FDL(lat,doy)
+!    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dFDL,Ld) !Fractional day length
+! 
+!    ! Leave spatial loops (if any)
+!    _HORIZONTAL_LOOP_END_
+! 
+!    end subroutine do_surface
+! !EOC
+! !-----------------------------------------------------------------------
 
 
 !-----------------------------------------------------------------------
@@ -340,7 +342,12 @@
    if (par_dm .lt. 0.0) then
      par_dm=0.0
    end if
-
+   
+   !Calculate Fractional day length
+   _GET_HORIZONTAL_(self%id_lat,lat)
+   _GET_GLOBAL_(self%id_doy,doy)
+   Ld=FDL(lat,doy)
+   
    !For providing the delta_t,delta_din and delta_par between the current and previous time step
    
    _GET_(self%id_din,din) ! din
@@ -377,6 +384,7 @@
      !set the diagnostics
      
      ! Export diagnostic variables
+     _SET_DIAGNOSTIC_(self%id_dFDL,Ld) !Fractional day length
      _SET_DIAGNOSTIC_(self%id_ddoy,doy)
      _SET_DIAGNOSTIC_(self%id_ddin, din)
      _SET_DIAGNOSTIC_(self%id_dPAR, par) ! mol/m2/s
@@ -418,7 +426,8 @@
    !_GET_(self%id_par_dmean,par_dm) !in molE/m2/s
    
    !get Ld (fractional day length)
-   _GET_HORIZONTAL_(self%id_depFDL,Ld)
+   !_GET_HORIZONTAL_(self%id_depFDL,Ld)
+   _GET_(self%id_depFDL,Ld)
    !write(*,'(A,1F12.5)')'  (phy.0) Ld:',Ld
    !_GET_(self%id_temp,tC) ! temperature in Celcius
    
