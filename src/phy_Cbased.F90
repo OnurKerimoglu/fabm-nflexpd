@@ -352,7 +352,15 @@
    
    
    !Calculate fluxes between pools
-   f_din_phy = vN * phyC
+   !(probably due to inaccuracies caused by the dN_dt term, that was calculated in the previous time step, and not in the current time step),
+   !this does not satisfy the mass balance:
+   !f_din_phy = vN * phyC
+   !isolation of the dN/dt (eq A-8) is more stable:
+   !write(*,'(A,2F15.10)')'  (phy.6) f_din_phy,(mu*Q+delQ_delI*dI_dt)*phyC/(1+phyC*delQ_delN)',f_din_phy,(mu*Q+delQ_delI*dI_dt)*phyC/(1+phyC*delQ_delN)
+   f_din_phy = (mu*Q+delQ_delI*dI_dt)*phyC/(1+phyC*delQ_delN)
+   write(*,'(A,2F15.10)')'  (phy.6) vN*phyC, f_din_phy',vN*phyC,f_din_phy
+   !OTHER TERMS NEED TO BE NORMALIZED AS WELL (f_don_din):
+   !_SET_ODE_(self%id_din, (f_don_din - (mu*Q+delQ_delI*dI_dt)*phyC)/(1+phyC*delQ_delN))
    f_phy_detn =       self%Mpart  * mort 
    f_phy_don = (1.0 - self%Mpart) * mort + exc
    
@@ -360,13 +368,10 @@
    !write(*,'(A,5F12.5)')'  (phy) dphyC*dt,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q: ', (f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)*12,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q
    ! Set temporal derivatives
    _SET_ODE_(self%id_phyC, mu*phyC - f_phy_don/Q - f_phy_detn/Q)  !  f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
-   write(*,'(A,2F15.10)')'  (phy.6) phyC,delta_phyC',phyC,(mu*phyC - f_phy_don/Q - f_phy_detn/Q)*delta_t
+   write(*,'(A,2F15.10)')'  (phy.7) phyC,delta_phyC',phyC,(mu*phyC - f_phy_don/Q - f_phy_detn/Q)*delta_t
    
    ! If externally maintained dim,dom und det pools are coupled:
-   !_SET_ODE_(self%id_din, -f_din_phy)
-   _SET_ODE_(self%id_din, -(mu*Q+delQ_delI*dI_dt)*phyC/(1+phyC*delQ_delN))
-   !NOTE THAT THIS IS NOT EXACT. THE EXACT SOLUTION INCLUDES f_don_din term:
-   !_SET_ODE_(self%id_din, (f_don_din - (mu*Q+delQ_delI*dI_dt)*phyC)/(1+phyC*delQ_delN))
+   _SET_ODE_(self%id_din, -f_din_phy)
    _SET_ODE_(self%id_don,  f_phy_don)
    _SET_ODE_(self%id_detN, f_phy_detn)
 
