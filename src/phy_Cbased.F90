@@ -30,9 +30,11 @@
       type (type_horizontal_dependency_id) :: id_FDL
       type (type_diagnostic_variable_id)   :: id_phyN,id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR
+      type (type_diagnostic_variable_id)   :: id_del_phyn_din
       
       type (type_global_dependency_id)     :: id_doy
       type (type_dependency_id)            :: id_delta_t,id_delta_din,id_delta_par
+      type (type_dependency_id)            :: id_total_del_phyn_din
       
 !     Model parameters
       real(rk) :: kc,w_phy
@@ -149,6 +151,11 @@
    call self%register_dependency(self%id_delta_par, 'delta_par','E/m^2/s','diff in PAR betw current and prev time step')
    call self%register_dependency(self%id_dep_ThetaHat, 'ThetaHat','-', 'ThetaHat')
    
+   !export individual phyN/DIN sensitivity, import total phyN/DIN sensitivity
+   call self%register_diagnostic_variable(self%id_del_phyn_din, 'del_phyn_din','molN/molN','Rate of change in current phyto-N per change in DIN',&
+                     output=output_instantaneous)
+   !call self%register_dependency(self%id_total_del_phyn_din,'total_del_phyn_din','molN/molN','Rate of change in total phyto-N per change in DIN')
+   
    end subroutine initialize
 !EOC
 
@@ -177,6 +184,7 @@
    real(rk)                   :: tC,Tfac
    real(rk)                   :: mu,exc,mort,Pprod
    real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn
+   real(rk)                   :: del_phyn_din,total_del_phyn_din
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
 !-----------------------------------------------------------------------
@@ -357,7 +365,11 @@
    !f_din_phy = vN * phyC
    !isolation of the dN/dt (eq A-8) is more stable:
    !write(*,'(A,2F15.10)')'  (phy.6) f_din_phy,(mu*Q+delQ_delI*dI_dt)*phyC/(1+phyC*delQ_delN)',f_din_phy,(mu*Q+delQ_delI*dI_dt)*phyC/(1+phyC*delQ_delN)
-   f_din_phy = (mu*Q+delQ_delI*dI_dt)*phyC/(1+phyC*delQ_delN)
+   del_phyn_din=phyC*delQ_delN !this is the term in the denominator for the current species 
+   _SET_DIAGNOSTIC_(self%id_del_phyn_din,del_phyn_din) ! exported to the abio- component, such that it can calculate the sum
+   _GET_(self%id_total_del_phyn_din,total_del_phyn_din) !this is the term for the sum of all species
+   total_del_phyn_din=del_phyn_din !temporary shortcut for 1-species case
+   f_din_phy = (mu*Q+delQ_delI*dI_dt)*phyC/(1.0_rk+total_del_phyn_din)
    write(*,'(A,2F15.10)')'  (phy.6) vN*phyC, f_din_phy',vN*phyC,f_din_phy
    !OTHER TERMS NEED TO BE NORMALIZED AS WELL (f_don_din):
    !_SET_ODE_(self%id_din, (f_don_din - (mu*Q+delQ_delI*dI_dt)*phyC)/(1+phyC*delQ_delN))

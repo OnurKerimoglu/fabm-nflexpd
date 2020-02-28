@@ -66,6 +66,7 @@ instances:
       din: abio_Cbased/din        # nutrient source (mmol m-3)
       don: abio_Cbased/don        # sink for excreted matter (mmol m-3)
       detN: abio_Cbased/detn      # sink for dead matter (mmol m-3)
+      #total_del_phyn_din: abio_Cbased/total_del_phyn_din !total denominator
   abio_Cbased:
     long_name: Abiotic
     model: nflexpd/abio_Cbased
@@ -80,3 +81,5 @@ instances:
       din: 4.5                         # DIN concentration (mmol m-3)
       don: 4.5                         # DON concentration (mmol m-3)
       detn: 4.5                        # Det-N concentration (mmol m-3)
+    #coupling:
+    #  del_phyn_din: phyC/del_phyn_din !including this gives a seg fault.

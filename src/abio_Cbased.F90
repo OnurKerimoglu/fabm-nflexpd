@@ -37,6 +37,10 @@
       type (type_dependency_id)            :: id_dep_delta_t,id_dep_delta_din,id_dep_delta_par
       type (type_diagnostic_variable_id)   :: id_ddin,id_delta_din,id_delta_par
       type (type_dependency_id)            :: id_ddin_dep,id_dpardm_dep
+      !dependencies from the phyto components
+      type (type_dependency_id)            :: id_del_phyn_din_dep !experimental 1-phytoplanton case
+      type (type_diagnostic_variable_id)   :: id_total_del_phyn_din
+      type (type_dependency_id)            :: id_total_del_phyn_din_dep !for being able to access the previous value
       
 !     Model parameters
       real(rk) :: kdet,kdon,par0_dt0,kc_dt0
@@ -112,6 +116,11 @@
    call self%register_dependency(self%id_parW, standard_variables%downwelling_photosynthetic_radiative_flux)
    call self%register_dependency(self%id_parW_dmean,temporal_mean(self%id_parW,period=1._rk*86400._rk,resolution=1._rk))
    
+   ! import individual phyN/DIN sensitivities, export total phyN/DIN sensitivity
+   !call self%register_dependency(self%id_del_phyn_din_dep,'del_phyn_din','molN/molN','Rate of change in phyto1-N per change in DIN')
+   !including the line above results in seg fault. Maybe an importing module cannot export at the same time?
+   !call self%register_diagnostic_variable(self%id_total_del_phyn_din, 'total_del_phyn_din','molN/molN','Rate of change in total phyto-N per change in DIN')
+   !call self%register_dependency(self%id_total_del_phyn_din_dep,'total_del_phyn_din', 'molN/molN','Previous value of the rate of change in total phyto-N per change in DIN')
    
    !for saving and accessing the doy,din and par of the previous integration time step
    call self%register_diagnostic_variable(self%id_ddoy,'ddoy','d', 'diagn_number_of_days_since_start_of_the_year',&
@@ -136,7 +145,6 @@
                      output=output_instantaneous)
    call self%register_dependency(self%id_dep_delta_par, 'delta_par','E/m^2/s','prev. val of diff in PAR betw current and prev time step')
    
-   
    end subroutine initialize
 !EOC
 
@@ -160,6 +168,7 @@
    real(rk)                   :: doy_prev,delta_t
    real(rk)                   :: din_prev,delta_din
    real(rk)                   :: parEdm_prev,delta_par
+   real(rk)                   :: total_del_phyn_din,del_phyn_din
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
 !-----------------------------------------------------------------------
@@ -216,6 +225,11 @@
      write(*,*)' (abio.2) pardm_prev,pardm,delta_par',parEdm_prev,parE_dm,delta_par,'  din_prev,din',din_prev,din
      
      !set the diagnostics
+     del_phyn_din=0.0_rk
+     !_GET_(self%id_del_phyn_din_dep,del_phyn_din)
+     total_del_phyn_din=del_phyn_din !temporary shortcut for 1-species case for experimental purposes
+     !_SET_DIAGNOSTIC_(self%id_total_del_phyn_din,total_del_phyn_din)
+     write(*,*)' (abio.3a) del_phy1n_din, tot_del_phyn_din',del_phyn_din,total_del_phyn_din
      
      ! Export diagnostic variables
      _SET_DIAGNOSTIC_(self%id_ddoy,doy)
@@ -234,6 +248,9 @@
      _GET_(self%id_dep_delta_t,delta_t)
      _GET_(self%id_dep_delta_din,delta_din)
      _GET_(self%id_dep_delta_par,delta_par) !mol/m2/s
+     !_GET_(self%id_total_del_phyn_din_dep,total_del_phyn_din)
+     total_del_phyn_din=0.0
+     write(*,*)' (abio.3b) prev_tot_del_phyn_din',total_del_phyn_din
    end if
    
    !Calculate intermediate terms:
@@ -247,7 +264,8 @@
    ! Set temporal derivatives
    _SET_ODE_(self%id_detn, -f_det_don)
    _SET_ODE_(self%id_don,   f_det_don - f_don_din)
-   _SET_ODE_(self%id_din,   f_don_din)
+   !_SET_ODE_(self%id_din,   f_don_din)
+   _SET_ODE_(self%id_din,   f_don_din/(1.0+total_del_phyn_din)) ! (eq A-8)
    
    ! Leave spatial loops (if any)
    _LOOP_END_
