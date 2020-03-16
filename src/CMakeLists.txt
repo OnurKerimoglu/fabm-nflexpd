@@ -1,4 +1,4 @@
-# Generate placeholder "ersem_version" module (versions all set to "unknown" - updated at build time if FABM_EMBED_VERSION is set)
+# Generate placeholder "nflexpd_version" module (versions all set to "unknown" - updated at build time if FABM_EMBED_VERSION is set)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.F90.in ${CMAKE_CURRENT_BINARY_DIR}/version.F90)
 
 add_library(fabm_models_nflexpd OBJECT
@@ -15,7 +15,7 @@ add_library(fabm_models_nflexpd OBJECT
 add_dependencies(fabm_models_nflexpd fabm_base)
 
 if(FABM_EMBED_VERSION)
-  # Dynamically generate "ersem_version" module with git commit/branch information at every build.
+  # Dynamically generate "nflexpd_version" module with git commit/branch information at every build.
   add_custom_target(fabm_models_nflexpd_version
      ${CMAKE_COMMAND} -DINFILE=${CMAKE_CURRENT_SOURCE_DIR}/version.F90.in -DOUTFILE=${CMAKE_CURRENT_BINARY_DIR}/version.F90 -P ${GET_GIT_INFO_SCRIPT}
      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
