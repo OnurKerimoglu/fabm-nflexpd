@@ -1,10 +1,10 @@
 instances:
-  phy1:
+  phy_IOQ_Nbased:
     use: .true.
-    long_name: Phytoplankton-1 (IOQ-N)
-    model: pmbench/phy_IOQ_Nbased
+    long_name: Phytoplankton (IOQ-N)
+    model: nflexpd/phy_IOQ_Nbased
     parameters:
-      kc: 0.03                       # specific light extinction (m2 mmolN-1)
+      kc: 0.03                       # specific light extinction (m2 mmol-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       Theta_opt : .true.            # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
@@ -31,12 +31,12 @@ instances:
       din: abio/din        # nutrient source (mmol m-3)
       don: abio/don        # sink for excreted matter (mmol m-3)
       detN: abio/detn      # sink for dead matter (mmol m-3)
-  phy2:
+  phy_IOQ:
     use: .true.
-    long_name: Phytoplankton-2 (IOQ-N)
-    model: pmbench/phy_IOQ_Nbased
+    long_name: Phytoplankton (IOQ)
+    model: nflexpd/phy_IOQ
     parameters:
-      kc: 0.03                       # specific light extinction (m2 mmolN-1)
+      kc: 0.03                       # specific light extinction (m2 mmol-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       Theta_opt : .true.            # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
@@ -56,8 +56,11 @@ instances:
       M0p: 0.01                      # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 0.5                     # part of the mortality that goes to detritus
     initialization:
-      N: 0.15                       # Phytoplankton-N concentration (mmol m-3)
+      C: 1.0                         # Phytoplankton-C concentration (mmol m-3)
     coupling:
+      delta_t: abio/delta_t # integ. time step (s)
+      delta_din: abio/delta_din # difference in DIN since the prev. time step
+      delta_par: abio/delta_par # difference in par since the prev. time step
       FDL: abio/FDL        # Fractional Day Length (-)
       PAR_dmean: abio/PAR_dmean  # PAR, daily mean (mol/m2/d)
       din: abio/din        # nutrient source (mmol m-3)
@@ -65,13 +68,13 @@ instances:
       detN: abio/detn      # sink for dead matter (mmol m-3)
   abio:
     long_name: Abiotic
-    model: pmbench/abio
+    model: nflexpd/abio_dEdt
     parameters:
       w_det: -5.0                  # vertical velocity (<0 for sinking) (m d-1)
       kc: 0.03                      # specific light extinction (m2 mmol-1)
       kdet: 0.003                    # Degredation rate of Detritus (d-1)
       kdon: 0.003                    # Remineralization rate of DON
-      par0_dt0: 4.5                   # daily average par at the surface on the first time step
+      par0_dt0: 4.5                 # daily average par at the surface on the first time step
       kc_dt0: 0.2                   # attenuaton coefficient on the first time step
     initialization:
       din: 4.5                         # DIN concentration (mmol m-3)

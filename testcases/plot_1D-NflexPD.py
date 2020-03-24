@@ -16,7 +16,7 @@ def plot_maecs_Bpoolx2_phy():
     colmap='viridis'
     #import pdb
     if len(sys.argv) < 2: #this means no arguments were passed      
-      fname='/home/onur/setups/test-BGCmodels/NflexPD/1D-40m/test/1D-40m_PMbench.nc'
+      fname='/home/onur/setups/test-BGCmodels/PMbench/1D-NS-40m/1D-40m_NflexPD.nc'
       disp('plotting default file:'+fname)
     else:
       disp('plotting file specified:'+sys.argv[1])
@@ -69,7 +69,7 @@ def plot_maecs_Bpoolx2_phy():
 
     tv = nc.variables['time']
     utime=netcdftime.utime(tv.units)
-    tvec=utime.num2date(tv[:])
+    tvec=utime.num2date(list(tv[:]))
 
     #crop the data for the time period requested
     years=np.array([tvec[ti].year for ti in range(0,len(tvec))])
@@ -156,8 +156,9 @@ def plot_maecs_Bpoolx2_phy():
      
         
     nc.close()
-    savefig(fname.split('.nc')[0]+'_cont.png')
-    disp('python contour plot saved in: '+fname+'_cont.png')
+    figname=fname.split('.nc')[0]+'_cont.png'
+    savefig(figname)
+    disp('python contour plot saved in: '+figname)
     #show()
         
     #if plotsed: return time,z,dz,data,datanames

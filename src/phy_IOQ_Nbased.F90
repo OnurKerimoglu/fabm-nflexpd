@@ -3,17 +3,17 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !MODULE: PMbench - IOQ_Nbased (Instantaneously Optimized Quota) phytoplankton component (Nitrogen-based)
+! !MODULE: nflexpd - IOQ_Nbased (Instantaneously Optimized Quota) phytoplankton component (Nitrogen-based)
 ! Original Authors: S. Lan Smith, 2014-12-09; FABM implementation: O. Kerimoglu 20181122
 !
 ! !INTERFACE:
-   module PMbench_phy_IOQ_Nbased
+   module nflexpd_phy_IOQ_Nbased
 !
 ! !DESCRIPTION:
 !
 ! !USES:
    use lambert
-   use PMbench_common
+   use nflexpd_common
    use fabm_types
 
    implicit none
@@ -22,7 +22,7 @@
    private
 !
 ! !PUBLIC DERIVED TYPES:
-   type,extends(type_base_model),public :: type_PMbench_phy_IOQ_Nbased
+   type,extends(type_base_model),public :: type_nflexpd_phy_IOQ_Nbased
 !     Variable identifiers
       type (type_state_variable_id)        :: id_phyN
       type (type_state_variable_id)        :: id_din,id_don,id_detn
@@ -61,11 +61,11 @@
    subroutine initialize(self,configunit)
 !
 ! !DESCRIPTION:
-!  Here, the PMbench_phy_IOQ_Nbased namelist is read and variables exported
+!  Here, the nflexpd_phy_IOQ_Nbased namelist is read and variables exported
 !  by the model are registered with FABM.
 !
 ! !INPUT PARAMETERS:
-   class (type_PMbench_phy_IOQ_Nbased), intent(inout), target :: self
+   class (type_nflexpd_phy_IOQ_Nbased), intent(inout), target :: self
    integer,                        intent(in)            :: configunit
 !
 ! !LOCAL VARIABLES:
@@ -144,13 +144,13 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Right hand sides of the PMbench model
+! !IROUTINE: Right hand sides of the nflexpd model
 !
 ! !INTERFACE:
    subroutine do(self,_ARGUMENTS_DO_)
 !
 ! !INPUT PARAMETERS:
-   class (type_PMbench_phy_IOQ_Nbased), intent(in) :: self
+   class (type_nflexpd_phy_IOQ_Nbased), intent(in) :: self
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
@@ -319,7 +319,7 @@
 !EOC
 
 
-   end module PMbench_phy_IOQ_Nbased
+   end module nflexpd_phy_IOQ_Nbased
 
 !-----------------------------------------------------------------------
 ! Copyright Onur Kerimoglu (kerimoglu.o@gmail.com) - GNU Public License - www.gnu.org

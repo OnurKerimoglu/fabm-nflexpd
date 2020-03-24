@@ -3,17 +3,17 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !MODULE: PMbench - classic (Droop-based variable internal stores) phytoplankton component
+! !MODULE: nflexpd - classic (Droop-based variable internal stores) phytoplankton component
 ! Original Authors: O. Kerimoglu 20181204
 !
 ! !INTERFACE:
-   module PMbench_phy_classic
+   module nflexpd_phy_classic
 !
 ! !DESCRIPTION:
 !
 ! !USES:
    use lambert
-   use PMbench_common
+   use nflexpd_common
    use fabm_types
 
    implicit none
@@ -22,7 +22,7 @@
    private
 !
 ! !PUBLIC DERIVED TYPES:
-   type,extends(type_base_model),public :: type_PMbench_phy_classic
+   type,extends(type_base_model),public :: type_nflexpd_phy_classic
 !     Variable identifiers
       type (type_state_variable_id)        :: id_phyC,id_phyN
       type (type_state_variable_id)        :: id_din,id_don,id_detn
@@ -59,11 +59,11 @@
    subroutine initialize(self,configunit)
 !
 ! !DESCRIPTION:
-!  Here, the PMbench_phy_classic namelist is read and variables exported
+!  Here, the nflexpd_phy_classic namelist is read and variables exported
 !  by the model are registered with FABM.
 !
 ! !INPUT PARAMETERS:
-   class (type_PMbench_phy_classic), intent(inout), target :: self
+   class (type_nflexpd_phy_classic), intent(inout), target :: self
    integer,                        intent(in)            :: configunit
 !
 ! !LOCAL VARIABLES:
@@ -156,13 +156,13 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Right hand sides of the PMbench model
+! !IROUTINE: Right hand sides of the nflexpd model
 !
 ! !INTERFACE:
    subroutine do(self,_ARGUMENTS_DO_)
 !
 ! !INPUT PARAMETERS:
-   class (type_PMbench_phy_classic), intent(in) :: self
+   class (type_nflexpd_phy_classic), intent(in) :: self
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
@@ -349,7 +349,7 @@
 !EOC
 !-----------------------------------------------------------------------
 
-   end module PMbench_phy_classic
+   end module nflexpd_phy_classic
 
 !-----------------------------------------------------------------------
 ! Copyright Onur Kerimoglu (kerimoglu.o@gmail.com) - GNU Public License - www.gnu.org
