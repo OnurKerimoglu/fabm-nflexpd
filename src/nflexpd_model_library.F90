@@ -4,7 +4,7 @@ module nflexpd_model_library
 
    use nflexpd_phy_classic
    use nflexpd_phy_DOQ
-   use nflexpd_phy_IOQ_Nbased
+   use nflexpd_phy_IOQ
    use nflexpd_abio
    ! Add new PMbench modules here
 
@@ -29,7 +29,7 @@ contains
       select case (name)
          case ('phy_classic'); allocate(type_nflexpd_phy_classic::model)
          case ('phy_DOQ'); allocate(type_nflexpd_phy_DOQ::model)
-         case ('phy_IOQ_Nbased'); allocate(type_nflexpd_phy_IOQ_Nbased::model)
+         case ('phy_IOQ'); allocate(type_nflexpd_phy_IOQ::model)
          case ('abio'); allocate(type_nflexpd_abio::model)
          ! Add new PMbench models here
       end select

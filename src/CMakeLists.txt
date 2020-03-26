@@ -8,7 +8,7 @@ add_library(fabm_models_nflexpd OBJECT
             abio.F90
             phy_classic.F90
             phy_DOQ.F90
-            phy_IOQ_Nbased.F90
+            phy_IOQ.F90
             lambert_modified.f90
            )
 

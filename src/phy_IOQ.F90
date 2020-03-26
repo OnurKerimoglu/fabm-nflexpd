@@ -3,11 +3,11 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !MODULE: nflexpd - IOQ_Nbased (Instantaneously Optimized Quota) phytoplankton component (Nitrogen-based)
+! !MODULE: nflexpd - IOQ (Instantaneously Optimized Quota) phytoplankton component (Nitrogen-based)
 ! Original Authors: S. Lan Smith, 2014-12-09; FABM implementation: O. Kerimoglu 20181122
 !
 ! !INTERFACE:
-   module nflexpd_phy_IOQ_Nbased
+   module nflexpd_phy_IOQ
 !
 ! !DESCRIPTION:
 !
@@ -22,7 +22,7 @@
    private
 !
 ! !PUBLIC DERIVED TYPES:
-   type,extends(type_base_model),public :: type_nflexpd_phy_IOQ_Nbased
+   type,extends(type_base_model),public :: type_nflexpd_phy_IOQ
 !     Variable identifiers
       type (type_state_variable_id)        :: id_phyN
       type (type_state_variable_id)        :: id_din,id_don,id_detn
@@ -61,11 +61,11 @@
    subroutine initialize(self,configunit)
 !
 ! !DESCRIPTION:
-!  Here, the nflexpd_phy_IOQ_Nbased namelist is read and variables exported
+!  Here, the nflexpd_phy_IOQ namelist is read and variables exported
 !  by the model are registered with FABM.
 !
 ! !INPUT PARAMETERS:
-   class (type_nflexpd_phy_IOQ_Nbased), intent(inout), target :: self
+   class (type_nflexpd_phy_IOQ), intent(inout), target :: self
    integer,                        intent(in)            :: configunit
 !
 ! !LOCAL VARIABLES:
@@ -150,7 +150,7 @@
    subroutine do(self,_ARGUMENTS_DO_)
 !
 ! !INPUT PARAMETERS:
-   class (type_nflexpd_phy_IOQ_Nbased), intent(in) :: self
+   class (type_nflexpd_phy_IOQ), intent(in) :: self
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
@@ -319,7 +319,7 @@
 !EOC
 
 
-   end module nflexpd_phy_IOQ_Nbased
+   end module nflexpd_phy_IOQ
 
 !-----------------------------------------------------------------------
 ! Copyright Onur Kerimoglu (kerimoglu.o@gmail.com) - GNU Public License - www.gnu.org
