@@ -106,17 +106,17 @@
 
    ! Register state variables
    call self%register_state_variable(self%id_phyC,'C','mmolC/m^3','bound-C concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy)
+   call self%register_diagnostic_variable(self%id_Q, 'Q','molN/molC',    'cellular nitrogen Quota',           &
+                                     output=output_instantaneous)
    if (self%vis_n) then
      call self%register_state_variable(self%id_phyN,'N','mmolN/m^3','bound-N concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=self%kc)
                                      
      ! Register contribution of state to global aggregate variables.
      call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_phyN)
      
-     call self%register_diagnostic_variable(self%id_Q, 'Q','molN/molC',    'cellular nitrogen Quota',           &
-                                     output=output_instantaneous)
    else
 
-     call self%register_diagnostic_variable(self%id_d_phyN, 'phyN','molN', 'diagnostic cellular nitrogen Quota', &
+     call self%register_diagnostic_variable(self%id_d_phyN, 'N','mmolN/m^3', 'bound-N concentration (diag)', &
                                      output=output_instantaneous)  
      ! Register contribution of state to global aggregate variables.
      call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_phyC,scale_factor=1.0_rk/self%C2N)
