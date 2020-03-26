@@ -35,14 +35,17 @@ def plot_maecs_Bpoolx2_phy():
     disp('plotting last '+str(numyears)+' year of the simulation')
     
     if len(sys.argv) < 5: #this means no arguments were passed
-	varnames= [ 'temp','nuh','abio_PAR',
-                'abio_din','abio_don','abio_detn',
-                'phy_IOQ_PPR', 'phy_DOQ_PPR','total_PPR_calculator_result',
-                'phy_IOQ_N', 'phy_IOQ_Q', 'phy_IOQ_Chl2C',
-                'phy_DOQ_N', 'phy_DOQ_Q', 'phy_DOQ_Chl2C',
-                'phy_IOQ_fV', 'phy_IOQ_fA', 'phy_IOQ_ThetaHat',
-                'phy_DOQ_fV', 'phy_DOQ_fA', 'phy_DOQ_ThetaHat']
-	numcol=3.0
+	varnames= [ 'temp','nuh','abio_PAR','total_nitrogen_calculator_result',
+                'abio_din','abio_don','abio_detn','total_PPR_calculator_result',
+                'phy_cQ_PPR','phy_droop_PPR','phy_DOQ_PPR','phy_IOQ_PPR', 
+                'phy_cQ_N','phy_droop_N','phy_DOQ_N', 'phy_IOQ_N', 
+                'phy_cQ_Q','phy_droop_Q', 'phy_DOQ_Q','phy_IOQ_Q',
+                'phy_cQ_Chl2C','phy_droop_Chl2C','phy_DOQ_Chl2C','phy_IOQ_Chl2C',
+                'phy_cQ_ThetaHat', 'phy_droop_ThetaHat','phy_DOQ_ThetaHat', 'phy_IOQ_ThetaHat',
+                'skip','skip','phy_DOQ_fA', 'phy_IOQ_fV',
+                'skip','skip','phy_DOQ_fA', 'phy_IOQ_fV',
+                ]
+	numcol=4.0
     else: 
 	varnames=sys.argv[4].split(',')
 	numcol=length(varnames)
@@ -56,7 +59,7 @@ def plot_maecs_Bpoolx2_phy():
         figuresize=(15,8)
     else:
         numsedvars=0
-        figuresize=(15,12) #(25,15)
+        figuresize=(17,15) #(25,15)
     
     #pelagic variables
     nc=nc4.Dataset(fname)
@@ -171,10 +174,10 @@ def format_date_axis(ax,tspan):
         ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%b\n%d'))
     elif diff(tspan)[0].days<367:
         ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=12) )
-        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%Y'))
+        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter(''))
         ax.xaxis.set_minor_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=2) )
         ax.xaxis.set_minor_formatter(matplotlib.dates.DateFormatter('%b'))
-        ax.xaxis.set_tick_params(which='major', pad=15)
+        #ax.xaxis.set_tick_params(which='major', pad=15)
     elif diff(tspan)[0].days<732:
         ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=12) )
         ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%Y'))

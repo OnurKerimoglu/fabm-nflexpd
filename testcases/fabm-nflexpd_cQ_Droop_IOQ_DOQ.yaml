@@ -1,7 +1,7 @@
 instances:
   phy_cQ:
     use: .true.
-    long_name: Phytoplankton-1 (constant-Q)
+    long_name: Phyto-cQ
     model: nflexpd/phy_classic
     parameters:
       kc: 0.03                       # specific light extinction (m2 mmol-1)
@@ -32,7 +32,7 @@ instances:
       detN: abio/detn      # sink for dead matter (mmol m-3)
   phy_droop:
     use: .true.
-    long_name: Phytoplankton (Droop)
+    long_name: Phyto-Droop
     model: nflexpd/phy_classic
     parameters:
       kc: 0.03                       # specific light extinction (m2 mmol-1)
@@ -62,7 +62,7 @@ instances:
       detN: abio/detn      # sink for dead matter (mmol m-3)
   phy_IOQ:
     use: .true.
-    long_name: Phytoplankton-2 (IOQ)
+    long_name: Phyto-IOQ
     model: nflexpd/phy_IOQ
     parameters:
       kc: 0.03                       # specific light extinction (m2 mmolN-1)
@@ -94,7 +94,7 @@ instances:
       detN: abio/detn      # sink for dead matter (mmol m-3)
   phy_DOQ:
     use: .true.
-    long_name: Phytoplankton-3 (DOQ)
+    long_name: Phyto-DOQ
     model: nflexpd/phy_DOQ
     parameters:
       kc: 0.03                      # specific light extinction (m2 mmol-1)
