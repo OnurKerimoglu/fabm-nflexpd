@@ -12,8 +12,8 @@ def plot_maecs_Bpoolx2_phy():
     """from plot_maecs_omexdia import plot_maecs_omexdia 
     (time,z,dz,data,datanames)=plot_maecs_omexdia()"""    
     
-    models=['phy_DOQ','phy_DOQv0']
-    vars2comp=['PPR','N','Q','Chl2C'] #ThetaHat,fA,fV
+    models=['phy_IOQ','phy_IOQv0']
+    vars2comp=['PPR','N','Q','Chl2C','ThetaHat','fA','fV']
     plottype='wc_mean' #wc_int, wc_mean,middlerow
     colmap='viridis'
     #import pdb
@@ -152,7 +152,7 @@ def get_varvals(ncv,varn0):
         longname='%s - %s'%(varn,varn2)
     else:
         if not (varn0 in ncv):
-            return (False)
+            return (False,0,0,0)
         else:
             varn=varn0
             varvals=squeeze(ncv[varn][:,:])

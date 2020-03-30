@@ -41,7 +41,7 @@
       real(rk) :: mu0hat,aI
       real(rk) :: A0hat,V0hat,Q0
       real(rk) :: fA_fixed,fV_fixed,TheHat_fixed
-      logical  :: fV_opt,fA_opt,Theta_opt
+      logical  :: dynQN,fV_opt,fA_opt,Theta_opt
       real(rk) :: dic_per_n
 
       contains
@@ -83,6 +83,8 @@
    ! General:
    call self%get_parameter(self%kc,   'kc',   'm2 mmolN-1','specific light extinction',               default=0.03_rk)
    call self%get_parameter(self%w_phy,       'w_phy',  'm d-1',    'vertical velocity (<0 for sinking)',      default=-1.0_rk, scale_factor=d_per_s)
+   !general switches
+   call self%get_parameter(self%dynQN, 'dynQN','-', 'whether dynamically resolve QN', default=.true.)
    !optimality switches
    call self%get_parameter(self%Theta_opt, 'Theta_opt','-', 'whether to optimize theta', default=.false.)
    call self%get_parameter(self%fA_opt, 'fA_opt','-', 'whether to optimize fA', default=.false.)
@@ -107,7 +109,9 @@
    
 
    ! Register state variables
-   call self%register_state_variable(self%id_phyC,'C','mmolC/m^3','bound-C concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy)
+   if ( self%dynQN ) then
+     call self%register_state_variable(self%id_phyC,'C','mmolC/m^3','bound-C concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy)
+   end if
    call self%register_state_variable(self%id_phyN,'N','mmolN/m^3','bound-N concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=self%kc)
    
    ! Register contribution of state to global aggregate variables.
@@ -174,7 +178,9 @@
    _LOOP_BEGIN_
 
    ! Retrieve current (local) state variable values.
-   _GET_(self%id_phyC,phyC)  ! phytoplankton-C
+   if ( self%dynQN ) then
+     _GET_(self%id_phyC,phyC)  ! phytoplankton-C
+   end if
    _GET_(self%id_phyN,phyN)  ! phytoplankton-N
    _GET_(self%id_din,din)    ! nutrients
    
@@ -259,7 +265,19 @@
    end if
    
    !Dynamically calculated quota is needed for calculating some rates below
-   Q= phyN/phyC
+   if ( self%dynQN ) then
+     Q= phyN/phyC
+   else
+     !!$ ***  Calculating the optimal cell quota, based on the term ZINT, as calculated above
+     if( self%fV_opt ) then
+       ! eq. 14 in Smith et al 2016
+       Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
+     else
+       Q = 1.0/6.67 !Almost Redfield? (106/16=6.625)
+     end if
+     phyC=phyN/Q
+   end if
+   
    
    ! Losses due to Chlorophyll
    ! eq. 26 in Smith et al 2016
@@ -280,8 +298,10 @@
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
    Theta= (1 - self%Q0 / 2 / Q - fV) * ThetaHat
    
-   !Uptake rate
-   vN = fV * vNhat
+   if ( self%dynQN ) then
+     !Explicit uptake rate
+     vN = fV * vNhat
+   end if
    
    !Excretion:
    exc = self%kexc * mu * phyN
@@ -289,13 +309,19 @@
    mort=self%M0p * Tfac * PhyN**2
    
    !Calculate fluxes between pools
-   f_din_phy = vN * phyC
+   if ( self%dynQN ) then 
+     f_din_phy = vN * phyC
+   else
+     f_din_phy = mu * phyN
+   end if
    f_phy_detn =       self%Mpart  * mort 
    f_phy_don = (1.0 - self%Mpart) * mort + exc
    
    
    ! Set temporal derivatives
-   _SET_ODE_(self%id_phyC, mu*phyC - f_phy_don/Q - f_phy_detn/Q)
+   if ( self%dynQN ) then
+     _SET_ODE_(self%id_phyC, mu*phyC - f_phy_don/Q - f_phy_detn/Q)
+   end if
    _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn)
    
    ! If externally maintained dim,dom und det pools are coupled:
