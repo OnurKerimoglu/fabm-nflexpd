@@ -156,7 +156,7 @@
 ! !LOCAL VARIABLES:
    real(rk)                   :: din,phyN,parW,par,par_dm,Ld
    real(rk)                   :: ThetaHat,vNhat,muIhat
-   real(rk)                   :: Q,Theta,fV,fA,Rchl,I_zero,ZINT
+   real(rk)                   :: Q,Theta,fV,fA,Rchl,I_zero,ZINT,valSIT
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac
    real(rk)                   :: mu,exc,mort,Pprod
@@ -195,10 +195,6 @@
    ! Primary production
    ! Optimization of ThetaHat (optimal Chl content in the chloroplasts)
    I_zero = self%zetaChl * self%RMchl * Tfac / (Ld*self%aI)   ! Threshold irradiance
-   
-   ! Primary production
-   ! Optimization of ThetaHat (optimal Chl content in the chloroplasts)
-   I_zero = self%zetaChl * self%RMchl * Tfac / (Ld*self%aI)   ! Threshold irradiance
    if( self%theta_opt ) then
      if( par_dm .gt. I_zero ) then
        !argument for the Lambert's W function
@@ -220,7 +216,13 @@
    end if
    
    ! Light limited growth rate (eq. 6 in Smith et al 2016)
-   muIhat = self%mu0hat * Tfac * SIT(self%aI,self%mu0hat,par,ThetaHat,Tfac)
+   if (par_dm .gt. I_zero) then !in cmo: .and. (mu0>0.0)
+    valSIT=SIT(self%aI,self%mu0hat,par,ThetaHat,Tfac)
+    muIhat = self%mu0hat * Tfac * valSIT
+   else
+     valSIT=0.0
+     muIhat=0.0
+   end if
    
    !Optimal allocation for affinity vs max. uptake
    if( self%fA_opt ) then
