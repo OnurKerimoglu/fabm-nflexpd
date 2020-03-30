@@ -1,6 +1,6 @@
 instances:
   phy_cQ:
-    use: .true.
+    use: .false.
     long_name: Phyto-cQ
     model: nflexpd/phy_classic
     parameters:
@@ -31,7 +31,7 @@ instances:
       don: abio/don        # sink for excreted matter (mmol m-3)
       detN: abio/detn      # sink for dead matter (mmol m-3)
   phy_droop:
-    use: .true.
+    use: .false.
     long_name: Phyto-Droop
     model: nflexpd/phy_classic
     parameters:
@@ -61,7 +61,7 @@ instances:
       don: abio/don        # sink for excreted matter (mmol m-3)
       detN: abio/detn      # sink for dead matter (mmol m-3)
   phy_IOQ:
-    use: .true.
+    use: .false.
     long_name: Phyto-IOQ
     model: nflexpd/phy_IOQ
     parameters:
@@ -92,10 +92,43 @@ instances:
       din: abio/din        # nutrient source (mmol m-3)
       don: abio/don        # sink for excreted matter (mmol m-3)
       detN: abio/detn      # sink for dead matter (mmol m-3)
+  phy_DOQv0: #old, seperate version
+    use: .true.
+    long_name: Phyto-DOQ-v0
+    model: nflexpd/phy_DOQ
+    parameters:
+      kc: 0.03                      # specific light extinction (m2 mmol-1)
+      w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
+      Theta_opt : .true.            # whether to optimize theta (true/false)
+      fA_opt : .true.                # whether to optimize fA (true/false)
+      fV_opt : .true.                # whether to optimize fV (true/false)
+      TheHat_fixed: 0.6              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
+      RMchl: 0.1                     # loss rate of chlorophyll (d-1)
+      mu0hat: 5.0                    # max. potential growth rate (d-1)
+      aI: 2.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
+      fA_fixed: 0.5                  # fA to use when fa_opt=false (-)
+      fV_fixed: 0.25                 # fV to use when fv_opt=false (-)
+      Q0: 0.039                      # Subsistence cell quota (molN molC-1)
+      V0hat: 0.5                     # Potential maximum uptake rate (molN molC-1 d-1)
+      A0hat: 0.08                    # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
+      zetaN: 0.7                     # C-cost of N uptake (molC molN-1)
+      zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
+      kexc: 0.05                     # excreted fraction of primary production
+      M0p: 0.5                      # sp. quad. mortality rate (m3 molN-1 d-1)
+      Mpart: 0.5                     # part of the mortality that goes to detritus
+    initialization:
+      C: 1.0                         # Phytoplankton-N concentration (mmol m-3) 
+      N: 0.16
+    coupling:
+      FDL: abio/FDL        # Fractional Day Length (-)
+      PAR_dmean: abio/PAR_dmean  # PAR, daily mean (mol/m2/d)
+      din: abio/din        # nutrient source (mmol m-3)
+      don: abio/don        # sink for excreted matter (mmol m-3)
+      detN: abio/detn      # sink for dead matter (mmol m-3)
   phy_DOQ:
     use: .true.
     long_name: Phyto-DOQ
-    model: nflexpd/phy_DOQ
+    model: nflexpd/phy
     parameters:
       kc: 0.03                      # specific light extinction (m2 mmol-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
