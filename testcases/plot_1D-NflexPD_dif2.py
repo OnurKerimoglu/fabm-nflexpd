@@ -27,7 +27,7 @@ def plot_maecs_Bpoolx2_phy():
     if len(sys.argv)<3: #no third argument was passed
       numyears=1
     else: 
-      numyears=int(sys.argv[3])
+      numyears=int(sys.argv[2])
     disp('plotting last '+str(numyears)+' year of the simulation')
 
     varnames= [ 'temp','abio_PAR','total_nitrogen_calculator_result',

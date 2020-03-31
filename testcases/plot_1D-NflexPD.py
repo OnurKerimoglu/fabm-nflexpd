@@ -1,5 +1,5 @@
 # terminal call:
-# python plot_1-D-NflexPD.py /file/path/file_name.nc plot_sediment(0/1) num_years_to_plot(counting_backwards_from_the_last)
+# python plot_1-D-NflexPD.py /file/path/file_name.nc num_years_to_plot(counting_backwards_from_the_last)
     
 from pylab import *
 import netCDF4 as nc4
@@ -10,8 +10,10 @@ import warnings
 def plot_maecs_Bpoolx2_phy():
     
     """from plot_maecs_omexdia import plot_maecs_omexdia 
-    (time,z,dz,data,datanames)=plot_maecs_omexdia()"""    
-    
+    (time,z,dz,data,datanames)=plot_maecs_omexdia()"""
+
+    models = ['phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
+    vars2comp = ['PPR', 'N', 'Q', 'Chl2C', 'fA', 'fV', 'ThetaHat'] #
     plottype='wc_mean' #wc_int, wc_mean,middlerow
     colmap='viridis'
     #import pdb
@@ -21,45 +23,23 @@ def plot_maecs_Bpoolx2_phy():
     else:
       disp('plotting file specified:'+sys.argv[1])
       fname=sys.argv[1]
-    
-    if len(sys.argv)<3: #no second argument was passed
-      plotsed=0
-    else:
-      plotsed=int(sys.argv[2])
-    disp('plotsed:'+str(plotsed))
       
-    if len(sys.argv)<4: #no third argument was passed
+    if len(sys.argv)<3: #no third argument was passed
       numyears=1
     else: 
-      numyears=int(sys.argv[3])
+      numyears=int(sys.argv[2])
     disp('plotting last '+str(numyears)+' year of the simulation')
-    
-    if len(sys.argv) < 5: #this means no arguments were passed
-	varnames= [ 'temp','nuh','abio_PAR','total_nitrogen_calculator_result',
-                'abio_din','abio_don','abio_detn','total_PPR_calculator_result',
-                'phy_cQ_PPR','phy_droop_PPR','phy_DOQ_PPR','phy_IOQ_PPR', 
-                'phy_cQ_N','phy_droop_N','phy_DOQ_N', 'phy_IOQ_N', 
-                'phy_cQ_Q','phy_droop_Q', 'phy_DOQ_Q','phy_IOQ_Q',
-                'phy_cQ_Chl2C','phy_droop_Chl2C','phy_DOQ_Chl2C','phy_IOQ_Chl2C',
-                'phy_cQ_ThetaHat', 'phy_droop_ThetaHat','phy_DOQ_ThetaHat', 'phy_IOQ_ThetaHat',
-                'skip','skip','phy_DOQ_fA', 'phy_IOQ_fV',
-                'skip','skip','phy_DOQ_fA', 'phy_IOQ_fV',
-                ]
+
+    varnames = ['temp', 'nuh', 'abio_PAR', 'total_nitrogen_calculator_result',
+                'abio_din', 'abio_don', 'abio_detn', 'total_PPR_calculator_result']
+    for var in vars2comp:
+        varnames.append('%s_%s' % (models[0], var))
+        varnames.append('%s_%s' % (models[1], var))
+        varnames.append('%s_%s' % (models[2], var))
+        varnames.append('%s_%s' % (models[3], var))
+
 	numcol=4.0
-    else: 
-	varnames=sys.argv[4].split(',')
-	numcol=length(varnames)
-	
-    if plotsed: 
-        #from plot_sediment import readsed
-        #sediment variables
-        pickled=0
-        varnames2=[]
-        numsedvars=len(varnames2)
-        figuresize=(15,8)
-    else:
-        numsedvars=0
-        figuresize=(17,15) #(25,15)
+    figuresize=(17,15) #(25,15)
     
     #pelagic variables
     nc=nc4.Dataset(fname)
@@ -83,36 +63,35 @@ def plot_maecs_Bpoolx2_phy():
     f=figure(figsize=figuresize)
     f.subplots_adjust(top=0.95,bottom=0.05,hspace=0.5, wspace=0.5)
 
-    numvar=len(varnames)+numsedvars
+    numvar=len(varnames)
 
     for i,varn in enumerate(varnames):       
         print varn
-        if varn in ['nuh','nus']:
-            depth=zi #depth at interfaces
-        else:
-            depth=z
-            
-        #if depth vector is 2-D (vary with time)
-        if len(depth.shape)==2:
-            # repeat the tvecC to obtain a matrix
-            t=np.transpose(array([tvecC,]*depth.shape[1]))
-        else:
-            t=tvecC
-            
         ax=subplot(ceil(numvar/numcol),numcol,i+1)
 
-        if (varnames[i]=='skip'):
+        if (varn == 'skip'):
             continue
-        if (not (varnames[i] in ncv)):
-            ax.text(0.5,0.5,varnames[i]+'\n\n was not found',
+
+        varfound, dat, valsat, longname, units = get_varvals(ncv, varn)
+
+        if (not varfound):
+            ax.text(0.5, 0.5, varnames[i] + '\n\n was not found',
                     horizontalalignment='center',
                     verticalalignment='center',
                     transform=ax.transAxes)
             continue
 
+        if valsat == 'center':
+            depth = z  # depth at centers
+        else:
+            depth = zi  # depth at interfaces
 
-        #pdb.set_trace()
-        dat=squeeze(ncv[varnames[i]][:,:])
+        # if depth vector is 2-D (vary with time)
+        if len(depth.shape) == 2:
+            # repeat the tvecC to obtain a matrix
+            t = np.transpose(array([tvecC, ] * depth.shape[1]))
+        else:
+            t = tvecC
 
         #crop the data for the time period requested
         datC=dat[yeari[0],:]
@@ -163,9 +142,31 @@ def plot_maecs_Bpoolx2_phy():
     savefig(figname)
     disp('python contour plot saved in: '+figname)
     #show()
-        
-    #if plotsed: return time,z,dz,data,datanames
 
+def get_varvals(ncv,varn0):
+    if '-' in varn0:
+        varn=varn0.split('-')[0]
+        varn2 = varn0.split('-')[1]
+        v1=squeeze(ncv[varn][:,:])
+        v2 = squeeze(ncv[varn2][:,:])
+        varvals=v1-v2
+        longname='%s - %s'%(varn,varn2)
+        units=ncv[varn].units
+    else:
+        if not (varn0 in ncv):
+            return (False,0,0,'','')
+        else:
+            varn=varn0
+            varvals=squeeze(ncv[varn][:,:])
+            longname = ncv[varn].long_name
+            units=ncv[varn].units
+
+    if varn in ['nuh', 'nus']:
+        valsat='int'
+    else:
+        valsat='center'
+
+    return (True,varvals,valsat,longname,units)
 
 def format_date_axis(ax,tspan):
     ax.set_xlim(tspan[0], tspan[1])
