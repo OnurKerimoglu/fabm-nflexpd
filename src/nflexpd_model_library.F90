@@ -3,8 +3,6 @@ module nflexpd_model_library
    use fabm_types, only: type_base_model_factory, type_base_model
 
    use nflexpd_phy_classic
-   use nflexpd_phy_DOQ
-   use nflexpd_phy_IOQ
    use nflexpd_phy
    use nflexpd_abio
    ! Add new PMbench modules here
@@ -29,8 +27,6 @@ contains
 
       select case (name)
          case ('phy_classic'); allocate(type_nflexpd_phy_classic::model)
-         case ('phy_DOQ'); allocate(type_nflexpd_phy_DOQ::model)
-         case ('phy_IOQ'); allocate(type_nflexpd_phy_IOQ::model)
          case ('phy'); allocate(type_nflexpd_phy::model)
          case ('abio'); allocate(type_nflexpd_abio::model)
          ! Add new PMbench models here
