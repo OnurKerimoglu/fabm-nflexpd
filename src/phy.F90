@@ -39,7 +39,7 @@
       real(rk) :: kc,w_phy
       real(rk) :: zetaN,zetaChl,kexc,M0p,Mpart,RMChl
       real(rk) :: mu0hat,aI
-      real(rk) :: A0hat,V0hat,Q0
+      real(rk) :: A0hat,V0hat,Q0,Qmax
       real(rk) :: fA_fixed,fV_fixed,TheHat_fixed
       logical  :: dynQN,fV_opt,fA_opt,Theta_opt
       real(rk) :: dic_per_n
@@ -97,6 +97,7 @@
    !nutrient-related
    call self%get_parameter(self%fA_fixed, 'fA_fixed','-', 'fA to use when fa_opt=false', default=0.5_rk)
    call self%get_parameter(self%fV_fixed, 'fV_fixed','-', 'fV to use when fv_opt=false', default=0.25_rk)
+   call self%get_parameter(self%Qmax, 'Qmax','molN molC-1', 'Maximum cell quota', default=0.3_rk)
    call self%get_parameter(self%Q0, 'Q0','molN molC-1', 'Subsistence cell quota', default=0.039_rk)
    call self%get_parameter(self%V0hat, 'V0hat','molN molC-1 d-1', 'Potential maximum uptake rate', default=5.0_rk,scale_factor=d_per_s)
    call self%get_parameter(self%A0hat, 'A0hat','m3 mmolC-1 d-1', 'Potential maximum nutrient affinity', default=0.15_rk,scale_factor=d_per_s)
@@ -164,7 +165,7 @@
 ! !LOCAL VARIABLES:
    real(rk)                   :: din,phyC,phyN,parW,par,par_dm,Ld
    real(rk)                   :: ThetaHat,vNhat,muIhat
-   real(rk)                   :: Q,Theta,fV,fA,Rchl,I_zero,ZINT,valSIT
+   real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
    real(rk)                   :: vN,Vhat_fNT
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac
@@ -267,6 +268,8 @@
    !Dynamically calculated quota is needed for calculating some rates below
    if ( self%dynQN ) then
      Q= phyN/phyC
+     !calculate a down-regulation term for nutrient uptake to avoid Q>Qmax
+     fQ=(self%Qmax-Q)/(self%Qmax-2.0*self%Q0)
    else
      !!$ ***  Calculating the optimal cell quota, based on the term ZINT, as calculated above
      if( self%fV_opt ) then
@@ -289,7 +292,7 @@
       !  mu = muIhat * ( 1 + 2*( ZINT - sqrt(ZINT*(1 + ZINT)) ) )           - Rchl 
    !!$      mu = muIhat*(1.0 + 2.0*(ZINT - sqrt(ZINT*(1.0+ZINT))) ) - Rchl
    ! eq. 5 in Pahlow and Oschlies 2013 (-Rchl)
-   mu = muIhat * ( 1 - fV - self%Q0/(2.0*Q) ) - self%zetaN*fV*vNhat - Rchl ![/s]
+   mu = muIhat * ( 1 - fV - self%Q0/(2.0*Q) ) - self%zetaN*fV*fQ*vNhat - Rchl ![/s]
    
    !Just for the diagnostics:
    !Primary production rate:
@@ -300,7 +303,7 @@
    
    if ( self%dynQN ) then
      !Explicit uptake rate
-     vN = fV * vNhat
+     vN = fV*fQ*vNhat
    end if
    
    !Excretion:

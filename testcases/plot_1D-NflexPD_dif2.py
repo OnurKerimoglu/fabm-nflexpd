@@ -12,7 +12,7 @@ def plot_maecs_Bpoolx2_phy():
     """from plot_maecs_omexdia import plot_maecs_omexdia 
     (time,z,dz,data,datanames)=plot_maecs_omexdia()"""    
     
-    models=['phy_IOQ','phy_IOQv0']
+    models=['phy_IOQ','phy_DOQ']
     vars2comp=['PPR','N','Q','Chl2C','ThetaHat','fA','fV']
     plottype='wc_mean' #wc_int, wc_mean,middlerow
     colmap='viridis'
@@ -71,7 +71,7 @@ def plot_maecs_Bpoolx2_phy():
         if (varn=='skip'):
             continue
 
-        varfound,dat,valsat,longname = get_varvals(ncv,varn)
+        varfound,dat,valsat,longname,units = get_varvals(ncv,varn)
 
         if (not varfound):
             ax.text(0.5,0.5,varnames[i]+'\n\n was not found',
@@ -104,7 +104,6 @@ def plot_maecs_Bpoolx2_phy():
                     transform=ax.transAxes)
             continue
         else:
-            units=ncv[varnames[i]].units
             if units in ['%']:
                 title(longname + ' [%s]'%units, size=10.0)
             elif units== 'Celsius':
@@ -150,20 +149,22 @@ def get_varvals(ncv,varn0):
         v2 = squeeze(ncv[varn2][:,:])
         varvals=v1-v2
         longname='%s - %s'%(varn,varn2)
+        units=ncv[varn].units
     else:
         if not (varn0 in ncv):
-            return (False,0,0,0)
+            return (False,0,0,'','')
         else:
             varn=varn0
             varvals=squeeze(ncv[varn][:,:])
             longname = ncv[varn].long_name
+            units=ncv[varn].units
 
     if varn in ['nuh', 'nus']:
         valsat='int'
     else:
         valsat='center'
 
-    return (True,varvals,valsat,longname)
+    return (True,varvals,valsat,longname,units)
 
 def format_date_axis(ax,tspan):
     ax.set_xlim(tspan[0], tspan[1])
