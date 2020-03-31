@@ -292,7 +292,12 @@
       !  mu = muIhat * ( 1 + 2*( ZINT - sqrt(ZINT*(1 + ZINT)) ) )           - Rchl 
    !!$      mu = muIhat*(1.0 + 2.0*(ZINT - sqrt(ZINT*(1.0+ZINT))) ) - Rchl
    ! eq. 5 in Pahlow and Oschlies 2013 (-Rchl)
-   mu = muIhat * ( 1 - fV - self%Q0/(2.0*Q) ) - self%zetaN*fV*fQ*vNhat - Rchl ![/s]
+   !to prevent model crashing:
+   if (din .gt. 0.01) then !can be interpreted as 'din detection limit' for phytoplankton
+     mu = muIhat * ( 1 - fV - self%Q0/(2.0*Q) ) - self%zetaN*fV*fQ*vNhat - Rchl ![/s]
+   else
+     mu = 0.0_rk
+   end if
    
    !Just for the diagnostics:
    !Primary production rate:
@@ -301,9 +306,13 @@
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
    Theta= (1 - self%Q0 / 2 / Q - fV) * ThetaHat
    
-   if ( self%dynQN ) then
-     !Explicit uptake rate
-     vN = fV*fQ*vNhat
+   if ( self%dynQN ) then !Explicit uptake rate
+     !to prevent model crashing:
+     if (din .gt. 0.01) then !can be interpreted as 'din detection limit' for phytoplankton
+       vN = fV*fQ*vNhat
+     else
+       vN = 0.0_rk
+     end if
    end if
    
    !Excretion:
