@@ -6,6 +6,7 @@ instances:
     parameters:
       kc: 0.03                       # specific light extinction (m2 mmolN-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
+      min_din: 0.01                  # minimum DIN concentration that allows growth and uptake
       dynQN: .false.                 # whether to dynamically represent QN (explicit state var for N- and C-)
       Theta_opt : .false.            # whether to optimize theta (true/false)
       fA_opt : .false.               # whether to optimize fA (true/false)
@@ -39,6 +40,7 @@ instances:
     parameters:
       kc: 0.03                       # specific light extinction (m2 mmolN-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
+      min_din: 0.01                  # minimum DIN concentration that allows growth and uptake
       dynQN: .false.                 # whether to dynamically represent QN (explicit state var for N- and C-)
       Theta_opt : .true.             # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
@@ -72,6 +74,7 @@ instances:
     parameters:
       kc: 0.03                       # specific light extinction (m2 mmol-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
+      min_din: 0.01                  # minimum DIN concentration that allows growth and uptake
       dynQN: .true.                  # whether to dynamically represent QN (explicit state var for N- and C-)
       Theta_opt : .true.            # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
@@ -107,6 +110,7 @@ instances:
     parameters:
       kc: 0.03                       # specific light extinction (m2 mmol-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
+      min_din: 0.01                  # minimum DIN concentration that allows growth and uptake
       dynQN: .true.                  # whether to dynamically represent QN (explicit state var for N- and C-)
       Theta_opt : .false.            # whether to optimize theta (true/false)
       fA_opt : .false.               # whether to optimize fA (true/false)

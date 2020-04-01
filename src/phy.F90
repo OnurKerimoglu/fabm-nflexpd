@@ -36,7 +36,7 @@
       type (type_diagnostic_variable_id)   :: id_PPR
       
 !     Model parameters
-      real(rk) :: kc,w_phy
+      real(rk) :: kc,w_phy,mindin
       real(rk) :: zetaN,zetaChl,kexc,M0p,Mpart,RMChl
       real(rk) :: mu0hat,aI
       real(rk) :: A0hat,V0hat,Q0,Qmax
@@ -83,6 +83,7 @@
    ! General:
    call self%get_parameter(self%kc,   'kc',   'm2 mmolN-1','specific light extinction',               default=0.03_rk)
    call self%get_parameter(self%w_phy,       'w_phy',  'm d-1',    'vertical velocity (<0 for sinking)',      default=-1.0_rk, scale_factor=d_per_s)
+   call self%get_parameter(self%mindin,       'min_din',  'mmolN m-3',    'minimum din concentration that allows growth and uptake',      default=0.0_rk)
    !general switches
    call self%get_parameter(self%dynQN, 'dynQN','-', 'whether dynamically resolve QN', default=.true.)
    !optimality switches
@@ -293,7 +294,7 @@
    !!$      mu = muIhat*(1.0 + 2.0*(ZINT - sqrt(ZINT*(1.0+ZINT))) ) - Rchl
    ! eq. 5 in Pahlow and Oschlies 2013 (-Rchl)
    !to prevent model crashing:
-   if (din .gt. 0.01) then !can be interpreted as 'din detection limit' for phytoplankton
+   if (din .gt. self%mindin) then !can be interpreted as 'din detection limit' for phytoplankton
      mu = muIhat * ( 1 - fV - self%Q0/(2.0*Q) ) - self%zetaN*fV*fQ*vNhat - Rchl ![/s]
    else
      mu = 0.0_rk
@@ -308,7 +309,7 @@
    
    if ( self%dynQN ) then !Explicit uptake rate
      !to prevent model crashing:
-     if (din .gt. 0.01) then !can be interpreted as 'din detection limit' for phytoplankton
+     if (din .gt. self%mindin) then !can be interpreted as 'din detection limit' for phytoplankton
        vN = fV*fQ*vNhat
      else
        vN = 0.0_rk
