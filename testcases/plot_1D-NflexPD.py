@@ -7,18 +7,16 @@ import netcdftime
 import sys
 import warnings
 
-def plot_maecs_Bpoolx2_phy():
-    
-    """from plot_maecs_omexdia import plot_maecs_omexdia 
-    (time,z,dz,data,datanames)=plot_maecs_omexdia()"""
+def plot_nflexpd():
 
     models = ['phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
+    #models = ['phy_IOQ', 'phy_DOQ']
     vars2comp = ['PPR', 'N', 'Q', 'Chl2C', 'fA', 'fV', 'ThetaHat'] #
     plottype='wc_mean' #wc_int, wc_mean,middlerow
     colmap='viridis'
     #import pdb
     if len(sys.argv) < 2: #this means no arguments were passed      
-      fname='/home/onur/setups/test-BGCmodels/PMbench/1D-NS-40m/1D-40m_NflexPD.nc'
+      fname='/home/onur/setups/test-BGCmodels/nflexpd/1D-NS-40m/1D-40m_NflexPD.nc'
       disp('plotting default file:'+fname)
     else:
       disp('plotting file specified:'+sys.argv[1])
@@ -30,23 +28,34 @@ def plot_maecs_Bpoolx2_phy():
       numyears=int(sys.argv[2])
     disp('plotting last '+str(numyears)+' year of the simulation')
 
-    varnames = ['temp', 'nuh', 'abio_PAR', 'total_nitrogen_calculator_result',
-                'abio_din', 'abio_don', 'abio_detn', 'total_PPR_calculator_result']
-    for var in vars2comp:
-        varnames.append('%s_%s' % (models[0], var))
-        varnames.append('%s_%s' % (models[1], var))
-        varnames.append('%s_%s' % (models[2], var))
-        varnames.append('%s_%s' % (models[3], var))
+    if len(models)>2:
+        numcol = len(models)
+        if len(models)==3:
+            figuresize = (13, 15)  # (25,15)
+            varnames = ['temp', 'abio_PAR', 'total_PPR_calculator_result',
+                        'abio_din', 'abio_don', 'abio_detn']
+        elif len(models)==4:
+            figuresize = (17, 15)  # (25,15)
+            varnames = ['temp', 'nuh', 'abio_PAR', 'total_nitrogen_calculator_result',
+                        'abio_din', 'abio_don', 'abio_detn', 'total_PPR_calculator_result']
+        for var in vars2comp:
+            for i in range(len(models)):
+                varnames.append('%s_%s' % (models[i], var))
 
-	numcol=4.0
-    figuresize=(17,15) #(25,15)
+    if len(models)==2:
+        varnames = ['temp', 'abio_PAR', 'total_PPR_calculator_result',
+                    'abio_din', 'abio_don', 'abio_detn']
+        for var in vars2comp:
+            varnames.append('%s_%s' % (models[0], var))
+            varnames.append('%s_%s' % (models[1], var))
+            varnames.append('%s_%s-%s_%s' % (models[0], var, models[1], var))
+        numcol = 3.0
+        figuresize = (13, 15)  # (25,15)
     
     #pelagic variables
     nc=nc4.Dataset(fname)
     ncv=nc.variables
-    #print('available maecs variables:')        
-    #disp(ncv)
-    
+
     z=np.squeeze(ncv['z'][:]) #depths at layer centers (fabm variables, temp, salt, etc)
     zi=np.squeeze(ncv['zi'][:]) #depths at layer interfaces (diffusivities, fluxes, etc)
 
@@ -95,8 +104,6 @@ def plot_maecs_Bpoolx2_phy():
 
         #crop the data for the time period requested
         datC=dat[yeari[0],:]
-        longname=ncv[varnames[i]].long_name
-        shortname=longname.split('hzg_maecs ')[-1]
         datC[datC<-1e10] = np.nan
 
         if (np.max(datC)-np.min(datC)<1e-10):
@@ -106,13 +113,12 @@ def plot_maecs_Bpoolx2_phy():
                     transform=ax.transAxes)
             continue
         else:
-            units=ncv[varnames[i]].units
             if units in ['%']:
-                title(shortname + ' [%s]'%units, size=10.0)
+                title(longname + ' [%s]'%units, size=10.0)
             elif units== 'Celsius':
                 title('GOTM Temperature [$^oC$]', size=10.0)
             else:
-                title(shortname + ' [$%s$]'%units, size=10.0)
+                title(longname + ' [$%s$]'%units, size=10.0)
 
             if len(z.shape) == 2:
                 pcf = ax.contourf(t, depth, datC, cmap=plt.get_cmap(colmap))
@@ -204,5 +210,5 @@ def format_date_axis(ax,tspan):
 if __name__ == "__main__":
     # if you call this script from the command line (the shell) it will
     # run the 'main' function
-    plot_maecs_Bpoolx2_phy()
+    plot_nflexpd()
 
