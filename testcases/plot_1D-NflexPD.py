@@ -23,9 +23,9 @@ def plot_nflexpd():
       fname=sys.argv[1]
       
     if len(sys.argv)<3: #no third argument was passed
-      numyears=1
+      numyears=-1 #means plot everything
     else: 
-      numyears=int(sys.argv[2])
+      numyears=int(sys.argv[2]) #number of years to plot (counting from the last year backwards)
     disp('plotting last '+str(numyears)+' year of the simulation')
 
     if len(models)>2:
@@ -56,18 +56,20 @@ def plot_nflexpd():
     nc=nc4.Dataset(fname)
     ncv=nc.variables
 
-    z=np.squeeze(ncv['z'][:]) #depths at layer centers (fabm variables, temp, salt, etc)
-    zi=np.squeeze(ncv['zi'][:]) #depths at layer interfaces (diffusivities, fluxes, etc)
-
     tv = nc.variables['time']
     utime=netcdftime.utime(tv.units)
     tvec=utime.num2date(list(tv[:]))
 
     #crop the data for the time period requested
     years=np.array([tvec[ti].year for ti in range(0,len(tvec))])
+    if numyears==-1: #plot all years
+        numyears=years[-1]-years[0]+1
     years2plot=range(years[-1]+1-numyears, years[-1]+1)
     yeari=np.where((years>=years2plot[0]) * (years<=years2plot[-1]))
     tvecC=tvec[yeari[0]]
+
+    z=np.squeeze(ncv['z'][ti,:]) #depths at layer centers (fabm variables, temp, salt, etc)
+    zi=np.squeeze(ncv['zi'][ti,:]) #depths at layer interfaces (diffusivities, fluxes, etc)
 
     f=figure(figsize=figuresize)
     f.subplots_adjust(top=0.95,bottom=0.05,hspace=0.5, wspace=0.5)
@@ -190,13 +192,13 @@ def format_date_axis(ax,tspan):
         ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%Y'))
         ax.xaxis.set_minor_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=3) )
         ax.xaxis.set_minor_formatter(matplotlib.dates.DateFormatter('%b'))
-        ax.xaxis.set_tick_params(which='major', pad=16)
+        ax.xaxis.set_tick_params(which='major', pad=10)
     elif diff(tspan)[0].days<1466:
         ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=12) )
         ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%Y'))
         ax.xaxis.set_minor_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=6) )
         ax.xaxis.set_minor_formatter(matplotlib.dates.DateFormatter('%b'))
-        ax.xaxis.set_tick_params(which='major', pad=16)
+        ax.xaxis.set_tick_params(which='major', pad=10)
     elif diff(tspan)[0].days<3655:
         ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=12) )
         ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%Y'))
