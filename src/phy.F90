@@ -40,7 +40,7 @@
       real(rk) :: zetaN,zetaChl,kexc,M0p,Mpart,RMChl
       real(rk) :: mu0hat,aI
       real(rk) :: A0hat,V0hat,Q0,Qmax
-      real(rk) :: fA_fixed,fV_fixed,TheHat_fixed
+      real(rk) :: fA_fixed,fV_fixed,TheHat_fixed,Q_fixed
       logical  :: dynQN,fV_opt,fA_opt,Theta_opt
       real(rk) :: dic_per_n
 
@@ -83,7 +83,7 @@
    ! General:
    call self%get_parameter(self%kc,   'kc',   'm2 mmolN-1','specific light extinction',               default=0.03_rk)
    call self%get_parameter(self%w_phy,       'w_phy',  'm d-1',    'vertical velocity (<0 for sinking)',      default=-1.0_rk, scale_factor=d_per_s)
-   call self%get_parameter(self%mindin,       'min_din',  'mmolN m-3',    'minimum din concentration that allows growth and uptake',      default=0.0_rk)
+   call self%get_parameter(self%mindin,       'min_din',  'mmolN m-3',    'when provided, minimum din concentration that allows growth and uptake',      default=0.0_rk)
    !general switches
    call self%get_parameter(self%dynQN, 'dynQN','-', 'whether dynamically resolve QN', default=.true.)
    !optimality switches
@@ -98,6 +98,7 @@
    !nutrient-related
    call self%get_parameter(self%fA_fixed, 'fA_fixed','-', 'fA to use when fa_opt=false', default=0.5_rk)
    call self%get_parameter(self%fV_fixed, 'fV_fixed','-', 'fV to use when fv_opt=false', default=0.25_rk)
+   call self%get_parameter(self%Q_fixed, 'Q_fixed','-', 'Q to use when provided, dynQN=false and fV_opt=false', default=99.0_rk)
    call self%get_parameter(self%Qmax, 'Qmax','molN molC-1', 'Maximum cell quota', default=0.3_rk)
    call self%get_parameter(self%Q0, 'Q0','molN molC-1', 'Subsistence cell quota', default=0.039_rk)
    call self%get_parameter(self%V0hat, 'V0hat','molN molC-1 d-1', 'Potential maximum uptake rate', default=5.0_rk,scale_factor=d_per_s)
@@ -267,11 +268,11 @@
      fQ=(self%Qmax-Q)/(self%Qmax-2.0*self%Q0)
    else
      !!$ ***  Calculating the optimal cell quota, based on the term ZINT, as calculated above
-     if( self%fV_opt ) then
+     if( self%fV_opt .or. ( self%Q_fixed .eq. 99.0_rk ) ) then
        ! eq. 14 in Smith et al 2016
        Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
      else
-       Q = 1.0/6.67 !Almost Redfield? (106/16=6.625)
+       Q = self%Q_fixed !6.67 !Almost Redfield? (106/16=6.625)
      end if
      phyC=phyN/Q
    end if

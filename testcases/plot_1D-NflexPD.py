@@ -9,7 +9,7 @@ import warnings
 
 def plot_nflexpd():
 
-    models = ['phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
+    models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
     #models = ['phy_IOQ', 'phy_DOQ']
     vars2comp = ['PPR', 'N', 'Q', 'Chl2C', 'fA', 'fV', 'ThetaHat'] #
     plottype='wc_mean' #wc_int, wc_mean,middlerow
@@ -28,29 +28,32 @@ def plot_nflexpd():
       numyears=int(sys.argv[2]) #number of years to plot (counting from the last year backwards)
     disp('plotting last '+str(numyears)+' year of the simulation')
 
-    if len(models)>2:
-        numcol = len(models)
-        if len(models)==3:
-            figuresize = (13, 15)  # (25,15)
-            varnames = ['temp', 'abio_PAR', 'total_PPR_calculator_result',
-                        'abio_din', 'abio_don', 'abio_detn']
-        elif len(models)==4:
-            figuresize = (17, 15)  # (25,15)
-            varnames = ['temp', 'nuh', 'abio_PAR', 'total_nitrogen_calculator_result',
-                        'abio_din', 'abio_don', 'abio_detn', 'total_PPR_calculator_result']
-        for var in vars2comp:
-            for i in range(len(models)):
-                varnames.append('%s_%s' % (models[i], var))
-
-    if len(models)==2:
-        varnames = ['temp', 'abio_PAR', 'total_PPR_calculator_result',
+    if len(models)==2: #show the difference between models in the 3rd column
+        numcol = 3.0
+        figuresize = (13, 15)  # (25,15)
+        varnames = ['temp', 'nuh', 'abio_PAR',
                     'abio_din', 'abio_don', 'abio_detn']
         for var in vars2comp:
             varnames.append('%s_%s' % (models[0], var))
             varnames.append('%s_%s' % (models[1], var))
             varnames.append('%s_%s-%s_%s' % (models[0], var, models[1], var))
-        numcol = 3.0
-        figuresize = (13, 15)  # (25,15)
+    elif len(models)>2:
+        numcol = len(models)
+        if len(models)==3:
+            figuresize = (1+4*len(models), 15) 
+            varnames = ['temp', 'nuh','abio_PAR',
+                        'abio_din', 'abio_don', 'abio_detn']
+        elif len(models)==4:
+            figuresize = (1+4*len(models), 15)
+            varnames = ['temp', 'nuh', 'abio_PAR', 'skip',
+                        'abio_din', 'abio_don', 'abio_detn', 'total_nitrogen_calculator_result']
+        elif len(models)==5:
+            figuresize = (1+4*len(models), 15)
+            varnames = ['temp', 'nuh', 'abio_PAR', 'skip','skip',
+                        'abio_din', 'abio_don', 'abio_detn', 'total_nitrogen_calculator_result','skip']
+        for var in vars2comp:
+            for i in range(len(models)):
+                varnames.append('%s_%s' % (models[i], var))
     
     #pelagic variables
     nc=nc4.Dataset(fname)
