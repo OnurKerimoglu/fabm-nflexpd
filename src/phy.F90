@@ -232,13 +232,7 @@
    end if
    
    ! Light limited growth rate (eq. 6 in Smith et al 2016)
-   if (par_dm .gt. I_zero) then !in cmo: .and. (mu0>0.0)
-     valSIT=SIT(self%aI,self%mu0hat,par,ThetaHat,Tfac)
-     muIhat = self%mu0hat * Tfac * valSIT 
-   else
-     valSIT=0.0
-     muIhat=0.0
-   end if
+   muIhat = self%mu0hat * Tfac * SIT(self%aI,self%mu0hat,par_dm,ThetaHat,Tfac)
    
    !Optimal allocation for affinity vs max. uptake
    if( self%fA_opt ) then
@@ -259,7 +253,7 @@
    ZINT = (self%zetaN + muIhat/vNhat) * self%Q0 / 2.0
    !write(*,'(A,4F12.5)')'  (phy) ZINT, muIhat/vNhat:',ZINT,muIhat/vNhat
    
-   if( self%fV_opt .and.  par .gt. I_zero ) then
+   if( self%fV_opt .and.  par_dm .gt. I_zero ) then
      ! eq. 13  in Smith et al 2016
      fV = (-1.0 + sqrt(1.0 + 1.0 / ZINT) ) * (self%Q0 / 2.0) * muIhat / vNhat
    else
