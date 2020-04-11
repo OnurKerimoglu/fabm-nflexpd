@@ -1,5 +1,5 @@
 # terminal call:
-# python plot_1-D-NflexPD.py /file/path/file_name.nc num_years_to_plot(counting_backwards_from_the_last)
+# python plot_1D-NflexPD.py /file/path/file_name.nc num_years_to_plot(counting_backwards_from_the_last)
     
 from pylab import *
 import netCDF4 as nc4
@@ -9,21 +9,23 @@ import warnings
 
 def plot_nflexpd():
 
-    models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
+    #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
+    models = ['phy_cQ', 'phy_IOQ', 'phy_DOQ']
     #models = ['phy_IOQ', 'phy_DOQ']
     vars2comp = ['PPR', 'N', 'Q', 'Chl2C', 'fA', 'fV', 'ThetaHat'] #
     plottype='wc_mean' #wc_int, wc_mean,middlerow
     colmap='viridis'
     #import pdb
     if len(sys.argv) < 2: #this means no arguments were passed      
-      fname='/home/onur/setups/test-BGCmodels/nflexpd/1D-NS-40m/1D-40m_NflexPD.nc'
+      #fname='/home/onur/setups/test-BGCmodels/nflexpd/1D-NS-40m/1D-40m_NflexPD.nc'
+      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-NA/1D-NA_mean.nc'
       disp('plotting default file:'+fname)
     else:
       disp('plotting file specified:'+sys.argv[1])
       fname=sys.argv[1]
       
     if len(sys.argv)<3: #no third argument was passed
-      numyears=-1 #means plot everything
+      numyears=1 #means plot everything
     else: 
       numyears=int(sys.argv[2]) #number of years to plot (counting from the last year backwards)
     disp('plotting last '+str(numyears)+' year of the simulation')
@@ -31,7 +33,7 @@ def plot_nflexpd():
     if len(models)==2: #show the difference between models in the 3rd column
         numcol = 3.0
         figuresize = (13, 15)  # (25,15)
-        varnames = ['temp', 'nuh', 'abio_PAR',
+        varnames = ['airt', 'temp', 'abio_PAR', #nuh
                     'abio_din', 'abio_don', 'abio_detn']
         for var in vars2comp:
             varnames.append('%s_%s' % (models[0], var))
@@ -40,17 +42,17 @@ def plot_nflexpd():
     elif len(models)>2:
         numcol = len(models)
         if len(models)==3:
-            figuresize = (1+4*len(models), 15) 
-            varnames = ['temp', 'nuh','abio_PAR',
-                        'abio_din', 'abio_don', 'abio_detn']
+            figuresize = (1+4*len(models), 15)
+            varnames = ['airt','temp','abio_PAR_dmean', #nuh
+                        'abio_din', 'abio_detn', 'abio_don']
         elif len(models)==4:
             figuresize = (1+4*len(models), 15)
-            varnames = ['temp', 'nuh', 'abio_PAR', 'skip',
-                        'abio_din', 'abio_don', 'abio_detn', 'total_nitrogen_calculator_result']
+            varnames = ['airt','temp', 'abio_PAR_dmean', 'nuh',
+                        'abio_din', 'abio_detn', 'abio_don', 'total_nitrogen_calculator_result']
         elif len(models)==5:
             figuresize = (1+4*len(models), 15)
-            varnames = ['temp', 'nuh', 'abio_PAR', 'skip','skip',
-                        'abio_din', 'abio_don', 'abio_detn', 'total_nitrogen_calculator_result','skip']
+            varnames = ['temp', 'nuh', 'abio_PAR_dmean', 'skip','skip',
+                        'abio_din', 'abio_detn', 'abio_don', 'total_nitrogen_calculator_result','skip']
         for var in vars2comp:
             for i in range(len(models)):
                 varnames.append('%s_%s' % (models[i], var))
@@ -95,10 +97,17 @@ def plot_nflexpd():
                     transform=ax.transAxes)
             continue
 
-        if valsat == 'center':
-            depth = z  # depth at centers
+        if valsat == 'plate':
+            depth=np.array([0])
+            # crop the data for the time period requested
+            datC = dat[yeari[0]]
         else:
-            depth = zi  # depth at interfaces
+            # crop the data for the time period requested
+            datC = dat[yeari[0], :]
+            if valsat == 'center':
+                depth = z  # depth at centers
+            elif valsat == 'int':
+                depth = zi  # depth at interfaces
 
         # if depth vector is 2-D (vary with time)
         if len(depth.shape) == 2:
@@ -107,9 +116,7 @@ def plot_nflexpd():
         else:
             t = tvecC
 
-        #crop the data for the time period requested
-        datC=dat[yeari[0],:]
-        datC[datC<-1e10] = np.nan
+        #datC[datC<-1e10] = np.nan
 
         if (np.max(datC)-np.min(datC)<1e-10):
             ax.text(0.5,0.5,varnames[i]+'\n\n all: %3.2f'%np.max(datC),
@@ -125,28 +132,28 @@ def plot_nflexpd():
             else:
                 title(longname + ' [$%s$]'%units, size=10.0)
 
-            if len(z.shape) == 2:
-                pcf = ax.contourf(t, depth, datC, cmap=plt.get_cmap(colmap))
+            if valsat == 'plate':
+                ax.plot(t,datC)
             else:
-                pcf=ax.contourf(tvecC,depth,transpose(datC),cmap=plt.get_cmap(colmap))
+                if len(z.shape) == 2:
+                    pcf = ax.contourf(t, depth, datC, cmap=plt.get_cmap(colmap))
+                else:
+                    pcf=ax.contourf(tvecC,depth,transpose(datC),cmap=plt.get_cmap(colmap))
+                # y-axis
+                # yt  = gca().get_yticks()
+                # ytl = gca().get_yticklabels()
+                # gca().set_yticks([yt[0],yt[-1]])
+                # gca().set_yticklabels([str(yt[0]),str(yt[-1])])
+                ylabel('depth [m]')
 
+                cbar = colorbar(pcf, shrink=0.8)
+                # cbar.solids.set_edgecolor("face")
+                # draw()
 
         #x-axis
         format_date_axis(ax,[tvecC[0], tvecC[-1]])
         ax.xaxis.grid(color='k',linestyle=':',linewidth=0.5)
         xlabel('')
-
-        #y-axis
-        #yt  = gca().get_yticks()
-        #ytl = gca().get_yticklabels()
-        #gca().set_yticks([yt[0],yt[-1]])
-        #gca().set_yticklabels([str(yt[0]),str(yt[-1])])
-        ylabel('depth [m]')
-
-        cbar = colorbar(pcf, shrink=0.8)
-        #cbar.solids.set_edgecolor("face")
-        #draw()
-     
         
     nc.close()
     figname=fname.split('.nc')[0]+'_cont.png'
@@ -168,11 +175,13 @@ def get_varvals(ncv,varn0):
             return (False,0,0,'','')
         else:
             varn=varn0
-            varvals=squeeze(ncv[varn][:,:])
+            varvals=squeeze(ncv[varn][:])
             longname = ncv[varn].long_name
             units=ncv[varn].units
 
-    if varn in ['nuh', 'nus']:
+    if len(varvals.shape)==1: #if 1-dimensional variable (e.g., airt)
+        valsat='plate'
+    elif varn in ['nuh', 'nus']:
         valsat='int'
     else:
         valsat='center'
@@ -197,11 +206,10 @@ def format_date_axis(ax,tspan):
         ax.xaxis.set_minor_formatter(matplotlib.dates.DateFormatter('%b'))
         ax.xaxis.set_tick_params(which='major', pad=10)
     elif diff(tspan)[0].days<1466:
+        ax.xaxis.set_minor_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=1))
         ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=12) )
         ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%Y'))
-        ax.xaxis.set_minor_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=6) )
-        ax.xaxis.set_minor_formatter(matplotlib.dates.DateFormatter('%b'))
-        ax.xaxis.set_tick_params(which='major', pad=10)
+        #ax.xaxis.set_tick_params(which='major', pad=10)
     elif diff(tspan)[0].days<3655:
         ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=12) )
         ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%Y'))
