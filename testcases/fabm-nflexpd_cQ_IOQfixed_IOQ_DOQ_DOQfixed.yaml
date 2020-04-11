@@ -24,7 +24,7 @@ instances:
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       kexc: 0.01                     # excreted fraction of primary production
-      M0p: 0.01                      # sp. quad. mortality rate (m3 molN-1 d-1)
+      M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 0.5                     # part of the mortality that goes to detritus
     initialization:
       N: 0.16                        # Phytoplankton-N concentration (mmol m-3)
@@ -35,7 +35,7 @@ instances:
       don: abio/don                  # sink for excreted matter (mmol m-3)
       detN: abio/detn                # sink for dead matter (mmol m-3)
   phy_IOQf:
-    use: true
+    use: false
     long_name: Phyto-IOQf
     model: nflexpd/phy
     parameters:
@@ -58,7 +58,7 @@ instances:
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       kexc: 0.01                     # excreted fraction of primary production
-      M0p: 0.01                      # sp. quad. mortality rate (m3 molN-1 d-1)
+      M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 0.5                     # part of the mortality that goes to detritus
     initialization:
       N: 0.16                        # Phytoplankton-N concentration (mmol m-3)
@@ -92,7 +92,7 @@ instances:
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       kexc: 0.01                     # excreted fraction of primary production
-      M0p: 0.01                      # sp. quad. mortality rate (m3 molN-1 d-1)
+      M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 0.5                     # part of the mortality that goes to detritus
     initialization:
       N: 0.16                        # Phytoplankton-N concentration (mmol m-3)
@@ -127,7 +127,7 @@ instances:
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       kexc: 0.01                     # excreted fraction of primary production
-      M0p: 0.01                      # sp. quad. mortality rate (m3 molN-1 d-1)
+      M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 0.5                     # part of the mortality that goes to detritus
     initialization:
       C: 1.0                         # Phytoplankton-N concentration (mmol m-3) 
@@ -139,7 +139,7 @@ instances:
       don: abio/don                  # sink for excreted matter (mmol m-3)
       detN: abio/detn                # sink for dead matter (mmol m-3)
   phy_DOQf:
-    use: true
+    use: false
     long_name: Phyto-DOQf
     model: nflexpd/phy
     parameters:
@@ -163,7 +163,7 @@ instances:
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       kexc: 0.01                     # excreted fraction of primary production
-      M0p: 0.01                      # sp. quad. mortality rate (m3 molN-1 d-1)
+      M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 0.5                     # part of the mortality that goes to detritus
     initialization:
       C: 1.0                         # Phytoplankton-N concentration (mmol m-3) 
@@ -178,13 +178,13 @@ instances:
     long_name: Abiotic
     model: nflexpd/abio
     parameters:
-      w_det: -5.0                    # vertical velocity (<0 for sinking) (m d-1)
+      w_det: -2.0                    # vertical velocity (<0 for sinking) (m d-1)
       kc: 0.03                       # specific light extinction (m2 mmol-1)
-      kdet: 0.003                    # Degredation rate of Detritus (d-1)
-      kdon: 0.003                    # Remineralization rate of DON
+      kdet: 0.1                    # Degredation rate of Detritus (d-1)
+      kdon: 0.1                    # Remineralization rate of DON
       par0_dt0: 4.5                  # daily average par at the surface on the first time step
       kc_dt0: 0.2                    # attenuaton coefficient on the first time step
     initialization:
-      din: 4.5                       # DIN concentration (mmol m-3)
-      don: 4.5                       # DON concentration (mmol m-3)
-      detn: 4.5                      # Det-N concentration (mmol m-3)
+      din: 15.0                      # DIN concentration (mmol m-3)
+      don: 3.0                       # DON concentration (mmol m-3)
+      detn: 3.0                      # Det-N concentration (mmol m-3)
