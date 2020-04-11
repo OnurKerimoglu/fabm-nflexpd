@@ -7,6 +7,11 @@ import netcdftime
 import sys
 import warnings
 
+varlims={'abio_PAR_dmean':[0,35], 'temp':[5,20],
+         'abio_din':[0,35], 'abio_detn':[0,6], 'abio_don':[0,8],
+         'PPR':[0,20.], 'N':[0,5.0], 'Q':[0.025,0.225], 'Chl2C':[0.0,0.5],
+         'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.04,0.54]}
+numlevels=6
 def plot_nflexpd():
 
     #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
@@ -25,7 +30,7 @@ def plot_nflexpd():
       fname=sys.argv[1]
       
     if len(sys.argv)<3: #no third argument was passed
-      numyears=1 #means plot everything
+      numyears=-1 # -1 means plot everything
     else: 
       numyears=int(sys.argv[2]) #number of years to plot (counting from the last year backwards)
     disp('plotting last '+str(numyears)+' year of the simulation')
@@ -33,8 +38,8 @@ def plot_nflexpd():
     if len(models)==2: #show the difference between models in the 3rd column
         numcol = 3.0
         figuresize = (13, 15)  # (25,15)
-        varnames = ['airt', 'temp', 'abio_PAR', #nuh
-                    'abio_din', 'abio_don', 'abio_detn']
+        varnames = ['airt', 'temp', 'abio_PAR_dmean', #nuh
+                    'abio_din', 'abio_detn', 'abio_don']
         for var in vars2comp:
             varnames.append('%s_%s' % (models[0], var))
             varnames.append('%s_%s' % (models[1], var))
@@ -83,6 +88,8 @@ def plot_nflexpd():
 
     for i,varn in enumerate(varnames):       
         print varn
+        varn_basic=get_basic_varname(varn,models)
+
         ax=subplot(ceil(numvar/numcol),numcol,i+1)
 
         if (varn == 'skip'):
@@ -136,9 +143,14 @@ def plot_nflexpd():
                 ax.plot(t,datC)
             else:
                 if len(z.shape) == 2:
-                    pcf = ax.contourf(t, depth, datC, cmap=plt.get_cmap(colmap))
+                    pcf = ax.contourf(t, depth, datC, cmap=plt.get_cmap(colmap),vmin=vmin,vmax=vmax)
                 else:
-                    pcf=ax.contourf(tvecC,depth,transpose(datC),cmap=plt.get_cmap(colmap))
+                    if varn_basic in varlims.keys():
+                        levels=linspace(varlims[varn_basic][0],varlims[varn_basic][1],numlevels)
+                        pcf=ax.contourf(tvecC,depth,transpose(datC),cmap=plt.get_cmap(colmap),levels=levels)
+                    else:
+                        pcf = ax.contourf(tvecC, depth, transpose(datC), cmap=plt.get_cmap(colmap))
+
                 # y-axis
                 # yt  = gca().get_yticks()
                 # ytl = gca().get_yticklabels()
@@ -161,6 +173,12 @@ def plot_nflexpd():
     disp('python contour plot saved in: '+figname)
     #show()
 
+def get_basic_varname(varn,models):
+    for model in models:
+        if model in varn:
+            varn_basic=varn.split(model+'_')[1]
+            return varn_basic
+    return varn
 def get_varvals(ncv,varn0):
     if '-' in varn0:
         varn=varn0.split('-')[0]
