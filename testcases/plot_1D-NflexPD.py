@@ -15,7 +15,7 @@ numlevels=6
 def plot_nflexpd():
 
     #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
-    models = ['phy_cQ', 'phy_IOQ', 'phy_DOQ']
+    models = ['phy_FS', 'phy_IA', 'phy_DA']
     #models = ['phy_IOQ', 'phy_DOQ']
     vars2comp = ['PPR', 'N', 'Q', 'Chl2C', 'fA', 'fV', 'ThetaHat'] #
     plottype='wc_mean' #wc_int, wc_mean,middlerow
@@ -30,7 +30,7 @@ def plot_nflexpd():
       fname=sys.argv[1]
       
     if len(sys.argv)<3: #no third argument was passed
-      numyears=-1 # -1 means plot everything
+      numyears=1 # -1 means plot everything
     else: 
       numyears=int(sys.argv[2]) #number of years to plot (counting from the last year backwards)
     disp('plotting last '+str(numyears)+' year of the simulation')

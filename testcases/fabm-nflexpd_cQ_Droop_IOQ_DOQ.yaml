@@ -1,7 +1,7 @@
 instances:
-  phy_cQ:
+  phy_FS:
     use: .false.
-    long_name: Phyto-cQ
+    long_name: Phyto-FS
     model: nflexpd/phy_classic
     parameters:
       kc: 0.03                       # specific light extinction (m2 mmol-1)
