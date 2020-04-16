@@ -19,7 +19,7 @@ instances:
       A0hat: 0.15                    # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
-      kexc: 0.01                     # excreted fraction of primary production
+      kexc: 0.00                     # excreted fraction of primary production
       M0p: 0.1                      # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 0.5                     # part of the mortality that goes to detritus
     initialization:
@@ -48,7 +48,7 @@ instances:
       A0hat: 0.15                    # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
-      kexc: 0.01                     # excreted fraction of primary production
+      kexc: 0.00                     # excreted fraction of primary production
       M0p: 0.1                      # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 0.5                     # part of the mortality that goes to detritus
     initialization:
@@ -83,7 +83,7 @@ instances:
       A0hat: 0.15                    # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
-      kexc: 0.01                     # excreted fraction of primary production
+      kexc: 0.00                     # excreted fraction of primary production
       M0p: 0.1                      # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 0.5                     # part of the mortality that goes to detritus
     initialization:
@@ -118,7 +118,7 @@ instances:
       A0hat: 0.15                    # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
-      kexc: 0.01                     # excreted fraction of primary production
+      kexc: 0.00                     # excreted fraction of primary production
       M0p: 0.1                      # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 0.5                     # part of the mortality that goes to detritus
     initialization:
