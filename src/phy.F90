@@ -39,7 +39,7 @@
       real(rk) :: kc,w_phy,mindin
       real(rk) :: zetaN,zetaChl,kexc,M0p,Mpart,RMChl
       real(rk) :: mu0hat,aI
-      real(rk) :: A0hat,V0hat,Q0,Qmax
+      real(rk) :: A0hat,V0hat,Q0,Qmax,KN_monod
       real(rk) :: fA_fixed,fV_fixed,TheHat_fixed,Q_fixed
       logical  :: dynQN,fV_opt,fA_opt,Theta_opt
       real(rk) :: dic_per_n
@@ -103,6 +103,8 @@
    call self%get_parameter(self%Q0, 'Q0','molN molC-1', 'Subsistence cell quota', default=0.039_rk)
    call self%get_parameter(self%V0hat, 'V0hat','molN molC-1 d-1', 'Potential maximum uptake rate', default=5.0_rk,scale_factor=d_per_s)
    call self%get_parameter(self%A0hat, 'A0hat','m3 mmolC-1 d-1', 'Potential maximum nutrient affinity', default=0.15_rk,scale_factor=d_per_s)
+   call self%get_parameter(self%KN_monod, 'KN_monod','mmolN m-3', 'Half saturation constant for growth [when Monod model is mimicked]', default=-1.0_rk)
+   
    !mortality/loss/respiration
    call self%get_parameter(self%zetaN, 'zetaN','molC molN-1', 'C-cost of N uptake', default=0.6_rk)
    call self%get_parameter(self%zetaChl, 'zetaChl','molC gChl-1', 'C-cost of Chlorophyll synthesis', default=0.8_rk)
@@ -180,7 +182,7 @@
    real(rk)                   :: vN,Vhat_fNT
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac
-   real(rk)                   :: mu,exc,mort,Pprod
+   real(rk)                   :: mu,exc,mort,Pprod,muIN,fN_monod,KN_monod
    real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
@@ -280,8 +282,14 @@
      if( self%fV_opt .or. ( self%Q_fixed .eq. 99.0_rk ) ) then
        ! eq. 14 in Smith et al 2016
        Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
-     else
+     else !i.e., mimicking a Monod-model
        Q = self%Q_fixed !6.67 !Almost Redfield? (106/16=6.625)
+       if (self%KN_monod .le. 0.0_rk) then
+          KN_monod = self%V0hat*Tfac/self%A0hat
+       else
+          KN_monod =self%KN_monod
+       end if
+       fN_monod = din / ( KN_monod + din)
      end if
      phyC=phyN/Q
    end if
@@ -299,10 +307,15 @@
    ! eq. 5 in Pahlow and Oschlies 2013 (-Rchl)
    !to prevent model crashing:
    if (din .gt. self%mindin) then !can be interpreted as 'din detection limit' for phytoplankton
-     mu = muIhat * ( 1 - fV - self%Q0/(2.0*Q) ) - self%zetaN*fV*fQ*vNhat - Rchl ![/s]
+     if ( self%dynQN .or. self%fV_opt .or. self%Q_fixed .eq. 99.0_rk ) then
+        muIN = muIhat * ( 1 - fV - self%Q0/(2.0*Q) ) 
+     else
+        muIN=muIhat*fN_monod
+     end if
    else
-     mu = 0.0_rk
+     muIN = 0.0_rk
    end if
+   mu = muIN - self%zetaN*fV*fQ*vNhat - Rchl
    
    !Just for the diagnostics:
    !Primary production rate:
