@@ -8,11 +8,30 @@ import sys
 import warnings
 
 varlims={'abio_PAR_dmean':[0,35], 'temp':[5,20],
-         'abio_din':[0,35], 'abio_detn':[0,6], 'abio_don':[0,8],
-         'Chl':[0,15.], 'PPR':[0,20.], 'N':[0,5.0], 'Q':[0.025,0.225], 'Chl2C':[0.0,0.5],
+         'abio_din':[0,35], 'abio_detn':[0,8], 'abio_don':[0,8],
+         'Chl':[0,10.],'C':[0,50.0],'N':[0,4.0],'Q':[0.025,0.225],'Chl2C':[0.0,0.5],
+         'PPR':[0,20.],'mu':[0,0.5],'V_N':[0,0.05],
          'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.04,0.54]}
+prettynames={'abio_PAR_dmean': '\overline{I}',
+             'airt': 'T_{air}','temp': 'T',
+             'abio_din': 'DIN','abio_detn':'PON','abio_don':'DON',
+             'Chl':'Phy_{Chl}','C':'Phy_C','N':'Phy_N',
+             'Q':'Q','V_N': 'f_{DIN-Phy}','mu':'\mu',
+             'fA':'f_A', 'fV':'f_V','ThetaHat':'\hat{\Theta}'}
 numlevels=6
-def plot_nflexpd():
+
+def main():
+    varsets={'abio':['airt', 'temp', 'abio_PAR_dmean', 'abio_din', 'abio_detn', 'abio_don'],
+             'phy-1':['Chl','C','N'],
+             'phy-2':['Q','V_N','mu'],
+             'phy-3':['fA', 'fV', 'ThetaHat']
+             }
+    
+    for groupname,varset in varsets.iteritems():
+        #print ('%s,%s'%(groupname,varset))
+        plot_nflexpd(groupname,varset)
+
+def plot_nflexpd(groupname,varset):
 
     #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
     models = ['phy_FS', 'phy_IA', 'phy_DA']
@@ -35,32 +54,29 @@ def plot_nflexpd():
       numyears=int(sys.argv[2]) #number of years to plot (counting from the last year backwards)
     disp('plotting last '+str(numyears)+' year of the simulation')
 
-    if len(models)==2: #show the difference between models in the 3rd column
-        numcol = 3.0
-        figuresize = (13, 15)  # (25,15)
-        varnames = ['airt', 'temp', 'abio_PAR_dmean', #nuh
-                    'abio_din', 'abio_detn', 'abio_don']
-        for var in vars2comp:
-            varnames.append('%s_%s' % (models[0], var))
-            varnames.append('%s_%s' % (models[1], var))
-            varnames.append('%s_%s-%s_%s' % (models[0], var, models[1], var))
-    elif len(models)>2:
-        numcol = len(models)
-        if len(models)==3:
-            figuresize = (1+4*len(models), 15)
-            varnames = ['airt','temp','abio_PAR_dmean', #nuh
-                        'abio_din', 'abio_detn', 'abio_don']
-        elif len(models)==4:
-            figuresize = (1+4*len(models), 15)
-            varnames = ['airt','temp', 'abio_PAR_dmean', 'nuh',
-                        'abio_din', 'abio_detn', 'abio_don', 'total_nitrogen_calculator_result']
-        elif len(models)==5:
-            figuresize = (1+4*len(models), 15)
-            varnames = ['temp', 'nuh', 'abio_PAR_dmean', 'skip','skip',
-                        'abio_din', 'abio_detn', 'abio_don', 'total_nitrogen_calculator_result','skip']
-        for var in vars2comp:
-            for i in range(len(models)):
-                varnames.append('%s_%s' % (models[i], var))
+    if 'phy' in groupname:
+        if len(models)==2: #show the difference between models in the 3rd column
+            numcol = 3.0
+            figuresize = (1 + 4 * numcol, 1 + 1.5 * len(varset))
+            varnames = []
+            for var in varset:
+                varnames.append('%s_%s' % (models[0], var))
+                varnames.append('%s_%s' % (models[1], var))
+                varnames.append('%s_%s-%s_%s' % (models[0], var, models[1], var))
+            fpar = {'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.5}
+        elif len(models)>2:
+            numcol = len(models)
+            figuresize = (1 + 4 * len(models), 1 + 1.5 * len(varset))
+            varnames = []
+            for var in varset:
+                for i in range(len(models)):
+                    varnames.append('%s_%s' % (models[i], var))
+            fpar = {'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.5}
+    else:
+        varnames = varset
+        numcol=3.0
+        figuresize = (1 + 4 * len(models), 1 + 1.5 * len(varset)/numcol)
+        fpar = {'top': 0.93, 'bottom': 0.07, 'hspace': 0.5, 'wspace': 0.5}
     
     #pelagic variables
     nc=nc4.Dataset(fname)
@@ -82,13 +98,13 @@ def plot_nflexpd():
     zi=np.squeeze(ncv['zi'][ti,:]) #depths at layer interfaces (diffusivities, fluxes, etc)
 
     f=figure(figsize=figuresize)
-    f.subplots_adjust(top=0.95,bottom=0.05,hspace=0.5, wspace=0.5)
+    f.subplots_adjust(top=fpar['top'],bottom=fpar['bottom'],hspace=fpar['hspace'],wspace=fpar['wspace'])
 
     numvar=len(varnames)
 
     for i,varn in enumerate(varnames):       
         print varn
-        varn_basic=get_basic_varname(varn,models)
+        varn_basic,model=get_basic_varname(varn,models)
 
         ax=subplot(ceil(numvar/numcol),numcol,i+1)
 
@@ -123,33 +139,37 @@ def plot_nflexpd():
         else:
             t = tvecC
 
-        #datC[datC<-1e10] = np.nan
-
-        if (np.max(datC)-np.min(datC)<1e-10):
+        #not really plot, if all values are same
+        if False: #(np.max(datC)-np.min(datC)<1e-10):
             ax.text(0.5,0.5,varnames[i]+'\n\n all: %3.2f'%np.max(datC),
                     horizontalalignment='center',
                     verticalalignment='center',
                     transform=ax.transAxes)
-            continue
+             #continue
         else:
-            if units in ['%']:
-                title(longname + ' [%s]'%units, size=10.0)
-            elif units== 'Celsius':
-                title('GOTM Temperature [$^oC$]', size=10.0)
+            #if units in ['%']:
+            #    title(longname + ' [%s]'%units, size=10.0)
+            if units== 'Celsius':
+                units='^oC'
+            if model=='':
+                prettyname='$%s$'%prettynames[varn_basic]
             else:
-                title(longname + ' [$%s$]'%units, size=10.0)
+                prettyname='(%s) $%s$'%(model.split('phy_')[1],prettynames[varn_basic])
+            title('%s [$%s$]'%(prettyname,units), size=12.0)
 
+            cmap = plt.get_cmap(colmap)
             if valsat == 'plate':
                 ax.plot(t,datC)
             else:
                 if len(z.shape) == 2:
-                    pcf = ax.contourf(t, depth, datC, cmap=plt.get_cmap(colmap),vmin=vmin,vmax=vmax)
+                    pcf = ax.contourf(t, depth, datC, cmap=cmap,vmin=vmin,vmax=vmax)
                 else:
                     if varn_basic in varlims.keys():
                         levels=linspace(varlims[varn_basic][0],varlims[varn_basic][1],numlevels)
-                        pcf=ax.contourf(tvecC,depth,transpose(datC),cmap=plt.get_cmap(colmap),levels=levels)
+                        extendopt,cmap=get_extendopt(levels,datC,cmap)
+                        pcf=ax.contourf(tvecC,depth,transpose(datC),cmap=cmap,levels=levels,extend=extendopt)
                     else:
-                        pcf = ax.contourf(tvecC, depth, transpose(datC), cmap=plt.get_cmap(colmap))
+                        pcf = ax.contourf(tvecC, depth, transpose(datC), cmap=cmap)
 
                 # y-axis
                 # yt  = gca().get_yticks()
@@ -166,19 +186,44 @@ def plot_nflexpd():
         format_date_axis(ax,[tvecC[0], tvecC[-1]])
         ax.xaxis.grid(color='k',linestyle=':',linewidth=0.5)
         xlabel('')
-        
+
+        if (np.max(datC)-np.min(datC)<1e-10):
+            ax.text(0.5,0.5,'constant: %3.2f'%np.max(datC),
+                    horizontalalignment='center',
+                    verticalalignment='center',
+                    transform=ax.transAxes)
+
     nc.close()
-    figname=fname.split('.nc')[0]+'_cont.png'
+    figname=fname.split('.nc')[0]+'_cont_'+groupname+ '.png'
     savefig(figname)
     disp('python contour plot saved in: '+figname)
     #show()
+
+def get_extendopt(levels, datC,cmap):
+
+    if np.max(datC) > levels[-1]:
+        if np.min(datC) < levels[0]:
+            extendopt = "both"
+        else:
+            extendopt = "max"
+    elif np.min(datC) < levels[0]:
+        extendopt = "min"
+    else:
+        extendopt = "neither"
+
+    if extendopt in ['max','both']:
+        cmap.set_over('lightyellow')
+    if extendopt in ['min','both']:
+        cmap.set_under('darkslategray')
+    return (extendopt,cmap)
 
 def get_basic_varname(varn,models):
     for model in models:
         if model in varn:
             varn_basic=varn.split(model+'_')[1]
-            return varn_basic
-    return varn
+            return (varn_basic,model)
+    return (varn,'')
+
 def get_varvals(ncv,varn0):
     if '-' in varn0:
         varn=varn0.split('-')[0]
@@ -241,5 +286,4 @@ def format_date_axis(ax,tspan):
 if __name__ == "__main__":
     # if you call this script from the command line (the shell) it will
     # run the 'main' function
-    plot_nflexpd()
-
+    main()
