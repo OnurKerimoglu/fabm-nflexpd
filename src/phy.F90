@@ -373,8 +373,10 @@
    !Calculate fluxes between pools
    if ( self%dynQN ) then 
      f_din_phy = vN * phyC - resp*Q !it does not make sense to respire N, but if f_din_phy for dynQN=false is based on mu (which includes resp term), then we should include resp*Q term here too.
+     f_din_phy = vN * phyC
    else
-     f_din_phy = mu*phyN
+     !f_din_phy = mu*phyN
+     f_din_phy = muIN*phyN
    end if
    f_phy_detn =       self%Mpart  * mort 
    f_phy_don = (1.0 - self%Mpart) * mort
