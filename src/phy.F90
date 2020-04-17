@@ -33,7 +33,7 @@
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean
       type (type_horizontal_dependency_id) :: id_FDL
       type (type_diagnostic_variable_id)   :: id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
-      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy,id_d_phyC,id_Chl
+      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy,id_d_phyC,id_Chl,id_fQ,id_fNmonod
       
 !     Model parameters
       real(rk) :: kc,w_phy,mindin
@@ -41,7 +41,7 @@
       real(rk) :: mu0hat,aI
       real(rk) :: A0hat,V0hat,Q0,Qmax,KN_monod
       real(rk) :: fA_fixed,fV_fixed,TheHat_fixed,Q_fixed
-      logical  :: dynQN,fV_opt,fA_opt,Theta_opt
+      logical  :: dynQN,fV_opt,fA_opt,Theta_opt,mimic_Monod
       real(rk) :: dic_per_n
 
       contains
@@ -90,6 +90,7 @@
    call self%get_parameter(self%Theta_opt, 'Theta_opt','-', 'whether to optimize theta', default=.false.)
    call self%get_parameter(self%fA_opt, 'fA_opt','-', 'whether to optimize fA', default=.false.)
    call self%get_parameter(self%fV_opt, 'fV_opt','-', 'whether to optimize fV', default=.false.)
+   call self%get_parameter(self%mimic_Monod, 'mimic_Monod','-', 'whether to mimic Monod model', default=.false.)
    !light-related
    call self%get_parameter(self%TheHat_fixed, 'TheHat_fixed','gChl molC-1', 'Theta_Hat to use when Theta_opt=false', default=0.6_rk)
    call self%get_parameter(self%RMchl, 'RMchl','d-1', 'loss rate of chlorophyll', default=0.1_rk,scale_factor=d_per_s)
@@ -98,12 +99,36 @@
    !nutrient-related
    call self%get_parameter(self%fA_fixed, 'fA_fixed','-', 'fA to use when fa_opt=false', default=0.5_rk)
    call self%get_parameter(self%fV_fixed, 'fV_fixed','-', 'fV to use when fv_opt=false', default=0.25_rk)
-   call self%get_parameter(self%Q_fixed, 'Q_fixed','-', 'Q to use when provided, dynQN=false and fV_opt=false', default=99.0_rk)
+   call self%get_parameter(self%Q_fixed, 'Q_fixed','-', 'Q to use when provided, dynQN=false and fV_opt=false', default=-1.0_rk)
    call self%get_parameter(self%Qmax, 'Qmax','molN molC-1', 'Maximum cell quota', default=0.3_rk)
    call self%get_parameter(self%Q0, 'Q0','molN molC-1', 'Subsistence cell quota', default=0.039_rk)
    call self%get_parameter(self%V0hat, 'V0hat','molN molC-1 d-1', 'Potential maximum uptake rate', default=5.0_rk,scale_factor=d_per_s)
    call self%get_parameter(self%A0hat, 'A0hat','m3 mmolC-1 d-1', 'Potential maximum nutrient affinity', default=0.15_rk,scale_factor=d_per_s)
    call self%get_parameter(self%KN_monod, 'KN_monod','mmolN m-3', 'Half saturation constant for growth [when Monod model is mimicked]', default=-1.0_rk)
+   
+   !consistency checks
+   if (self%Q_fixed .gt. 0.0 ) then
+     !assume that user wants to mimic Monod model, check if other options are consistent:
+     self%mimic_Monod=.true.
+     if (self%dynQN) then
+       call self%fatal_error('phy.F90/initialize:','for '//trim(self%name)// ' a valid Q_fixed was provided that signals intention to mimic Monod model, but dynQN needs to bet set to .false.')
+     end if
+     if (self%fV_opt) then
+       call self%fatal_error('phy.F90/initialize:','for '//trim(self%name)// ' a valid Q_fixed was provided that signals intention to mimic Monod model, but fV_opt needs to be set to .false.')
+     end if
+   end if
+     
+   if (self%mimic_Monod) then
+     if (self%dynQN) then
+       call self%fatal_error('phy.F90/initialize:','for '//trim(self%name)// ' mimic_Monod and dynQN cannot be simultaneously true')
+     end if
+     if (self%fV_opt) then
+       call self%fatal_error('phy.F90/initialize:','for '//trim(self%name)// ' mimic_Monod and fV_opt cannot be simultaneously true')
+     end if
+     if (self%Q_fixed .lt. 0.0_rk) then
+       call self%fatal_error('phy.F90/initialize:','for '//trim(self%name)// ' for mimicking Monod model, a valid Q_fixed (<1.0) is required')
+     end if
+   end if
    
    !mortality/loss/respiration
    call self%get_parameter(self%zetaN, 'zetaN','molC molN-1', 'C-cost of N uptake', default=0.6_rk)
@@ -152,7 +177,15 @@
    call self%register_diagnostic_variable(self%id_PPR, 'PPR','mmolC/m^3/d','Primary production rate',      &
                                      output=output_time_step_averaged)
    call self%add_to_aggregate_variable(total_PPR,self%id_PPR)
-
+   if ( self%dynQN ) then
+     call self%register_diagnostic_variable(self%id_fQ, 'fQ', '-',    'Down-regulation term (only for dynQN)',   &
+                                     output=output_instantaneous) 
+   end if
+   
+   if ( self%mimic_Monod ) then
+     call self%register_diagnostic_variable(self%id_fNmonod, 'fN_monod','-',    'Monod function of DIN',   &
+                                     output=output_instantaneous) 
+   end if
    ! Register environmental dependencies
    call self%register_dependency(self%id_parW, standard_variables%downwelling_photosynthetic_radiative_flux)
    call self%register_dependency(self%id_par_dmean, 'PAR_dmean','E/m^2/d','photosynthetically active radiation, daily averaged')
@@ -275,13 +308,12 @@
    if ( self%dynQN ) then
      Q= phyN/phyC
      !calculate a down-regulation term for nutrient uptake to avoid Q>Qmax
-     fQ=(self%Qmax-Q)/(self%Qmax-2.0*self%Q0)
+     !Qr=(Q-2.0*self%Q0)/(self%Qmax-2.0*self%Q0)!relative quota 
+     !fQ=1-Qr
+     fQ=max(0.0, (self%Qmax-Q)/(self%Qmax-2.0*self%Q0))
    else
      !!$ ***  Calculating the optimal cell quota, based on the term ZINT, as calculated above
-     if( self%fV_opt .or. ( self%Q_fixed .eq. 99.0_rk ) ) then
-       ! eq. 14 in Smith et al 2016
-       Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
-     else !i.e., mimicking a Monod-model
+     if ( self%mimic_Monod ) then
        Q = self%Q_fixed !6.67 !Almost Redfield? (106/16=6.625)
        if (self%KN_monod .le. 0.0_rk) then
           KN_monod = self%V0hat*Tfac/self%A0hat
@@ -289,11 +321,13 @@
           KN_monod =self%KN_monod
        end if
        fN_monod = din / ( KN_monod + din)
+     else
+       ! eq. 14 in Smith et al 2016
+       Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)       
      end if
      phyC=phyN/Q
    end if
    
-
    ! Losses due to Chlorophyll
    ! eq. 26 in Smith et al 2016
    Rchl = (muIhat + self%RMchl*Tfac) * ( 1 - fV - self%Q0/(2.0*Q) ) * self%zetaChl * ThetaHat
@@ -306,10 +340,10 @@
    ! eq. 5 in Pahlow and Oschlies 2013 (-Rchl)
    !to prevent model crashing:
    if (din .gt. self%mindin) then !can be interpreted as 'din detection limit' for phytoplankton
-     if ( self%dynQN .or. self%fV_opt .or. self%Q_fixed .eq. 99.0_rk ) then
-        muIN = muIhat * ( 1 - fV - self%Q0/(2.0*Q) ) 
+     if ( self%mimic_Monod ) then
+       muIN=muIhat*fN_monod
      else
-        muIN=muIhat*fN_monod
+       muIN = muIhat * ( 1 - fV - self%Q0/(2.0*Q) ) 
      end if
    else
      muIN = 0.0_rk
@@ -338,13 +372,12 @@
    
    !Calculate fluxes between pools
    if ( self%dynQN ) then 
-     f_din_phy = vN * phyC
+     f_din_phy = vN * phyC - resp*Q !it does not make sense to respire N, but if f_din_phy for dynQN=false is based on mu (which includes resp term), then we should include resp*Q term here too.
    else
      f_din_phy = mu*phyN
    end if
    f_phy_detn =       self%Mpart  * mort 
    f_phy_don = (1.0 - self%Mpart) * mort
-   
    
    ! Set temporal derivatives
    if ( self%dynQN ) then
@@ -368,7 +401,14 @@
    _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_ThetaHat, ThetaHat) 
    _SET_DIAGNOSTIC_(self%id_PPR, PProd*secs_pr_day) !*s_p_d such that output is in d-1
-
+   
+   if ( self%dynQN ) then
+     _SET_DIAGNOSTIC_(self%id_fQ, fQ)
+   end if
+   if ( self%mimic_Monod ) then
+     _SET_DIAGNOSTIC_(self%id_fNmonod,fN_monod)
+   end if
+   
    ! Leave spatial loops (if any)
    _LOOP_END_
 
