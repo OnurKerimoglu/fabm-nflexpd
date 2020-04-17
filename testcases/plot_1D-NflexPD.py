@@ -9,7 +9,7 @@ import warnings
 
 varlims={'abio_PAR_dmean':[0,35], 'temp':[5,20],
          'abio_din':[0,35], 'abio_detn':[0,6], 'abio_don':[0,8],
-         'PPR':[0,20.], 'N':[0,5.0], 'Q':[0.025,0.225], 'Chl2C':[0.0,0.5],
+         'Chl':[0,15.], 'PPR':[0,20.], 'N':[0,5.0], 'Q':[0.025,0.225], 'Chl2C':[0.0,0.5],
          'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.04,0.54]}
 numlevels=6
 def plot_nflexpd():
@@ -17,20 +17,20 @@ def plot_nflexpd():
     #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
     models = ['phy_FS', 'phy_IA', 'phy_DA']
     #models = ['phy_IOQ', 'phy_DOQ']
-    vars2comp = ['PPR', 'N', 'Q', 'Chl2C', 'fA', 'fV', 'ThetaHat'] #
+    vars2comp = ['Chl', 'PPR', 'Q'] # 'Chl2C', 'fA', 'fV', 'ThetaHat'] #
     plottype='wc_mean' #wc_int, wc_mean,middlerow
     colmap='viridis'
     #import pdb
     if len(sys.argv) < 2: #this means no arguments were passed      
       #fname='/home/onur/setups/test-BGCmodels/nflexpd/1D-NS-40m/1D-40m_NflexPD.nc'
-      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-NA/1D-NA_mean.nc'
+      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_mean.nc'
       disp('plotting default file:'+fname)
     else:
       disp('plotting file specified:'+sys.argv[1])
       fname=sys.argv[1]
       
     if len(sys.argv)<3: #no third argument was passed
-      numyears=1 # -1 means plot everything
+      numyears=-1 # -1 means plot everything
     else: 
       numyears=int(sys.argv[2]) #number of years to plot (counting from the last year backwards)
     disp('plotting last '+str(numyears)+' year of the simulation')

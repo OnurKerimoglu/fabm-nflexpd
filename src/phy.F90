@@ -33,7 +33,7 @@
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean
       type (type_horizontal_dependency_id) :: id_FDL
       type (type_diagnostic_variable_id)   :: id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
-      type (type_diagnostic_variable_id)   :: id_PPR
+      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy,id_d_phyC,id_Chl
       
 !     Model parameters
       real(rk) :: kc,w_phy,mindin
@@ -114,6 +114,9 @@
    ! Register state variables
    if ( self%dynQN ) then
      call self%register_state_variable(self%id_phyC,'C','mmolC/m^3','bound-C concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy)
+   else
+     call self%register_diagnostic_variable(self%id_d_phyC, 'C','mmolC/m^3', 'bound-C concentration (diagnostic)', &
+                                     output=output_instantaneous)
    end if
    call self%register_state_variable(self%id_phyN,'N','mmolN/m^3','bound-N concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=self%kc)
    
@@ -127,11 +130,17 @@
 
    ! Register diagnostic variables
    call self%register_diagnostic_variable(self%id_Q, 'Q','molN/molC',    'cellular nitrogen Quota',           &
-                                     output=output_instantaneous)                                   
+                                     output=output_instantaneous) 
+   call self%register_diagnostic_variable(self%id_Chl, 'Chl','mgChl/m^3',    'Chlorophyll concentration',           &
+                                     output=output_instantaneous)                                  
    call self%register_diagnostic_variable(self%id_Chl2C, 'Chl2C','gChl/molC',    'cellular chlorophyll content',           &
-                                     output=output_instantaneous)                                     
+                                     output=output_instantaneous)
+                                     
    call self%register_diagnostic_variable(self%id_mu, 'mu','/d',    'net sp. growth rate',           &
                                      output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_fdinphy, 'V_N','molN/molC/d',    'net sp. N uptake',           &
+                                     output=output_time_step_averaged)
+                                     
    call self%register_diagnostic_variable(self%id_fV, 'fV','-',    'fV',           &
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_fA, 'fA','-',    'fA',           &
@@ -339,9 +348,12 @@
 
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_Q, Q)
+   _SET_DIAGNOSTIC_(self%id_d_phyC, phyC)
+   _SET_DIAGNOSTIC_(self%id_Chl, Theta*phyC)
    _SET_DIAGNOSTIC_(self%id_Chl2C, Theta)
    _SET_DIAGNOSTIC_(self%id_fV, fV)
    _SET_DIAGNOSTIC_(self%id_fA, fA)
+   _SET_DIAGNOSTIC_(self%id_fdinphy, f_din_phy/phyC * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_ThetaHat, ThetaHat) 
    _SET_DIAGNOSTIC_(self%id_PPR, PProd*secs_pr_day) !*s_p_d such that output is in d-1
