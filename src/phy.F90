@@ -37,7 +37,7 @@
       
 !     Model parameters
       real(rk) :: kc,w_phy,mindin
-      real(rk) :: zetaN,zetaChl,kexc,M0p,Mpart,RMChl
+      real(rk) :: zetaN,zetaChl,M0p,Mpart,RMChl
       real(rk) :: mu0hat,aI
       real(rk) :: A0hat,V0hat,Q0,Qmax,KN_monod
       real(rk) :: fA_fixed,fV_fixed,TheHat_fixed,Q_fixed
@@ -108,7 +108,6 @@
    !mortality/loss/respiration
    call self%get_parameter(self%zetaN, 'zetaN','molC molN-1', 'C-cost of N uptake', default=0.6_rk)
    call self%get_parameter(self%zetaChl, 'zetaChl','molC gChl-1', 'C-cost of Chlorophyll synthesis', default=0.8_rk)
-   call self%get_parameter(self%kexc,  'kexc',  '-',    'excreted fraction of primary production',                          default=0.0_rk)
    call self%get_parameter(self%M0p, 'M0p', 'm3 molN-1 d-1', 'sp. quad. mortality rate',              default=0.1_rk, scale_factor=d_per_s)
    call self%get_parameter(self%Mpart, 'Mpart', '-',   'part of the mortality that goes to detritus',default=0.5_rk)
    
@@ -182,7 +181,7 @@
    real(rk)                   :: vN,Vhat_fNT
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac
-   real(rk)                   :: mu,exc,mort,Pprod,muIN,fN_monod,KN_monod
+   real(rk)                   :: mu,resp,mort,Pprod,muIN,fN_monod,KN_monod
    real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
@@ -294,7 +293,7 @@
      phyC=phyN/Q
    end if
    
-   
+
    ! Losses due to Chlorophyll
    ! eq. 26 in Smith et al 2016
    Rchl = (muIhat + self%RMchl*Tfac) * ( 1 - fV - self%Q0/(2.0*Q) ) * self%zetaChl * ThetaHat
@@ -315,11 +314,12 @@
    else
      muIN = 0.0_rk
    end if
-   mu = muIN - self%zetaN*fV*fQ*vNhat - Rchl
+   resp=self%zetaN*fV*fQ*vNhat + Rchl
+   mu = muIN - resp
    
    !Just for the diagnostics:
    !Primary production rate:
-   PProd = (1.0-self%kexc) * max(0.0, mu*phyC )  ! PP [ mmolC / m3 / s ]
+   PProd = mu*phyC ! PP [ mmolC / m3 / s ]
 
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
    Theta= (1 - self%Q0 / 2 / Q - fV) * ThetaHat
@@ -327,14 +327,12 @@
    if ( self%dynQN ) then !Explicit uptake rate
      !to prevent model crashing:
      if (din .gt. self%mindin) then !can be interpreted as 'din detection limit' for phytoplankton
-       vN = fV*fQ*vNhat
+       vN = fV*fQ*vNhat 
      else
        vN = 0.0_rk
      end if
    end if
    
-   !Excretion:
-   exc = self%kexc * mu * phyN
    ! Mortality
    mort=self%M0p * Tfac * PhyN**2
    
@@ -342,10 +340,10 @@
    if ( self%dynQN ) then 
      f_din_phy = vN * phyC
    else
-     f_din_phy = mu * phyN
+     f_din_phy = mu*phyN
    end if
    f_phy_detn =       self%Mpart  * mort 
-   f_phy_don = (1.0 - self%Mpart) * mort + exc
+   f_phy_don = (1.0 - self%Mpart) * mort
    
    
    ! Set temporal derivatives
