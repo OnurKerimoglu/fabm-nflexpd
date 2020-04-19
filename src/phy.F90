@@ -312,6 +312,7 @@
      !fQ=1-Qr
      fQ=max(0.0, (self%Qmax-Q)/(self%Qmax-2.0*self%Q0))
    else
+     fQ=1.0 !needed for calculating respiration
      !!$ ***  Calculating the optimal cell quota, based on the term ZINT, as calculated above
      if ( self%mimic_Monod ) then
        Q = self%Q_fixed !6.67 !Almost Redfield? (106/16=6.625)
