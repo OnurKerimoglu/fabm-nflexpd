@@ -267,7 +267,7 @@
        !larg=min(1e38,larg) !larg can explode if aI is too large compared to mu0hat*zetaChl
        ! eq. 8 in Smith et al 2016
        ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par_dm)
-       ThetaHat=max(0.1,ThetaHat) !  a small positive value 
+       ThetaHat=max(0.0,ThetaHat) !  a small positive value 
        !if (ThetaHat .lt. 0.09)then
        !  write(*,*)'larg, self%aI*par_dm, self%mu0hat*Tfac*self%zetaChl',larg, self%aI*par_dm, self%mu0hat*Tfac*self%zetaChl
          !write(*,*)'ThetaHat,larg,WAPR',ThetaHat,larg,WAPR(larg,0,0)
