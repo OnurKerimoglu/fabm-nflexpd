@@ -34,6 +34,7 @@
       type (type_horizontal_dependency_id) :: id_FDL
       type (type_diagnostic_variable_id)   :: id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy,id_d_phyC,id_Chl,id_fQ,id_fNmonod
+      type (type_diagnostic_variable_id)   :: id_respN,id_respChl
       
 !     Model parameters
       real(rk) :: kc,w_phy,mindin
@@ -166,6 +167,10 @@
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_fdinphy, 'V_N','molN/molC/d',    'net sp. N uptake',           &
                                      output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_respN, 'R_N','/d',    'Respiration cost of N uptake',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_respChl, 'R_Chl','/d',    'Respiration cost of Chl uptake',     &
+                                     output=output_time_step_averaged)
                                      
    call self%register_diagnostic_variable(self%id_fV, 'fV','-',    'fV',           &
                                      output=output_time_step_averaged)
@@ -214,7 +219,7 @@
    real(rk)                   :: vN,Vhat_fNT
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac
-   real(rk)                   :: mu,resp,mort,Pprod,muIN,fN_monod,KN_monod
+   real(rk)                   :: mu,respN,mort,Pprod,muIN,fN_monod,KN_monod
    real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
@@ -350,12 +355,6 @@
    else
      muIN = 0.0_rk
    end if
-   resp=self%zetaN*fV*vNhat + Rchl
-   mu = muIN - resp
-   
-   !Just for the diagnostics:
-   !Primary production rate:
-   PProd = mu*phyC ! PP [ mmolC / m3 / s ]
 
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
    Theta= (1 - self%Q0 / 2 / Q - fV) * ThetaHat
@@ -369,17 +368,19 @@
      end if
    end if
    
-   ! Mortality
-   mort=self%M0p * Tfac * PhyN**2
-   
    !Calculate fluxes between pools
    if ( self%dynQN ) then 
-     f_din_phy = vN * phyC - resp*Q !it does not make sense to respire N, but if f_din_phy for dynQN=false is based on mu (which includes resp term), then we should include resp*Q term here too.
      f_din_phy = vN * phyC
+     respN=self%zetaN*vN !molC/molN *molN/molC/d = /d
    else
      !f_din_phy = mu*phyN
-     f_din_phy = muIN*phyN
+     f_din_phy = muIN*Q*phyC
+     respN=self%zetaN*muIN*Q !molC/molN * molN/molC */d = /d
    end if
+   mu = muIN - (respN+Rchl)
+   
+   ! Mortality
+   mort=self%M0p * Tfac * PhyN**2
    f_phy_detn =       self%Mpart  * mort 
    f_phy_don = (1.0 - self%Mpart) * mort
    
@@ -403,8 +404,10 @@
    _SET_DIAGNOSTIC_(self%id_fA, fA)
    _SET_DIAGNOSTIC_(self%id_fdinphy, f_din_phy/phyC * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day) !*s_p_d such that output is in d-1
+   _SET_DIAGNOSTIC_(self%id_respN, respN * secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_respChl, Rchl * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_ThetaHat, ThetaHat) 
-   _SET_DIAGNOSTIC_(self%id_PPR, PProd*secs_pr_day) !*s_p_d such that output is in d-1
+   _SET_DIAGNOSTIC_(self%id_PPR, mu*phyC*secs_pr_day) !*s_p_d such that output is in d-1
    
    if ( self%dynQN ) then
      _SET_DIAGNOSTIC_(self%id_fQ, fQ)
