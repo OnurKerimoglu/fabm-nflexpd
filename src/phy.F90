@@ -223,11 +223,17 @@
    ! Enter spatial loops (if any)
    _LOOP_BEGIN_
 
+   _GET_(self%id_phyN,phyN)  ! phytoplankton-N
    ! Retrieve current (local) state variable values.
    if ( self%dynQN ) then
      _GET_(self%id_phyC,phyC)  ! phytoplankton-C
+     !Dynamically calculated quota is needed for calculating some rates below
+     Q= phyN/phyC
+     !calculate a down-regulation term for nutrient uptake to avoid Q>Qmax
+     fQ=min(1.0,max(0.01, (self%Qmax-Q)/(self%Qmax-self%Q0/2.0)))
+     !fQ=1.0
    end if
-   _GET_(self%id_phyN,phyN)  ! phytoplankton-N
+     
    _GET_(self%id_din,din)    ! nutrients
    
    ! Retrieve current environmental conditions.
@@ -288,7 +294,10 @@
    
    ! T-dependence only for V0, not for A0 (as suggested by M. Pahlow)
    vNhat = vAff( din, fA, self%A0hat, self%V0hat * Tfac )
-   
+   if ( self%dynQN ) then
+     !apply a downregulation term to avoid excessive uptake
+     vNhat=vNhat*fQ
+   end if
    ! Alternative way of calculating vNhat
    !vNhat2=vOU(din,self%A0hat,self%V0hat * Tfac)
    
@@ -297,22 +306,14 @@
    ZINT = (self%zetaN + muIhat/vNhat) * self%Q0 / 2.0
    !write(*,'(A,4F12.5)')'  (phy) ZINT, muIhat/vNhat:',ZINT,muIhat/vNhat
    
-   if( self%fV_opt .and.  par_dm .gt. I_zero ) then
+   if( self%fV_opt ) then
      ! eq. 13  in Smith et al 2016
      fV = (-1.0 + sqrt(1.0 + 1.0 / ZINT) ) * (self%Q0 / 2.0) * muIhat / vNhat
    else
-     fV = self%fV_fixed 
+     fV = self%fV_fixed
    end if
    
-   !Dynamically calculated quota is needed for calculating some rates below
-   if ( self%dynQN ) then
-     Q= phyN/phyC
-     !calculate a down-regulation term for nutrient uptake to avoid Q>Qmax
-     !Qr=(Q-2.0*self%Q0)/(self%Qmax-2.0*self%Q0)!relative quota 
-     !fQ=1-Qr
-     fQ=max(0.0, (self%Qmax-Q)/(self%Qmax-2.0*self%Q0))
-   else
-     fQ=1.0 !needed for calculating respiration
+   if (.not. self%dynQN) then
      !!$ ***  Calculating the optimal cell quota, based on the term ZINT, as calculated above
      if ( self%mimic_Monod ) then
        Q = self%Q_fixed !6.67 !Almost Redfield? (106/16=6.625)
@@ -349,7 +350,7 @@
    else
      muIN = 0.0_rk
    end if
-   resp=self%zetaN*fV*fQ*vNhat + Rchl
+   resp=self%zetaN*fV*vNhat + Rchl
    mu = muIN - resp
    
    !Just for the diagnostics:
@@ -362,7 +363,7 @@
    if ( self%dynQN ) then !Explicit uptake rate
      !to prevent model crashing:
      if (din .gt. self%mindin) then !can be interpreted as 'din detection limit' for phytoplankton
-       vN = fV*fQ*vNhat 
+       vN = fV*vNhat 
      else
        vN = 0.0_rk
      end if
