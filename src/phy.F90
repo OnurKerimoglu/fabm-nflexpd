@@ -359,22 +359,23 @@
    if ( self%dynQN ) then !Explicit uptake rate
      !to prevent model crashing:
      if (din .gt. self%mindin) then !can be interpreted as 'din detection limit' for phytoplankton
-       vN = fV*vNhat*fQ
+       vN = fV*vNhat*fQ !molN/molC/d
      else
        vN = 0.0_rk
      end if
+   else
+       vN = muIN*Q !/d * molN/molC 
    end if
+   
+   respN=self%zetaN*vN !molC/molN *molN/molC/d = /d
+   mu = muIN - (respN+Rchl)
    
    !Calculate fluxes between pools
    if ( self%dynQN ) then 
      f_din_phy = vN * phyC
-     respN=self%zetaN*vN !molC/molN *molN/molC/d = /d
    else
-     !f_din_phy = mu*phyN
-     f_din_phy = muIN*Q*phyC
-     respN=self%zetaN*muIN*Q !molC/molN * molN/molC */d = /d
+     f_din_phy = mu*phyN
    end if
-   mu = muIN - (respN+Rchl)
    
    ! Mortality
    mort=self%M0p * Tfac * PhyN**2
