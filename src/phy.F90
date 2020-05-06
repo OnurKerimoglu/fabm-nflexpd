@@ -299,10 +299,7 @@
    
    ! T-dependence only for V0, not for A0 (as suggested by M. Pahlow)
    vNhat = vAff( din, fA, self%A0hat, self%V0hat * Tfac )
-   if ( self%dynQN ) then
-     !apply a downregulation term to avoid excessive uptake
-     vNhat=vNhat*fQ
-   end if
+   
    ! Alternative way of calculating vNhat
    !vNhat2=vOU(din,self%A0hat,self%V0hat * Tfac)
    
@@ -362,7 +359,7 @@
    if ( self%dynQN ) then !Explicit uptake rate
      !to prevent model crashing:
      if (din .gt. self%mindin) then !can be interpreted as 'din detection limit' for phytoplankton
-       vN = fV*vNhat 
+       vN = fV*vNhat*fQ
      else
        vN = 0.0_rk
      end if
