@@ -7,23 +7,24 @@ import netcdftime
 import sys
 import warnings
 
-varlims={'abio_PAR_dmean':[0,35], 'temp':[5,20],
+varlims={'abio_PAR_dmean':[0,35], 'airt':[0,21], 'I_0':[0,100],'temp':[5,20], 'mld_surf':[-100,0],'u10':[-10,100],
          'abio_din':[0,35], 'abio_detn':[0,8], 'abio_don':[0,8],
-         'Chl':[0,10.],'C':[0,50.0],'N':[0,4.0],'Q':[0.025,0.225],'Chl2C':[0.0,0.5],
-         'PPR':[0,20.],'mu':[0,0.5],'V_N':[0,0.05],
+         'Chl':[0,10.],'C':[0,50.0],'N':[0,7.5],'Q':[0.025,0.225],'Chl2C':[0.0,0.5],
+         'PPR':[0,20.],'mu':[0,0.5],'V_N':[0,0.05],'R_N':[0,0.05],'R_Chl':[0,0.1],
          'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.04,0.54]}
-prettynames={'abio_PAR_dmean': '\overline{I}',
-             'airt': 'T_{air}','temp': 'T',
+prettynames={'abio_PAR_dmean': '\overline{I}','I_0':'\overline{I}_{0}', 'mld_surf':'\mathrm{MLD}',
+             'airt': 'T_{air}','u10':'\mathrm{Wind \ Speed \ (-u)}','temp': 'T',
              'abio_din': 'DIN','abio_detn':'PON','abio_don':'DON',
              'Chl':'Phy_{Chl}','C':'Phy_C','N':'Phy_N',
              'Q':'Q','V_N': 'f_{DIN-Phy}','mu':'\mu',
+             'R_N':'R_N','R_Chl':'R_{Chl}',
              'fA':'f_A', 'fV':'f_V','ThetaHat':'\hat{\Theta}'}
 numlevels=6
 
 def main():
-    varsets={'abio':['airt', 'temp', 'abio_PAR_dmean', 'abio_din', 'abio_detn', 'abio_don'],
-             'phy-1':['Chl','C','N'],
-             'phy-2':['Q','V_N','mu'],
+    varsets={'abio':['airt', 'u10', 'I_0', 'temp', 'mld_surf','abio_PAR_dmean', 'abio_din', 'abio_detn', 'abio_don'],
+             'phy-1':['C','N','Q'],
+             'phy-2':['mu','V_N','R_N','R_Chl'],
              'phy-3':['fA', 'fV', 'ThetaHat']
              }
     
@@ -63,7 +64,7 @@ def plot_nflexpd(groupname,varset):
                 varnames.append('%s_%s' % (models[0], var))
                 varnames.append('%s_%s' % (models[1], var))
                 varnames.append('%s_%s-%s_%s' % (models[0], var, models[1], var))
-            fpar = {'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.5}
+            fpar = {'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.25}
         elif len(models)>2:
             numcol = len(models)
             figuresize = (1 + 4 * len(models), 1 + 1.5 * len(varset))
@@ -71,12 +72,12 @@ def plot_nflexpd(groupname,varset):
             for var in varset:
                 for i in range(len(models)):
                     varnames.append('%s_%s' % (models[i], var))
-            fpar = {'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.5}
+            fpar = {'left':0.05, 'right':0.98, 'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.25}
     else:
         varnames = varset
         numcol=3.0
         figuresize = (1 + 4 * len(models), 1 + 1.5 * len(varset)/numcol)
-        fpar = {'top': 0.93, 'bottom': 0.07, 'hspace': 0.5, 'wspace': 0.5}
+        fpar = {'left':0.05, 'right':0.98, 'top': 0.93, 'bottom': 0.07, 'hspace': 0.5, 'wspace': 0.25}
     
     #pelagic variables
     nc=nc4.Dataset(fname)
@@ -98,7 +99,7 @@ def plot_nflexpd(groupname,varset):
     zi=np.squeeze(ncv['zi'][ti,:]) #depths at layer interfaces (diffusivities, fluxes, etc)
 
     f=figure(figsize=figuresize)
-    f.subplots_adjust(top=fpar['top'],bottom=fpar['bottom'],hspace=fpar['hspace'],wspace=fpar['wspace'])
+    f.subplots_adjust(left=fpar['left'],right=fpar['right'],top=fpar['top'],bottom=fpar['bottom'],hspace=fpar['hspace'],wspace=fpar['wspace'])
 
     numvar=len(varnames)
 
@@ -151,6 +152,13 @@ def plot_nflexpd(groupname,varset):
             #    title(longname + ' [%s]'%units, size=10.0)
             if units== 'Celsius':
                 units='^oC'
+            elif varn=='I_0' and units=='W/m2':
+                #convert to Watts to Einstein/d
+                units='E/m^2/d'
+                datC=datC*4.6 * 1e-6 * 86400
+            elif varn=='mld_surf':
+                #convert to absolute depth
+                datC=datC*-1
             if model=='':
                 prettyname='$%s$'%prettynames[varn_basic]
             else:
@@ -160,6 +168,10 @@ def plot_nflexpd(groupname,varset):
             cmap = plt.get_cmap(colmap)
             if valsat == 'plate':
                 ax.plot(t,datC)
+                #shrink the axes width by 20% to fit that of the contour plots
+                box = ax.get_position()
+                ax.set_position([box.x0, box.y0, (box.x1 - box.x0) * 0.8, box.y1 - box.y0])
+                ax.set_ylim(varlims[varn][0],varlims[varn][1])
             else:
                 if len(z.shape) == 2:
                     pcf = ax.contourf(t, depth, datC, cmap=cmap,vmin=vmin,vmax=vmax)
@@ -171,14 +183,9 @@ def plot_nflexpd(groupname,varset):
                     else:
                         pcf = ax.contourf(tvecC, depth, transpose(datC), cmap=cmap)
 
-                # y-axis
-                # yt  = gca().get_yticks()
-                # ytl = gca().get_yticklabels()
-                # gca().set_yticks([yt[0],yt[-1]])
-                # gca().set_yticklabels([str(yt[0]),str(yt[-1])])
                 ylabel('depth [m]')
 
-                cbar = colorbar(pcf, shrink=0.8)
+                cbar = colorbar(pcf, shrink=0.9)
                 # cbar.solids.set_edgecolor("face")
                 # draw()
 
