@@ -7,25 +7,28 @@ import netcdftime
 import sys
 import warnings
 
-varlims={'abio_PAR_dmean':[0,35], 'airt':[0,21], 'I_0':[0,100],'temp':[5,20], 'mld_surf':[-100,0],'u10':[-10,100],
-         'abio_din':[0,35], 'abio_detn':[0,8], 'abio_don':[0,8],
+varlims={'abio_PAR_dmean':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf':[-100,0],'wind':[-6,26],
+         'abio_din':[0,30], 'abio_detn':[0,8], 'abio_don':[0,8],
          'Chl':[0,10.],'C':[0,50.0],'N':[0,7.5],'Q':[0.025,0.225],'Chl2C':[0.0,0.5],
          'PPR':[0,20.],'mu':[0,0.5],'V_N':[0,0.05],'R_N':[0,0.05],'R_Chl':[0,0.1],
          'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.04,0.54]}
-prettynames={'abio_PAR_dmean': '\overline{I}','I_0':'\overline{I}_{0}', 'mld_surf':'\mathrm{MLD}',
-             'airt': 'T_{air}','u10':'\mathrm{Wind \ Speed \ (-u)}','temp': 'T',
+prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{MLD}',
+             'airt': 'T_{air}','temp': 'T','u10':'\mathrm{Wind \ Speed \ (-u)}','wind':'\mathrm{Wind \ Speed}',
              'abio_din': 'DIN','abio_detn':'PON','abio_don':'DON',
              'Chl':'Phy_{Chl}','C':'Phy_C','N':'Phy_N',
-             'Q':'Q','V_N': 'f_{DIN-Phy}','mu':'\mu',
+             'Q':'Q','V_N':'f_{DIN-Phy}','mu':'\mu',
              'R_N':'R_N','R_Chl':'R_{Chl}',
-             'fA':'f_A', 'fV':'f_V','ThetaHat':'\hat{\Theta}'}
+             'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}'}
 numlevels=6
 
 def main():
-    varsets={'abio':['airt', 'u10', 'I_0', 'temp', 'mld_surf','abio_PAR_dmean', 'abio_din', 'abio_detn', 'abio_don'],
+    varsets={#'abio1':['airt', 'wind', 'I_0'],
+             #'abio23':['temp', 'mld_surf', 'abio_PAR_dmean','abio_din','abio_detn', 'abio_don'],
+             'abio2':['temp', 'mld_surf', 'abio_din'],
+             #'abio3': ['abio_PAR_dmean', 'abio_detn', 'abio_don'],
              'phy-1':['C','N','Q'],
              'phy-2':['mu','V_N','R_N','R_Chl'],
-             'phy-3':['fA', 'fV', 'ThetaHat']
+             'phy-3':['fA', 'fV'] #, 'ThetaHat']
              }
     
     for groupname,varset in varsets.iteritems():
@@ -43,7 +46,7 @@ def plot_nflexpd(groupname,varset):
     #import pdb
     if len(sys.argv) < 2: #this means no arguments were passed      
       #fname='/home/onur/setups/test-BGCmodels/nflexpd/1D-NS-40m/1D-40m_NflexPD.nc'
-      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_mean.nc'
+      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_wfile_mean.nc'
       disp('plotting default file:'+fname)
     else:
       disp('plotting file specified:'+sys.argv[1])
@@ -64,20 +67,28 @@ def plot_nflexpd(groupname,varset):
                 varnames.append('%s_%s' % (models[0], var))
                 varnames.append('%s_%s' % (models[1], var))
                 varnames.append('%s_%s-%s_%s' % (models[0], var, models[1], var))
-            fpar = {'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.25}
+            fpar = {'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.2}
         elif len(models)>2:
             numcol = len(models)
-            figuresize = (1 + 4 * len(models), 1 + 1.5 * len(varset))
+            figuresize = (1 + 4 * len(models), .5 + 1.5 * len(varset))
             varnames = []
             for var in varset:
                 for i in range(len(models)):
                     varnames.append('%s_%s' % (models[i], var))
-            fpar = {'left':0.05, 'right':0.98, 'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.25}
+            if len(varset)==2:
+                fpar = {'left': 0.05, 'right': 0.99, 'top': 0.93, 'bottom': 0.07, 'hspace': 0.5, 'wspace': 0.2}
+            elif len(varset)>2:
+                fpar = {'left':0.05, 'right':0.99, 'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.2}
+            else:
+                print('len(varset):%s'%(len(varset)))
     else:
         varnames = varset
         numcol=3.0
-        figuresize = (1 + 4 * len(models), 1 + 1.5 * len(varset)/numcol)
-        fpar = {'left':0.05, 'right':0.98, 'top': 0.93, 'bottom': 0.07, 'hspace': 0.5, 'wspace': 0.25}
+        figuresize = (1 + 4 * len(models), .5 + 1.5 * len(varset)/numcol)
+        if len(varset)/numcol==1:
+            fpar = {'left':0.05, 'right':0.99, 'top': 0.85, 'bottom': 0.15, 'hspace': 0.5, 'wspace': 0.2}
+        else:
+            fpar = {'left':0.05, 'right':0.99, 'top': 0.93, 'bottom': 0.07, 'hspace': 0.5, 'wspace': 0.2}
     
     #pelagic variables
     nc=nc4.Dataset(fname)
@@ -112,7 +123,15 @@ def plot_nflexpd(groupname,varset):
         if (varn == 'skip'):
             continue
 
-        varfound, dat, valsat, longname, units = get_varvals(ncv, varn)
+        if varn=='wind':
+            varfound, datU, valsat, longname, units = get_varvals(ncv, 'u10')
+            varfound, datV, valsat, longname, units = get_varvals(ncv, 'v10')
+            dat=np.sqrt(datU**2+datV**2)
+            #restore negative velocities
+            ineg=datU<0.0
+            dat[ineg]=dat[ineg]*-1.0
+        else:
+            varfound, dat, valsat, longname, units = get_varvals(ncv, varn)
 
         if (not varfound):
             ax.text(0.5, 0.5, varnames[i] + '\n\n was not found',
@@ -146,7 +165,7 @@ def plot_nflexpd(groupname,varset):
                     horizontalalignment='center',
                     verticalalignment='center',
                     transform=ax.transAxes)
-             #continue
+            continue
         else:
             #if units in ['%']:
             #    title(longname + ' [%s]'%units, size=10.0)
@@ -188,20 +207,17 @@ def plot_nflexpd(groupname,varset):
                 cbar = colorbar(pcf, shrink=0.9)
                 # cbar.solids.set_edgecolor("face")
                 # draw()
+                if (np.max(datC)-np.min(datC)<1e-10):
+                    ax.text(0.5,0.5,'constant: %3.2f'%np.max(datC),
+                            horizontalalignment='center',verticalalignment='center',transform=ax.transAxes)
 
         #x-axis
         format_date_axis(ax,[tvecC[0], tvecC[-1]])
         ax.xaxis.grid(color='k',linestyle=':',linewidth=0.5)
         xlabel('')
 
-        if (np.max(datC)-np.min(datC)<1e-10):
-            ax.text(0.5,0.5,'constant: %3.2f'%np.max(datC),
-                    horizontalalignment='center',
-                    verticalalignment='center',
-                    transform=ax.transAxes)
-
     nc.close()
-    figname=fname.split('.nc')[0]+'_cont_'+groupname+ '.png'
+    figname=fname.split('.nc')[0]+'_cont_'+groupname+ '_'+str(numyears)+'y.png'
     savefig(figname)
     disp('python contour plot saved in: '+figname)
     #show()
@@ -239,6 +255,14 @@ def get_varvals(ncv,varn0):
         v2 = squeeze(ncv[varn2][:,:])
         varvals=v1-v2
         longname='%s - %s'%(varn,varn2)
+        units=ncv[varn].units
+    elif '*' in varn0:
+        varn=varn0.split('*')[0]
+        varn2 = varn0.split('*')[1]
+        v1=squeeze(ncv[varn][:,:])
+        v2 = squeeze(ncv[varn2][:,:])
+        varvals=v1*v2
+        longname='%s * %s'%(varn,varn2)
         units=ncv[varn].units
     else:
         if not (varn0 in ncv):
