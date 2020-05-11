@@ -33,8 +33,9 @@
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean
       type (type_horizontal_dependency_id) :: id_FDL
       type (type_diagnostic_variable_id)   :: id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
-      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy,id_d_phyC,id_Chl,id_fQ,id_fNmonod
+      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_d_phyC,id_Chl,id_fQ,id_fNmonod
       type (type_diagnostic_variable_id)   :: id_respN,id_respChl
+      type(type_diagnostic_variable_id)    :: id_fphydoc,id_fphydon,id_fphydetc,id_fphydetn
       
 !     Model parameters
       real(rk) :: kc,w_phy,mindin
@@ -165,7 +166,7 @@
                                      
    call self%register_diagnostic_variable(self%id_mu, 'mu','/d',    'net sp. growth rate',           &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_fdinphy, 'V_N','molN/molC/d',    'net sp. N uptake',           &
+   call self%register_diagnostic_variable(self%id_fdinphy_sp, 'V_N','molN/molC/d',    'net sp. N uptake',           &
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_respN, 'R_N','/d',    'Respiration cost of N uptake',           &
                                      output=output_time_step_averaged)
@@ -191,6 +192,16 @@
      call self%register_diagnostic_variable(self%id_fNmonod, 'fN_monod','-',    'Monod function of DIN',   &
                                      output=output_instantaneous) 
    end if
+   
+   call self%register_diagnostic_variable(self%id_fphydon, 'f_phy_don','molN/m^3/d',    'bulk phy-N loss to detritus',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_fphydoc, 'f_phy_doc','molC/m^3/d',    'bulk phy-C loss to detritus',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_fphydetn, 'f_phy_detn','molN/m^3/d',    'bulk phy-N loss to DOM',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_fphydetc, 'f_phy_detc','molN/m^3/d',    'bulk phy-C loss to DOM',           &
+                                     output=output_time_step_averaged)
+                                     
    ! Register environmental dependencies
    call self%register_dependency(self%id_parW, standard_variables%downwelling_photosynthetic_radiative_flux)
    call self%register_dependency(self%id_par_dmean, 'PAR_dmean','E/m^2/d','photosynthetically active radiation, daily averaged')
@@ -220,7 +231,7 @@
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac
    real(rk)                   :: mu,respN,mort,Pprod,muIN,fN_monod,KN_monod
-   real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn
+   real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
 !-----------------------------------------------------------------------
@@ -381,10 +392,12 @@
    mort=self%M0p * Tfac * PhyN**2
    f_phy_detn =       self%Mpart  * mort 
    f_phy_don = (1.0 - self%Mpart) * mort
+   f_phy_detc = f_phy_detn/Q
+   f_phy_doc = f_phy_don/Q
    
    ! Set temporal derivatives
    if ( self%dynQN ) then
-     _SET_ODE_(self%id_phyC, mu*phyC - f_phy_don/Q - f_phy_detn/Q)
+     _SET_ODE_(self%id_phyC, mu*phyC - f_phy_doc - f_phy_detc)
    end if
    _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn)
    
@@ -400,12 +413,18 @@
    _SET_DIAGNOSTIC_(self%id_Chl2C, Theta)
    _SET_DIAGNOSTIC_(self%id_fV, fV)
    _SET_DIAGNOSTIC_(self%id_fA, fA)
-   _SET_DIAGNOSTIC_(self%id_fdinphy, f_din_phy/phyC * secs_pr_day) !*s_p_d such that output is in d-1
+   _SET_DIAGNOSTIC_(self%id_fdinphy_sp, f_din_phy/phyC * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_respN, respN * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_respChl, Rchl * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_ThetaHat, ThetaHat) 
    _SET_DIAGNOSTIC_(self%id_PPR, mu*phyC*secs_pr_day) !*s_p_d such that output is in d-1
+   
+   !Export diagnostic bulk fluxes
+   _SET_DIAGNOSTIC_(self%id_fphydoc, f_phy_doc * secs_pr_day) !*s_p_d such that output is in d-1
+   _SET_DIAGNOSTIC_(self%id_fphydon, f_phy_don * secs_pr_day) !*s_p_d such that output is in d-1
+   _SET_DIAGNOSTIC_(self%id_fphydetc, f_phy_detc * secs_pr_day) !*s_p_d such that output is in d-1
+   _SET_DIAGNOSTIC_(self%id_fphydetn, f_phy_detn * secs_pr_day) !*s_p_d such that output is in d-1
    
    if ( self%dynQN ) then
      _SET_DIAGNOSTIC_(self%id_fQ, fQ)
