@@ -2,7 +2,6 @@ module nflexpd_model_library
 
    use fabm_types, only: type_base_model_factory, type_base_model
 
-   use nflexpd_phy_classic
    use nflexpd_phy
    use nflexpd_abio
    ! Add new PMbench modules here
@@ -26,7 +25,6 @@ contains
       class (type_base_model),pointer :: model
 
       select case (name)
-         case ('phy_classic'); allocate(type_nflexpd_phy_classic::model)
          case ('phy'); allocate(type_nflexpd_phy::model)
          case ('abio'); allocate(type_nflexpd_abio::model)
          ! Add new PMbench models here

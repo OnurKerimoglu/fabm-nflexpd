@@ -6,7 +6,6 @@ add_library(fabm_models_nflexpd OBJECT
             ${CMAKE_CURRENT_BINARY_DIR}/version.F90
             common.F90
             abio.F90
-            phy_classic.F90
             phy.F90
             lambert_modified.f90
            )
