@@ -29,7 +29,7 @@
    type,extends(type_base_model),public :: type_nflexpd_phy
 !     Variable identifiers
       type (type_state_variable_id)        :: id_phyC,id_phyN
-      type (type_state_variable_id)        :: id_din,id_don,id_detn
+      type (type_state_variable_id)        :: id_din,id_don,id_doc,id_detn,id_detc
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean
       type (type_horizontal_dependency_id) :: id_FDL
       type (type_diagnostic_variable_id)   :: id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
@@ -155,6 +155,8 @@
    call self%register_state_dependency(self%id_din, 'din',   'mmolN/m^3','dissolved inorganic nitrogen')
    call self%register_state_dependency(self%id_don, 'don','mmolN/m^3','dissolved organic nitrogen')
    call self%register_state_dependency(self%id_detN,'detN','mmolN/m^3','detrital nitrogen')
+   call self%register_state_dependency(self%id_doc, 'doc','mmolC/m^3','dissolved organic carbon')
+   call self%register_state_dependency(self%id_detC,'detC','mmolC/m^3','detrital carbon')
 
    ! Register diagnostic variables
    call self%register_diagnostic_variable(self%id_Q, 'Q','molN/molC',    'cellular nitrogen Quota',           &
@@ -405,6 +407,8 @@
    _SET_ODE_(self%id_din, -f_din_phy)
    _SET_ODE_(self%id_don,  f_phy_don)
    _SET_ODE_(self%id_detN, f_phy_detn)
+   _SET_ODE_(self%id_doc,  f_phy_doc)
+   _SET_ODE_(self%id_detC, f_phy_detc)
 
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_Q, Q)

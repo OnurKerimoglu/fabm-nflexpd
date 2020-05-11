@@ -23,11 +23,12 @@
 ! !PUBLIC DERIVED TYPES:
    type,extends(type_base_model),public :: type_nflexpd_abio
 !     Variable identifiers
-      type (type_state_variable_id)     :: id_din,id_don,id_detn
+      type (type_state_variable_id)     :: id_din,id_don,id_doc,id_detn,id_detc
       type (type_dependency_id)         :: id_temp,id_depth,id_parW,id_parW_dmean
       type (type_horizontal_dependency_id)  :: id_lat
       type (type_global_dependency_id)  :: id_doy
       type (type_diagnostic_variable_id):: id_dPAR,id_dPAR_dmean
+      type (type_diagnostic_variable_id):: id_fdetdon,id_fdetdoc,id_fdondin,id_fdocdic
       type (type_horizontal_diagnostic_variable_id):: id_dFDL
       
 !     Model parameters
@@ -82,8 +83,13 @@
                                 1.0_rk,minimum=0.0_rk,no_river_dilution=.true.)
    call self%register_state_variable(self%id_don,'don','mmolN/m^3','DON concentration',     &
                                 1.0_rk,minimum=0.0_rk,no_river_dilution=.true.)
+   call self%register_state_variable(self%id_doc,'doc','mmolC/m^3','DOC concentration',     &
+                                6.625_rk,minimum=0.0_rk,no_river_dilution=.true.)
    call self%register_state_variable(self%id_detn,'detn','mmolN/m^3','Det-N concentration',    &
-                                4.5_rk,minimum=0.0_rk,vertical_movement=w_det, &
+                                1.0_rk,minimum=0.0_rk,vertical_movement=w_det, &
+                                specific_light_extinction=kc)
+   call self%register_state_variable(self%id_detc,'detc','mmolC/m^3','Det-C concentration',    &
+                                6.625_rk,minimum=0.0_rk,vertical_movement=w_det, &
                                 specific_light_extinction=kc)
    
    ! Register contribution of state to global aggregate variables.
@@ -95,6 +101,15 @@
    call self%register_horizontal_diagnostic_variable(self%id_dFDL,'FDL','-',       'fractional day length')
    call self%register_diagnostic_variable(self%id_dPAR,'PAR','E/m^2/d',       'photosynthetically active radiation')
    call self%register_diagnostic_variable(self%id_dPAR_dmean, 'PAR_dmean','E/m^2/d','photosynthetically active radiation, daily averaged')
+   
+   call self%register_diagnostic_variable(self%id_fdetdon, 'f_det_don','molN/m^3/d',    'bulk N flux from detritus to DOM',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_fdetdoc, 'f_det_doc','molC/m^3/d',    'bulk C flux from detritus to DOM',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_fdondin, 'f_don_din','molN/m^3/d',    'bulk N flux from DOM to DIM',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_fdocdic, 'f_doc_dic','molC/m^3/d',    'bulk C flux from DOM to DIM',           &
+                                     output=output_time_step_averaged)                                  
                                      
    ! Register environmental dependencies
    call self%register_global_dependency(self%id_doy,standard_variables%number_of_days_since_start_of_the_year)
@@ -121,8 +136,8 @@
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
-   real(rk)                   :: detn, don
-   real(rk)                   :: f_det_don, f_don_din
+   real(rk)                   :: detn,detc,don,doc
+   real(rk)                   :: f_det_don,f_det_doc,f_don_din,f_doc_dic
    real(rk)                   :: Ld,Tfac,parE,parE_dm
    real(rk)                   :: lat,depth,doy,tC,parW,parW_dm
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
@@ -133,7 +148,9 @@
    _LOOP_BEGIN_
 
    ! Retrieve current (local) state variable values.
+   _GET_(self%id_detc,detc) ! detrital carbon
    _GET_(self%id_detn,detn) ! detrital nitrogen
+   _GET_(self%id_doc,doc) ! dissolved organic carbon
    _GET_(self%id_don,don) ! dissolved organic nitrogen
    ! Retrieve environmental dependencies
    _GET_(self%id_temp,tC) ! temperature in Celcius
@@ -158,18 +175,28 @@
    Tfac = FofT(tC)
    
    !Calculate fluxes between pools
-   f_det_don = self%kdet * Tfac * detn 
+   f_det_don = self%kdet * Tfac * detn
+   f_det_doc = self%kdet * Tfac * detc
    f_don_din = self%kdon * Tfac * don
+   f_doc_dic = self%kdon * Tfac * doc
    
    ! Set temporal derivatives
    _SET_ODE_(self%id_detn, -f_det_don)
+   _SET_ODE_(self%id_detc, -f_det_doc)
    _SET_ODE_(self%id_don,   f_det_don - f_don_din)
+   _SET_ODE_(self%id_doc,   f_det_doc - f_doc_dic)
    _SET_ODE_(self%id_din,   f_don_din)
    
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_dPAR, parE) ! mol/m2/d-1
    _SET_DIAGNOSTIC_(self%id_dPAR_dmean, parE_dm) ! mol/m2/d-1
     ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
+    
+    !Export diagnostic bulk fluxes
+   _SET_DIAGNOSTIC_(self%id_fdetdon, f_det_don * secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_fdetdoc, f_det_doc * secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_fdondin, f_don_din * secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_fdocdic, f_doc_dic * secs_pr_day)
    
    ! Leave spatial loops (if any)
    _LOOP_END_
