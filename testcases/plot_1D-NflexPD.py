@@ -1,5 +1,7 @@
 # terminal call:
-# python plot_1D-NflexPD.py /file/path/file_name.nc num_years_to_plot(counting_backwards_from_the_last)
+# python plot_1D-NflexPD.py /file/path/file_name.nc num_years_to_plot(counting_backwards_from_the_last) modname
+# python plot_1D-NflexPD.py ${rootdir}/${out_pref}/${out_pref}_mean.nc 3 FS-IA-DA
+# python plot_1D-NflexPD.py ${rootdir}/${out_pref}/${out_pref}_mean.nc 3 phy_FS
     
 from pylab import *
 import netCDF4 as nc4
@@ -21,8 +23,23 @@ prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{M
              'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}'}
 numlevels=6
 
-def main():
-    varsets={#'abio1':['airt', 'wind', 'I_0'],
+def main(fname, numyears, modname):
+    
+    if not '-' in modname: #i.e., single model runs
+      models = [modname]
+      varsets={#'abio1':['airt', 'wind', 'I_0'],
+             #'abio23':['temp', 'mld_surf', 'abio_PAR_dmean','abio_din','abio_detn', 'abio_don'],
+             'abio1':['temp', 'mld_surf', 'abio_PAR_dmean'],
+             'abio2':['abio_din', 'abio_detn', 'abio_don'],
+             'phy-1':['C','N','Q'],
+             #'phy-2':['mu','V_N','R_N','R_Chl'],
+             #'phy-3':['fA', 'fV'] #, 'ThetaHat']
+             }
+    elif modname=='FS-IA-DA': #i.e., competition experiment
+      #models = ['phy_IOQ', 'phy_DOQ']
+      #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
+      models = ['phy_FS', 'phy_IA', 'phy_DA']
+      varsets={#'abio1':['airt', 'wind', 'I_0'],
              #'abio23':['temp', 'mld_surf', 'abio_PAR_dmean','abio_din','abio_detn', 'abio_don'],
              'abio2':['temp', 'mld_surf', 'abio_din'],
              #'abio3': ['abio_PAR_dmean', 'abio_detn', 'abio_don'],
@@ -30,36 +47,29 @@ def main():
              'phy-2':['mu','V_N','R_N','R_Chl'],
              'phy-3':['fA', 'fV'] #, 'ThetaHat']
              }
-    
+      
     for groupname,varset in varsets.iteritems():
         #print ('%s,%s'%(groupname,varset))
-        plot_nflexpd(groupname,varset)
+        plot_nflexpd(fname,numyears,groupname,varset,models)
 
-def plot_nflexpd(groupname,varset):
+def plot_nflexpd(fname,numyears,groupname,varset,models):
 
-    #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
-    models = ['phy_FS', 'phy_IA', 'phy_DA']
-    #models = ['phy_IOQ', 'phy_DOQ']
     vars2comp = ['Chl', 'PPR', 'Q'] # 'Chl2C', 'fA', 'fV', 'ThetaHat'] #
     plottype='wc_mean' #wc_int, wc_mean,middlerow
     colmap='viridis'
-    #import pdb
-    if len(sys.argv) < 2: #this means no arguments were passed      
-      #fname='/home/onur/setups/test-BGCmodels/nflexpd/1D-NS-40m/1D-40m_NflexPD.nc'
-      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_wfile_mean.nc'
-      disp('plotting default file:'+fname)
-    else:
-      disp('plotting file specified:'+sys.argv[1])
-      fname=sys.argv[1]
-      
-    if len(sys.argv)<3: #no third argument was passed
-      numyears=-1 # -1 means plot everything
-    else: 
-      numyears=int(sys.argv[2]) #number of years to plot (counting from the last year backwards)
-    disp('plotting last '+str(numyears)+' year of the simulation')
-
+    
     if 'phy' in groupname:
-        if len(models)==2: #show the difference between models in the 3rd column
+        if len(models)==1:
+            numcol = 3.0
+            figuresize = (1 + 4 * numcol, .5 + 1.5 * len(varset)/numcol)
+            varnames = []
+            for var in varset:
+                varnames.append('%s_%s' % (models[0], var))
+            if len(varset)/numcol==1:
+               fpar = {'left':0.05, 'right':0.99, 'top': 0.85, 'bottom': 0.15, 'hspace': 0.5, 'wspace': 0.2}
+            else:
+                fpar = {'left':0.05, 'right':0.99, 'top': 0.93, 'bottom': 0.07, 'hspace': 0.5, 'wspace': 0.2}
+        elif len(models)==2: #show the difference between models in the 3rd column
             numcol = 3.0
             figuresize = (1 + 4 * numcol, 1 + 1.5 * len(varset))
             varnames = []
@@ -84,7 +94,8 @@ def plot_nflexpd(groupname,varset):
     else:
         varnames = varset
         numcol=3.0
-        figuresize = (1 + 4 * len(models), .5 + 1.5 * len(varset)/numcol)
+        #figuresize = (1 + 4 * len(models), .5 + 1.5 * len(varset)/numcol)
+        figuresize = (1 + 4 * numcol, .5 + 1.5 * len(varset)/numcol)
         if len(varset)/numcol==1:
             fpar = {'left':0.05, 'right':0.99, 'top': 0.85, 'bottom': 0.15, 'hspace': 0.5, 'wspace': 0.2}
         else:
@@ -317,4 +328,22 @@ def format_date_axis(ax,tspan):
 if __name__ == "__main__":
     # if you call this script from the command line (the shell) it will
     # run the 'main' function
-    main()
+    if len(sys.argv) < 2: #this means no arguments were passed      
+      #fname='/home/onur/setups/test-BGCmodels/nflexpd/1D-NS-40m/1D-40m_NflexPD.nc'
+      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_wfile_mean.nc'
+      disp('plotting default file:'+fname)
+    else:
+      disp('plotting file specified:'+sys.argv[1])
+      fname=sys.argv[1]
+      
+    if len(sys.argv)<3: #no third argument was passed
+      numyears=-1 # -1 means plot everything
+    else: 
+      numyears=int(sys.argv[2]) #number of years to plot (counting from the last year backwards)
+    disp('plotting last '+str(numyears)+' year of the simulation')
+    
+    if len(sys.argv)<4:
+      modname='FS-IA-DA'
+    else:
+      modname=sys.argv[3]
+    main(fname, numyears, modname)
