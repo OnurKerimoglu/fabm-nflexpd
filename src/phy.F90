@@ -412,7 +412,14 @@
 
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_Q, Q)
-   _SET_DIAGNOSTIC_(self%id_d_phyC, phyC)
+   if ( self%dynQN ) then
+     _SET_DIAGNOSTIC_(self%id_fQ, fQ)
+   else
+      _SET_DIAGNOSTIC_(self%id_d_phyC, phyC)
+   end if
+   if ( self%mimic_Monod ) then
+     _SET_DIAGNOSTIC_(self%id_fNmonod,fN_monod)
+   end if
    _SET_DIAGNOSTIC_(self%id_Chl, Theta*phyC)
    _SET_DIAGNOSTIC_(self%id_Chl2C, Theta)
    _SET_DIAGNOSTIC_(self%id_fV, fV)
@@ -429,13 +436,6 @@
    _SET_DIAGNOSTIC_(self%id_fphydon, f_phy_don * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_fphydetc, f_phy_detc * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_fphydetn, f_phy_detn * secs_pr_day) !*s_p_d such that output is in d-1
-   
-   if ( self%dynQN ) then
-     _SET_DIAGNOSTIC_(self%id_fQ, fQ)
-   end if
-   if ( self%mimic_Monod ) then
-     _SET_DIAGNOSTIC_(self%id_fNmonod,fN_monod)
-   end if
    
    ! Leave spatial loops (if any)
    _LOOP_END_
