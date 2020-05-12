@@ -30,7 +30,7 @@
 !     Variable identifiers
       type (type_state_variable_id)        :: id_phyC,id_phyN
       type (type_state_variable_id)        :: id_din,id_don,id_doc,id_detn,id_detc
-      type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean
+      type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_depth
       type (type_horizontal_dependency_id) :: id_FDL
       type (type_diagnostic_variable_id)   :: id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_d_phyC,id_Chl,id_fQ,id_fNmonod
@@ -141,7 +141,7 @@
 
    ! Register state variables
    if ( self%dynQN ) then
-     call self%register_state_variable(self%id_phyC,'C','mmolC/m^3','bound-C concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy)
+     call self%register_state_variable(self%id_phyC,'C','mmolC/m^3','bound-C concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=0.0_rk)
    else
      call self%register_diagnostic_variable(self%id_d_phyC, 'C','mmolC/m^3', 'bound-C concentration (diagnostic)', &
                                      output=output_instantaneous)
@@ -209,6 +209,7 @@
    call self%register_dependency(self%id_par_dmean, 'PAR_dmean','E/m^2/d','photosynthetically active radiation, daily averaged')
    call self%register_horizontal_dependency(self%id_FDL, 'FDL','-',       'fractional day length')
    call self%register_dependency(self%id_temp,standard_variables%temperature)
+   call self%register_dependency(self%id_depth,standard_variables%depth)
    
    end subroutine initialize
 !EOC
@@ -231,7 +232,7 @@
    real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
    real(rk)                   :: vN,Vhat_fNT
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
-   real(rk)                   :: tC,Tfac
+   real(rk)                   :: tC,Tfac,depth
    real(rk)                   :: mu,respN,mort,Pprod,muIN,fN_monod,KN_monod
    real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
@@ -240,7 +241,8 @@
 !BOC
    ! Enter spatial loops (if any)
    _LOOP_BEGIN_
-
+   
+   _GET_(self%id_depth,depth)     ! depth
    _GET_(self%id_phyN,phyN)  ! phytoplankton-N
    ! Retrieve current (local) state variable values.
    if ( self%dynQN ) then
@@ -259,6 +261,7 @@
    par=parW* 4.6 * 1e-6   !molE/m2/s
    ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
    _GET_(self%id_par_dmean,par_dm) !in molE/m2/d
+   !write(*,*)'P.L275:depth,par_dm',depth,par_dm
    par_dm=par_dm/secs_pr_day !convert to molE/m2/s
    
    if ( par_dm .lt. 0.0 ) then
