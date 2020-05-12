@@ -32,9 +32,9 @@
       type (type_state_variable_id)        :: id_din,id_don,id_doc,id_detn,id_detc
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_depth
       type (type_horizontal_dependency_id) :: id_FDL
-      type (type_diagnostic_variable_id)   :: id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
-      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_d_phyC,id_Chl,id_fQ,id_fNmonod
-      type (type_diagnostic_variable_id)   :: id_respN,id_respChl
+      type (type_diagnostic_variable_id)   :: id_Q,id_d_phyC,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
+      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_respN,id_respChl
+      type (type_diagnostic_variable_id)   :: id_fQ,id_fNmonod,id_fN,id_fL,id_Tfac
       type(type_diagnostic_variable_id)    :: id_fphydoc,id_fphydon,id_fphydetc,id_fphydetn
       
 !     Model parameters
@@ -181,15 +181,22 @@
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_ThetaHat, 'ThetaHat','-', 'ThetaHat',           &
                                      output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_fN, 'fN','-',    'N limitation function',&
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_fL, 'fL','-',    'Light limitation function',&
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_Tfac, 'Tfac','-',    'Temperature factor',&
+                                     output=output_time_step_averaged)
                                      
    call self%register_diagnostic_variable(self%id_PPR, 'PPR','mmolC/m^3/d','Primary production rate',      &
                                      output=output_time_step_averaged)
    call self%add_to_aggregate_variable(total_PPR,self%id_PPR)
+   
+   !optional diagnostics
    if ( self%dynQN ) then
      call self%register_diagnostic_variable(self%id_fQ, 'fQ', '-',    'Down-regulation term (only for dynQN)',   &
                                      output=output_instantaneous) 
    end if
-   
    if ( self%mimic_Monod ) then
      call self%register_diagnostic_variable(self%id_fNmonod, 'fN_monod','-',    'Monod function of DIN',   &
                                      output=output_instantaneous) 
@@ -233,7 +240,8 @@
    real(rk)                   :: vN,Vhat_fNT
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac,depth
-   real(rk)                   :: mu,respN,mort,Pprod,muIN,fN_monod,KN_monod
+   real(rk)                   :: mu,respN,mort,Pprod,muIN,KN_monod
+   real(rk)                   :: fL,fN,fN_monod
    real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
@@ -303,7 +311,9 @@
    end if
    
    ! Light limited growth rate (eq. 6 in Smith et al 2016)
-   muIhat = self%mu0hat * Tfac * SIT(self%aI,self%mu0hat,par_dm,ThetaHat,Tfac)
+   fL=SIT(self%aI,self%mu0hat,par_dm,ThetaHat,Tfac)
+   !write(*,*)'depth,par_dm,SIT',depth,par_dm,1.0-exp(-self%aI*ThetaHat*par_dm/(Tfac*self%mu0hat))
+   muIhat = self%mu0hat * Tfac * fL
    
    !Optimal allocation for affinity vs max. uptake
    if( self%fA_opt ) then
@@ -361,14 +371,16 @@
    !to prevent model crashing:
    if (din .gt. self%mindin) then !can be interpreted as 'din detection limit' for phytoplankton
      if ( self%mimic_Monod ) then
-       muIN=muIhat*fN_monod
+       fN = fN_monod
      else
-       muIN = muIhat * ( 1 - fV - self%Q0/(2.0*Q) ) 
+       fN = 1.0_rk - fV - self%Q0/(2.0*Q) 
      end if
    else
-     muIN = 0.0_rk
+     fN = 0.0_rk
    end if
-
+   
+   muIN =  muIhat * fN
+   
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
    Theta= (1 - self%Q0 / 2 / Q - fV) * ThetaHat
    
@@ -427,6 +439,9 @@
    _SET_DIAGNOSTIC_(self%id_Chl2C, Theta)
    _SET_DIAGNOSTIC_(self%id_fV, fV)
    _SET_DIAGNOSTIC_(self%id_fA, fA)
+   _SET_DIAGNOSTIC_(self%id_fN, fN)
+   _SET_DIAGNOSTIC_(self%id_fL, fL)
+   _SET_DIAGNOSTIC_(self%id_Tfac, Tfac)
    _SET_DIAGNOSTIC_(self%id_fdinphy_sp, f_din_phy/phyC * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_respN, respN * secs_pr_day)
