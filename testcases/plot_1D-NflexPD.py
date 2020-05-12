@@ -10,16 +10,18 @@ import sys
 import warnings
 
 varlims={'abio_PAR_dmean':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf':[-100,0],'wind':[-6,26],
-         'abio_din':[0,30], 'abio_detn':[0,8], 'abio_don':[0,8],
+         'abio_din':[0,30],'abio_detn/abio_detc':[0.02,0.17],'abio_don/abio_doc':[0.02,0.17],
+          'abio_detc':[0,80],'abio_detn':[0,6], 'abio_doc':[0,80], 'abio_don':[0,8],
          'Chl':[0,10.],'C':[0,50.0],'N':[0,7.5],'Q':[0.025,0.225],'Chl2C':[0.0,0.5],
          'PPR':[0,20.],'mu':[0,0.5],'V_N':[0,0.05],'R_N':[0,0.05],'R_Chl':[0,0.1],
-         'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.04,0.54]}
+         'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.04,0.54],'fN':[0,1],'fL':[0,1]}
 prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{MLD}',
              'airt': 'T_{air}','temp': 'T','u10':'\mathrm{Wind \ Speed \ (-u)}','wind':'\mathrm{Wind \ Speed}',
-             'abio_din': 'DIN','abio_detn':'PON','abio_don':'DON',
+             'abio_din':'DIN','abio_detn/abio_detc':'PON:POC','abio_don/abio_doc':'DON:DOC',
+             'abio_detc':'POC','abio_detn':'PON','abio_doc':'DOC','abio_don':'DON',
              'Chl':'Phy_{Chl}','C':'Phy_C','N':'Phy_N',
              'Q':'Q','V_N':'f_{DIN-Phy}','mu':'\mu',
-             'R_N':'R_N','R_Chl':'R_{Chl}',
+             'R_N':'R_N','R_Chl':'R_{Chl}','fN':'f_N','fL':'f_I',
              'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}'}
 numlevels=6
 
@@ -27,25 +29,24 @@ def main(fname, numyears, modname):
     
     if not '-' in modname: #i.e., single model runs
       models = [modname]
-      varsets={#'abio1':['airt', 'wind', 'I_0'],
-             #'abio23':['temp', 'mld_surf', 'abio_PAR_dmean','abio_din','abio_detn', 'abio_don'],
-             'abio1':['temp', 'mld_surf', 'abio_PAR_dmean'],
-             'abio2':['abio_din', 'abio_detn', 'abio_don'],
+      varsets={#'abio0':['airt', 'wind', 'I_0'],
+             'abio1':['abio_PAR_dmean','temp', 'mld_surf'],
+             'abio2':['abio_din','abio_detn/abio_detc','abio_don/abio_doc'],
+             'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
              'phy-1':['C','N','Q'],
-             #'phy-2':['mu','V_N','R_N','R_Chl'],
-             #'phy-3':['fA', 'fV'] #, 'ThetaHat']
+             'phy-2':['mu','V_N','R_N','R_Chl'],
+             'phy-3':['fA','fV','fN','fL'] #, 'ThetaHat']
              }
     elif modname=='FS-IA-DA': #i.e., competition experiment
       #models = ['phy_IOQ', 'phy_DOQ']
       #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
       models = ['phy_FS', 'phy_IA', 'phy_DA']
-      varsets={#'abio1':['airt', 'wind', 'I_0'],
-             #'abio23':['temp', 'mld_surf', 'abio_PAR_dmean','abio_din','abio_detn', 'abio_don'],
-             'abio2':['temp', 'mld_surf', 'abio_din'],
-             #'abio3': ['abio_PAR_dmean', 'abio_detn', 'abio_don'],
+      varsets={'abio0':['I_0','airt', 'wind'],
+             'abio12':['temp','mld_surf','abio_din','abio_PAR_dmean',],
+             'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
              'phy-1':['C','N','Q'],
              'phy-2':['mu','V_N','R_N','R_Chl'],
-             'phy-3':['fA', 'fV'] #, 'ThetaHat']
+             'phy-3':['fA','fV','fN','fL'] #, 'ThetaHat']
              }
       
     for groupname,varset in varsets.iteritems():
@@ -60,7 +61,10 @@ def plot_nflexpd(fname,numyears,groupname,varset,models):
     
     if 'phy' in groupname:
         if len(models)==1:
-            numcol = 3.0
+            if len(varset)>4:
+                numcol = 3.0
+            else:
+                numcol=len(varset)
             figuresize = (1 + 4 * numcol, .5 + 1.5 * len(varset)/numcol)
             varnames = []
             for var in varset:
@@ -93,7 +97,10 @@ def plot_nflexpd(fname,numyears,groupname,varset,models):
                 print('len(varset):%s'%(len(varset)))
     else:
         varnames = varset
-        numcol=3.0
+        if len(varset)>4:
+            numcol = 3.0
+        else:
+            numcol=len(varset)
         #figuresize = (1 + 4 * len(models), .5 + 1.5 * len(varset)/numcol)
         figuresize = (1 + 4 * numcol, .5 + 1.5 * len(varset)/numcol)
         if len(varset)/numcol==1:
@@ -221,11 +228,13 @@ def plot_nflexpd(fname,numyears,groupname,varset,models):
                 if (np.max(datC)-np.min(datC)<1e-10):
                     ax.text(0.5,0.5,'constant: %3.2f'%np.max(datC),
                             horizontalalignment='center',verticalalignment='center',transform=ax.transAxes)
-
+        
+        ax.grid(b=True, axis='y', which='major', color='0.5', linestyle='-')
+        
         #x-axis
         format_date_axis(ax,[tvecC[0], tvecC[-1]])
-        ax.xaxis.grid(color='k',linestyle=':',linewidth=0.5)
         xlabel('')
+        
 
     nc.close()
     figname=fname.split('.nc')[0]+'_cont_'+groupname+ '_'+str(numyears)+'y.png'
@@ -259,22 +268,8 @@ def get_basic_varname(varn,models):
     return (varn,'')
 
 def get_varvals(ncv,varn0):
-    if '-' in varn0:
-        varn=varn0.split('-')[0]
-        varn2 = varn0.split('-')[1]
-        v1=squeeze(ncv[varn][:,:])
-        v2 = squeeze(ncv[varn2][:,:])
-        varvals=v1-v2
-        longname='%s - %s'%(varn,varn2)
-        units=ncv[varn].units
-    elif '*' in varn0:
-        varn=varn0.split('*')[0]
-        varn2 = varn0.split('*')[1]
-        v1=squeeze(ncv[varn][:,:])
-        v2 = squeeze(ncv[varn2][:,:])
-        varvals=v1*v2
-        longname='%s * %s'%(varn,varn2)
-        units=ncv[varn].units
+    if '+' in varn0  or '-' in varn0 or '*' in varn0 or '/' in varn0:
+        varfound,varvals,valsat,longname,units=get_varvals_op(ncv,varn0)
     else:
         if not (varn0 in ncv):
             return (False,0,0,'','')
@@ -283,16 +278,50 @@ def get_varvals(ncv,varn0):
             varvals=squeeze(ncv[varn][:])
             longname = ncv[varn].long_name
             units=ncv[varn].units
+            if len(varvals.shape)==1: #if 1-dimensional variable (e.g., airt)
+                valsat='plate'
+            elif varn in ['nuh', 'nus']:
+                valsat='int'
+            else:
+                valsat='center'
+    return (True,varvals,valsat,longname,units)
 
+def get_varvals_op(ncv,varn0):
+    if '+' in varn0:
+        symb='+'
+    elif '-' in varn0:
+        symb='-'
+    elif '*' in varn0:
+        symb='*'
+    elif '/' in varn0:
+        symb='/'
+    else:
+        return (False,0,0,'','')
+    varn=varn0.split(symb)[0]
+    varn2 = varn0.split(symb)[1]
+    v1=squeeze(ncv[varn][:,:])
+    v2 = squeeze(ncv[varn2][:,:])
+    longname='%s %s %s'%(varn,symb,varn2)
+    if '+' in varn0:
+        varvals=v1+v2
+        units=ncv[varn].units
+    elif '-' in varn0:
+        varvals=v1-v2
+        units=ncv[varn].units
+    elif '*' in varn0:
+        varvals=v1*v2
+        units=ncv[varn].units + '*' + ncv[varn2].units
+    elif '/' in varn0:
+        varvals=v1/v2
+        units=ncv[varn].units + '/' + ncv[varn2].units
     if len(varvals.shape)==1: #if 1-dimensional variable (e.g., airt)
         valsat='plate'
     elif varn in ['nuh', 'nus']:
         valsat='int'
     else:
         valsat='center'
-
     return (True,varvals,valsat,longname,units)
-
+        
 def format_date_axis(ax,tspan):
     ax.set_xlim(tspan[0], tspan[1])
     if diff(tspan)[0].days<63:
@@ -303,6 +332,7 @@ def format_date_axis(ax,tspan):
         ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter(''))
         ax.xaxis.set_minor_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=2) )
         ax.xaxis.set_minor_formatter(matplotlib.dates.DateFormatter('%b'))
+        ax.grid(b=True, axis='x', which='minor', color='0.5', linestyle='-')
         #ax.xaxis.set_tick_params(which='major', pad=15)
     elif diff(tspan)[0].days<732:
         ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=12) )
@@ -314,6 +344,7 @@ def format_date_axis(ax,tspan):
         ax.xaxis.set_minor_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=1))
         ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=12) )
         ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%Y'))
+        ax.grid(b=True, axis='x', which='major', color='0.5', linestyle='-')
         #ax.xaxis.set_tick_params(which='major', pad=10)
     elif diff(tspan)[0].days<3655:
         ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=12) )
