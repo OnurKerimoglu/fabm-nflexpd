@@ -4,11 +4,17 @@
 !BOP
 !
 ! !MODULE: nflexpd_phy: amorphous phytoplankton class that can be instanced as:
-! 1) Classical (N-based) model with constant-stoichiometry
-! 2) Droop model with dynamically (but not necessarily optimally) varying N:C ratio
-! 3) 'Instantaneous Acclimation' model (Smith et al. 2016, JPR) with instantaneously optimized N:C ratio
-! 4) Dynamical Acclimation model with time-lagged optimization of N:C ratio
-! Original Authors: O. Kerimoglu 20200330
+! 1) N-based models (dynQN=false), with:
+!!! 1a) (FS) constant-stoichiometry without any flexibility, mimics Monod model
+!!! 1b) (IA)(*) 'Instantaneously Acclimating' N:C based on flexible fA,fV (&ThetaHat)
+!!! 1c) (IAfix)(**): 'Instantaneously Adjusting' N:C based on fixed fA,fV,ThetaHat 
+! 2) N&C-based models (dynQN=true), with:
+!!! 2a) (DA) 'Dynamically Acclimating' N:C, based on flexible fA,fV (&ThetaHat)
+!!! 2b) (DAfix) 'Dynamically Adjusting' N:C based on flex fA,fV (&ThetaHat), mimics Droop model
+!
+!(*,**): 'Flex' and 'Control' models in  Smith et al., 2016, J. Plankton Res. 38, 977–992
+! 
+! Original Authors: O. Kerimoglu (v0:December 2018; v1: May 2020)
 !
 ! !INTERFACE:
    module nflexpd_phy
