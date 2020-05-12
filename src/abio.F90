@@ -80,17 +80,20 @@
    
    ! Register state variables
    call self%register_state_variable(self%id_din,'din','mmolN/m^3','DIN concentration',     &
-                                1.0_rk,minimum=0.0_rk,no_river_dilution=.true.)
+                                1.0_rk,minimum=0.0_rk,no_river_dilution=.true., &
+                                specific_light_extinction=0.0_rk)
    call self%register_state_variable(self%id_don,'don','mmolN/m^3','DON concentration',     &
-                                1.0_rk,minimum=0.0_rk,no_river_dilution=.true.)
+                                1.0_rk,minimum=0.0_rk,no_river_dilution=.true., &
+                                specific_light_extinction=0.0_rk)
    call self%register_state_variable(self%id_doc,'doc','mmolC/m^3','DOC concentration',     &
-                                6.625_rk,minimum=0.0_rk,no_river_dilution=.true.)
+                                6.625_rk,minimum=0.0_rk,no_river_dilution=.true., &
+                                specific_light_extinction=0.0_rk)
    call self%register_state_variable(self%id_detn,'detn','mmolN/m^3','Det-N concentration',    &
                                 1.0_rk,minimum=0.0_rk,vertical_movement=w_det, &
                                 specific_light_extinction=kc)
    call self%register_state_variable(self%id_detc,'detc','mmolC/m^3','Det-C concentration',    &
                                 6.625_rk,minimum=0.0_rk,vertical_movement=w_det, &
-                                specific_light_extinction=kc)
+                                specific_light_extinction=0.0_rk)
    
    ! Register contribution of state to global aggregate variables.
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_din)
