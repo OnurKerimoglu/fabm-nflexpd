@@ -156,23 +156,22 @@
    _GET_(self%id_doc,doc) ! dissolved organic carbon
    _GET_(self%id_don,don) ! dissolved organic nitrogen
    ! Retrieve environmental dependencies
+   _GET_(self%id_depth,depth)     ! depth
    _GET_(self%id_temp,tC) ! temperature in Celcius
    
    _GET_(self%id_parW,parW) ! local photosynthetically active radiation
    _GET_(self%id_parW_dmean,parW_dm)
    ! for the first day, the daily mean value doesn't yet exist (resulting in values in the order of -1e19), 
    ! so just restore it with a value obtained with an exp decay function to account for depth
-   if ( parW_dm .lt. 0.0001 ) then
-     _GET_(self%id_depth,depth)
-     parW_dm=self%par0_dt0*exp(-depth*self%kc_dt0) !todo: make the I0_det0&kc0 yaml pars?
-     !write(*,*)'*** depth,parW_dm',depth,parW_dm
-   !else
-   !  write(*,*)'          parW_dm',parW_dm
+   if ( parW_dm .lt. 0.0_rk ) then
+    parW_dm=0.0_rk
+    !parW_dm=self%par0_dt0*exp(-depth*self%kc_dt0) !todo: make the I0_det0&kc0 yaml pars?
    end if
    parE = parW * 4.6 * 1e-6 * secs_pr_day
    parE_dm= parW_dm * 4.6 * 1e-6 * secs_pr_day
    ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
-   
+   !write(*,*)'A.L173:depth,par_dm',depth,parE_dm
+
    !Calculate intermediate terms:
    !Temperature factor 
    Tfac = FofT(tC)
