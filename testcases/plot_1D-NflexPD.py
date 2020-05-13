@@ -21,7 +21,7 @@ prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{M
              'abio_detc':'POC','abio_detn':'PON','abio_doc':'DOC','abio_don':'DON',
              'Chl':'Phy_{Chl}','C':'Phy_C','N':'Phy_N',
              'Q':'Q','V_N':'f_{DIN-Phy}','mu':'\mu',
-             'R_N':'R_N','R_Chl':'R_{Chl}','fN':'f_N','fL':'f_I',
+             'R_N':'R_N','R_Chl':'R_{Chl}','fN':'L_N','fL':'L_I',
              'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}'}
 numlevels=6
 
