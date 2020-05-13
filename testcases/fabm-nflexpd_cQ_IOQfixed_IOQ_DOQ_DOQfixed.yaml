@@ -25,7 +25,7 @@ instances:
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
-      Mpart: 0.5                     # part of the mortality that goes to detritus
+      Mpart: 1.0                     # part of the mortality that goes to detritus
     initialization:
       N: 0.16                        # Phytoplankton-N concentration (mmol m-3)
     coupling:
@@ -60,7 +60,7 @@ instances:
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
-      Mpart: 0.5                     # part of the mortality that goes to detritus
+      Mpart: 1.0                     # part of the mortality that goes to detritus
     initialization:
       N: 0.16                        # Phytoplankton-N concentration (mmol m-3)
     coupling:
@@ -95,7 +95,7 @@ instances:
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
-      Mpart: 0.5                     # part of the mortality that goes to detritus
+      Mpart: 1.0                     # part of the mortality that goes to detritus
     initialization:
       N: 0.16                        # Phytoplankton-N concentration (mmol m-3)
     coupling:
@@ -131,7 +131,7 @@ instances:
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
-      Mpart: 0.5                     # part of the mortality that goes to detritus
+      Mpart: 1.0                     # part of the mortality that goes to detritus
     initialization:
       C: 1.0                         # Phytoplankton-N concentration (mmol m-3) 
       N: 0.16
@@ -168,7 +168,7 @@ instances:
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
-      Mpart: 0.5                     # part of the mortality that goes to detritus
+      Mpart: 1.0                     # part of the mortality that goes to detritus
     initialization:
       C: 1.0                         # Phytoplankton-N concentration (mmol m-3) 
       N: 0.16
