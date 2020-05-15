@@ -17,7 +17,7 @@ instances:
       aI: 1.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
       fA_fixed: 0.6                  # fA to use when fa_opt=false (-)
       fV_fixed: 0.25                 # fV to use when fv_opt=false (-)
-      Q_fixed: 0.15                  # Q to use when provided, dynQN=false and fV_opt=false 
+      Q_fixed: 0.150943              # Q to use when provided, dynQN=false and fV_opt=false 
       Q0: 0.039                      # Subsistence cell quota (molN molC-1)
       V0hat: 2.5                     # Potential maximum uptake rate (molN molC-1 d-1)
       A0hat: 1.0                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
