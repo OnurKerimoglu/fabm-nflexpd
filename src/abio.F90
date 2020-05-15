@@ -30,16 +30,17 @@
       type (type_diagnostic_variable_id):: id_dPAR,id_dPAR_dmean
       type (type_diagnostic_variable_id):: id_fdetdon,id_fdetdoc,id_fdondin,id_fdocdic
       type (type_horizontal_diagnostic_variable_id):: id_dFDL
+      type (type_horizontal_diagnostic_variable_id):: id_detn_sed,id_detc_sed
       
 !     Model parameters
-      real(rk) :: kdet,kdon,par0_dt0,kc_dt0
+      real(rk) :: w_det,kdet,kdon,par0_dt0,kc_dt0
 
       contains
 
       procedure :: initialize
       procedure :: do
       procedure :: do_surface
-
+      procedure :: do_bottom
    end type
 !EOP
 !-----------------------------------------------------------------------
@@ -70,7 +71,7 @@
 !BOC
    ! Store parameter values in our own derived type
    ! NB: all rates must be provided in values per day and are converted here to values per second.
-   call self%get_parameter(w_det,     'w_det','m d-1',    'vertical velocity (<0 for sinking)',default=-5.0_rk,scale_factor=d_per_s)
+   call self%get_parameter(self%w_det,     'w_det','m d-1',    'vertical velocity (<0 for sinking)',default=-5.0_rk,scale_factor=d_per_s)
    call self%get_parameter(kc,      'kc', 'm2 mmol-1','specific light extinction',         default=0.03_rk)
    call self%get_parameter(self%kdet,'kdet','d-1',      'sp. rate for f_det_don',             default=0.003_rk,scale_factor=d_per_s)
    call self%get_parameter(self%kdon,'kdon','d-1',      'sp. rate for f_don_din',             default=0.003_rk,scale_factor=d_per_s)
@@ -89,10 +90,10 @@
                                 6.625_rk,minimum=0.0_rk,no_river_dilution=.true., &
                                 specific_light_extinction=0.0_rk)
    call self%register_state_variable(self%id_detn,'detn','mmolN/m^3','Det-N concentration',    &
-                                1.0_rk,minimum=0.0_rk,vertical_movement=w_det, &
+                                1.0_rk,minimum=0.0_rk,vertical_movement=self%w_det, &
                                 specific_light_extinction=kc)
    call self%register_state_variable(self%id_detc,'detc','mmolC/m^3','Det-C concentration',    &
-                                6.625_rk,minimum=0.0_rk,vertical_movement=w_det, &
+                                6.625_rk,minimum=0.0_rk,vertical_movement=self%w_det, &
                                 specific_light_extinction=0.0_rk)
    
    ! Register contribution of state to global aggregate variables.
@@ -102,16 +103,19 @@
    
    ! Register diagnostic variables
    call self%register_horizontal_diagnostic_variable(self%id_dFDL,'FDL','-',       'fractional day length')
+   call self%register_horizontal_diagnostic_variable(self%id_detn_sed,'detn_sed','mmolN/m^2/d','sedimentation rate of detN')
+   call self%register_horizontal_diagnostic_variable(self%id_detc_sed,'detc_sed','mmolC/m^2/d','sedimentation rate of detC')
+   
    call self%register_diagnostic_variable(self%id_dPAR,'PAR','E/m^2/d',       'photosynthetically active radiation')
    call self%register_diagnostic_variable(self%id_dPAR_dmean, 'PAR_dmean','E/m^2/d','photosynthetically active radiation, daily averaged')
    
-   call self%register_diagnostic_variable(self%id_fdetdon, 'f_det_don','molN/m^3/d',    'bulk N flux from detritus to DOM',           &
+   call self%register_diagnostic_variable(self%id_fdetdon, 'f_det_don','mmolN/m^3/d',    'bulk N flux from detritus to DOM',           &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_fdetdoc, 'f_det_doc','molC/m^3/d',    'bulk C flux from detritus to DOM',           &
+   call self%register_diagnostic_variable(self%id_fdetdoc, 'f_det_doc','mmolC/m^3/d',    'bulk C flux from detritus to DOM',           &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_fdondin, 'f_don_din','molN/m^3/d',    'bulk N flux from DOM to DIM',           &
+   call self%register_diagnostic_variable(self%id_fdondin, 'f_don_din','mmolN/m^3/d',    'bulk N flux from DOM to DIM',           &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_fdocdic, 'f_doc_dic','molC/m^3/d',    'bulk C flux from DOM to DIM',           &
+   call self%register_diagnostic_variable(self%id_fdocdic, 'f_doc_dic','mmolC/m^3/d',    'bulk C flux from DOM to DIM',           &
                                      output=output_time_step_averaged)                                  
                                      
    ! Register environmental dependencies
@@ -234,6 +238,40 @@
    _HORIZONTAL_LOOP_END_
 
    end subroutine do_surface
+!EOC
+
+!-----------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Right hand sides of Abiotic model
+!
+! !INTERFACE:
+   subroutine do_bottom(self,_ARGUMENTS_DO_BOTTOM_)
+!
+! !INPUT PARAMETERS:
+   class (type_nflexpd_abio), intent(in)     :: self
+   _DECLARE_ARGUMENTS_DO_BOTTOM_
+!
+! !LOCAL VARIABLES:
+   real(rk)                   :: spsedrate
+   real(rk)                   :: detn,detc
+   real(rk), parameter        :: secs_pr_day = 86400.0_rk
+!EOP
+!-----------------------------------------------------------------------
+!BOC
+   ! Enter spatial loops (if any)
+   _HORIZONTAL_LOOP_BEGIN_
+   
+   _GET_(self%id_detn,detn)
+   _GET_(self%id_detc,detc)
+   spsedrate=-1.0_rk*self%w_det
+   !write(*,*)'detn,det_sed',detn,detn*spsedrate*secs_pr_day
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_detn_sed,detn*spsedrate*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_detc_sed,detc*spsedrate*secs_pr_day)
+   ! Leave spatial loops (if any)
+   _HORIZONTAL_LOOP_END_
+
+   end subroutine do_bottom
 !EOC
 
 !-----------------------------------------------------------------------
