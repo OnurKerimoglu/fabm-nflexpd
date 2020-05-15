@@ -10,14 +10,15 @@ import sys
 import warnings
 
 varlims={'abio_PAR_dmean':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf':[-100,0],'wind':[-6,26],
-         'abio_din':[0,30],'abio_detn/abio_detc':[0.02,0.17],'abio_don/abio_doc':[0.02,0.17],
-          'abio_detc':[0,80],'abio_detn':[0,6], 'abio_doc':[0,80], 'abio_don':[0,8],
+         'abio_detc_sed/abio_detn_sed':[4.0,14.0],'abio_detc/abio_detn':[5.0,30.0],'abio_doc/abio_don':[5.0,30.0],
+         'abio_din': [0, 30],'abio_detc':[0,80],'abio_detn':[0,6], 'abio_doc':[0,80], 'abio_don':[0,8],
          'Chl':[0,10.],'C':[0,50.0],'N':[0,7.5],'Q':[0.025,0.225],'Chl2C':[0.0,0.5],
          'PPR':[0,20.],'mu':[0,0.5],'V_N':[0,0.05],'R_N':[0,0.05],'R_Chl':[0,0.1],
-         'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.04,0.54],'fN':[0,1],'fL':[0,1]}
+         'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.04,0.54],'fN':[0,0.2],'fL':[0.,1]}
+prettyunits={'abio_detc_sed/abio_detn_sed':'molC/molN','abio_detc/abio_detn':'molC/molN','abio_doc/abio_don':'molC/molN'}
 prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{MLD}',
              'airt': 'T_{air}','temp': 'T','u10':'\mathrm{Wind \ Speed \ (-u)}','wind':'\mathrm{Wind \ Speed}',
-             'abio_din':'DIN','abio_detn/abio_detc':'PON:POC','abio_don/abio_doc':'DON:DOC',
+             'abio_din':'DIN','abio_detc_sed/abio_detn_sed':'\mathrm{C:N \ of \ POM-export}','abio_detc/abio_detn':'POC:PON','abio_doc/abio_don':'DOC:DON',
              'abio_detc':'POC','abio_detn':'PON','abio_doc':'DOC','abio_don':'DON',
              'Chl':'Phy_{Chl}','C':'Phy_C','N':'Phy_N',
              'Q':'Q','V_N':'f_{DIN-Phy}','mu':'\mu',
@@ -31,7 +32,7 @@ def main(fname, numyears, modname):
       models = [modname]
       varsets={#'abio0':['airt', 'wind', 'I_0'],
              'abio1':['abio_PAR_dmean','temp', 'mld_surf'],
-             'abio2':['abio_din','abio_detn/abio_detc','abio_don/abio_doc'],
+             'abio2':['abio_din','abio_detc/abio_detn','abio_detc_sed/abio_detn_sed'], #'abio_doc/abio_don'],
              'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
              'phy-1':['C','N','Q'],
              'phy-2':['mu','V_N','R_N','R_Chl'],
@@ -200,6 +201,8 @@ def plot_nflexpd(fname,numyears,groupname,varset,models):
                 prettyname='$%s$'%prettynames[varn_basic]
             else:
                 prettyname='(%s) $%s$'%(model.split('phy_')[1],prettynames[varn_basic])
+            if varn_basic in prettyunits:
+                units = prettyunits[varn_basic]
             title('%s [$%s$]'%(prettyname,units), size=12.0)
 
             cmap = plt.get_cmap(colmap)
@@ -225,8 +228,10 @@ def plot_nflexpd(fname,numyears,groupname,varset,models):
                 cbar = colorbar(pcf, shrink=0.9)
                 # cbar.solids.set_edgecolor("face")
                 # draw()
-                if (np.max(datC)-np.min(datC)<1e-10):
-                    ax.text(0.5,0.5,'constant: %3.2f'%np.max(datC),
+                if (np.max(datC)-np.min(datC)<1e-4):
+                    #print mean concentration (rounded to 3rd digit)
+                    meanc=np.round(np.mean(datC)*1000)/1000
+                    ax.text(0.5,0.5,'constant: %3.3f'%meanc,
                             horizontalalignment='center',verticalalignment='center',transform=ax.transAxes)
         
         ax.grid(b=True, axis='y', which='major', color='0.5', linestyle='-')
