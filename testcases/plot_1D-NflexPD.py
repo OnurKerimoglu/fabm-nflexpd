@@ -24,7 +24,7 @@ prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{M
              'Q':'Q','V_N':'f_{DIN-Phy}','mu':'\mu',
              'R_N':'R_N','R_Chl':'R_{Chl}','fN':'L_N','fL':'L_I',
              'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}',
-             'fN_avg0-30':'L_N', 'mu_avg0-30':'\mu', 'C_avg0-30':'Phy_C'}
+             'fL_avg0-30':'L_I','fN_avg0-30':'L_N', 'mu_avg0-30':'\mu', 'C_avg0-30':'Phy_C'}
 numlevels=6
 #depth range to be shown:
 prescylim=[0,0] #[0,0] means no ylimits are prescribed, full depth range will be shown'
@@ -45,24 +45,93 @@ def main(fname, numyears, modname):
     elif modname=='FS-IA-DA': #i.e., competition experiment
       #models = ['phy_IOQ', 'phy_DOQ']
       #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
-      models = ['phy_FS', 'phy_IA', 'phy_DA']
+      models = ['phy_IA', 'phy_DA'] # 'phy_FS',
       varsets={#'abio0':['I_0','airt', 'wind'],
              #'abio12':['temp','mld_surf','abio_din','abio_PAR_dmean',],
              #'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
              #'phy-1':['C','N','Q'],
              #'phy-2':['mu','V_N','R_N','R_Chl'],
              #'phy-3':['fA','fV','fN','fL'] #, 'ThetaHat']
-             'phy-4': ['fN_avg0-30', 'mu_avg0-30', 'C_avg0-30']
+             'phy-4': ['fL_avg0-30', 'fN_avg0-30', 'C_avg0-30']
              }
       
     for groupname,varset in varsets.iteritems():
         #print ('%s,%s'%(groupname,varset))
-        plot_nflexpd(fname,numyears,groupname,varset,models)
+        if groupname == 'phy-4':
+            plot_multivar(fname, numyears, groupname, varset, models)
+        else:
+            plot_singlevar(fname, numyears, groupname, varset, models)
 
-def plot_nflexpd(fname,numyears,groupname,varset,models):
+def plot_multivar(fname, numyears, groupname, varset, models):
+    cols=['darkblue','orange'] #'lightblue',
+    lst=[':','-'] #'-',
+    numcol = len(varset)*1.0
+    numrow = np.ceil(len(models) / numcol)
+    figuresize = (1 + 4*numcol, 1. + 1.5*numrow)
+    fpar = {'left': 0.05, 'right': 0.99, 'top': 0.93, 'bottom': 0.07, 'hspace': 0.5, 'wspace': 0.2}
+    if numrow == 1:
+        fpar['top']=0.9; fpar['bottom']=0.1
 
-    vars2comp = ['Chl', 'PPR', 'Q'] # 'Chl2C', 'fA', 'fV', 'ThetaHat'] #
-    plottype='wc_mean' #wc_int, wc_mean,middlerow
+    nc = nc4.Dataset(fname)
+    ncv = nc.variables
+
+    #handle time
+    tv = nc.variables['time']
+    utime = netcdftime.utime(tv.units)
+    tvec = utime.num2date(list(tv[:]))
+    # crop the data for the time period requested
+    years = np.array([tvec[ti].year for ti in range(0, len(tvec))])
+    if numyears == -1:  # plot all years
+        numyears = years[-1] - years[0] + 1
+    years2plot = range(years[-1] + 1 - numyears, years[-1] + 1)
+    yeari = np.where((years >= years2plot[0]) * (years <= years2plot[-1]))
+    t= tvec[yeari[0]]
+
+    f = plt.figure(figsize=figuresize)
+    f.subplots_adjust(left=fpar['left'], right=fpar['right'], top=fpar['top'], bottom=fpar['bottom'],
+                      hspace=fpar['hspace'], wspace=fpar['wspace'])
+
+    for j, varn_basic in enumerate(varset):
+        print(varn_basic)
+        ax = plt.subplot(numrow, numcol, j + 1)
+
+        for i,model in enumerate(models):
+            varn = '%s_%s'%(models[i], varn_basic)
+
+            varfound, dat, valsat, longname, units = get_varvals(ncv, varn)
+
+            if valsat == 'plate':
+                depth = np.array([0])
+                # crop the data for the time period requested
+                datC = dat[yeari[0]]
+            else:
+                raise(Exception('Resulting valus are not 1-dimensional'))
+            ax.plot(t, datC, label=model.split('phy_')[1], color=cols[i])
+
+        if varn_basic in prettyunits:
+            units = prettyunits[varn_basic]
+        plt.title('$%s$ [$%s$]' % (prettynames[varn_basic], units), size=12.0)
+
+        # shrink the axes width by 20% to fit that of the contour plots, and put the legend in that space
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, (box.x1 - box.x0) * 0.8, box.y1 - box.y0])
+        if varn_basic in varlims.keys():
+            ax.set_ylim(varlims[varn][0], varlims[varn][1])
+
+        if (j+1)%numcol==0:
+            ax.legend(loc='center left', bbox_to_anchor=(.9, 0.8))
+
+        ax.grid(b=True, axis='y', which='major', color='0.5', linestyle='-')
+        # x-axis
+        format_date_axis(ax, [t[0], t[-1]])
+        plt.xlabel('')
+
+    nc.close()
+    figname = fname.split('.nc')[0] + '_line_' + groupname + '_' + str(numyears) + 'y.png'
+    plt.savefig(figname)
+    print('python line plot saved in: ' + figname)
+
+def plot_singlevar(fname,numyears,groupname,varset,models):
     colmap='viridis'
     
     if 'phy' in groupname:
