@@ -25,6 +25,9 @@ prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{M
              'R_N':'R_N','R_Chl':'R_{Chl}','fN':'L_N','fL':'L_I',
              'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}'}
 numlevels=6
+#depth range to be shown:
+prescylim=[0,0] #[0,0] means no ylimits are prescribed, full depth range will be shown'
+#prescylim=[-30,0.0]
 
 def main(fname, numyears, modname):
     
@@ -43,10 +46,10 @@ def main(fname, numyears, modname):
       #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
       models = ['phy_FS', 'phy_IA', 'phy_DA']
       varsets={#'abio0':['I_0','airt', 'wind'],
-             'abio12':['temp','mld_surf','abio_din','abio_PAR_dmean',],
-             'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
-             'phy-1':['C','N','Q'],
-             'phy-2':['mu','V_N','R_N','R_Chl'],
+             #'abio12':['temp','mld_surf','abio_din','abio_PAR_dmean',],
+             #'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
+             #'phy-1':['C','N','Q'],
+             #'phy-2':['mu','V_N','R_N','R_Chl'],
              'phy-3':['fA','fV','fN','fL'] #, 'ThetaHat']
              }
       
@@ -223,7 +226,11 @@ def plot_nflexpd(fname,numyears,groupname,varset,models):
                         pcf=ax.contourf(tvecC,depth,np.transpose(datC),cmap=cmap,levels=levels,extend=extendopt)
                     else:
                         pcf = ax.contourf(tvecC, depth, np.transpose(datC), cmap=cmap)
-
+                    if not (prescylim[0]==0 and prescylim[1]==0):
+                        ax.set_ylim(prescylim[0], prescylim[1])
+                        ylimsuf='_ylim_%s-%s'%(prescylim[0],prescylim[1])
+                    else:
+                        ylimsuf=''
                 plt.ylabel('depth [m]')
 
                 cbar = plt.colorbar(pcf, shrink=0.9)
@@ -242,7 +249,7 @@ def plot_nflexpd(fname,numyears,groupname,varset,models):
         plt.xlabel('')
 
     nc.close()
-    figname=fname.split('.nc')[0]+'_cont_'+groupname+ '_'+str(numyears)+'y.png'
+    figname=fname.split('.nc')[0]+'_cont_'+groupname+ '_'+str(numyears)+'y'+ylimsuf+'.png'
     plt.savefig(figname)
     print('python contour plot saved in: '+figname)
 
