@@ -23,7 +23,8 @@ prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{M
              'Chl':'Phy_{Chl}','C':'Phy_C','N':'Phy_N',
              'Q':'Q','V_N':'f_{DIN-Phy}','mu':'\mu',
              'R_N':'R_N','R_Chl':'R_{Chl}','fN':'L_N','fL':'L_I',
-             'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}'}
+             'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}',
+             'fN_avg0-30':'L_N', 'mu_avg0-30':'\mu', 'C_avg0-30':'Phy_C'}
 numlevels=6
 #depth range to be shown:
 prescylim=[0,0] #[0,0] means no ylimits are prescribed, full depth range will be shown'
@@ -50,7 +51,8 @@ def main(fname, numyears, modname):
              #'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
              #'phy-1':['C','N','Q'],
              #'phy-2':['mu','V_N','R_N','R_Chl'],
-             'phy-3':['fA','fV','fN','fL'] #, 'ThetaHat']
+             #'phy-3':['fA','fV','fN','fL'] #, 'ThetaHat']
+             'phy-4': ['fN_avg0-30', 'mu_avg0-30', 'C_avg0-30']
              }
       
     for groupname,varset in varsets.iteritems():
@@ -210,12 +212,14 @@ def plot_nflexpd(fname,numyears,groupname,varset,models):
             plt.title('%s [$%s$]'%(prettyname,units), size=12.0)
 
             cmap = plt.get_cmap(colmap)
+            ylimsuf = ''
             if valsat == 'plate':
                 ax.plot(t,datC)
                 #shrink the axes width by 20% to fit that of the contour plots
                 box = ax.get_position()
                 ax.set_position([box.x0, box.y0, (box.x1 - box.x0) * 0.8, box.y1 - box.y0])
-                ax.set_ylim(varlims[varn][0],varlims[varn][1])
+                if varn_basic in varlims.keys():
+                    ax.set_ylim(varlims[varn][0],varlims[varn][1])
             else:
                 if len(z.shape) == 2:
                     pcf = ax.contourf(t, depth, datC, cmap=cmap,vmin=vmin,vmax=vmax)
@@ -229,8 +233,6 @@ def plot_nflexpd(fname,numyears,groupname,varset,models):
                     if not (prescylim[0]==0 and prescylim[1]==0):
                         ax.set_ylim(prescylim[0], prescylim[1])
                         ylimsuf='_ylim_%s-%s'%(prescylim[0],prescylim[1])
-                    else:
-                        ylimsuf=''
                 plt.ylabel('depth [m]')
 
                 cbar = plt.colorbar(pcf, shrink=0.9)
@@ -279,8 +281,10 @@ def get_basic_varname(varn,models):
     return (varn,'')
 
 def get_varvals(ncv,varn0):
-    if '+' in varn0  or '-' in varn0 or '*' in varn0 or '/' in varn0:
-        varfound,varvals,valsat,longname,units=get_varvals_op(ncv,varn0)
+    if 'avg' in varn0:
+        varfound, varvals, longname, units = get_varvals_avg(ncv, varn0)
+    elif '+' in varn0  or '-' in varn0 or '*' in varn0 or '/' in varn0:
+        varfound,varvals,longname,units=get_varvals_op(ncv,varn0)
     else:
         if not (varn0 in ncv):
             return (False,0,0,'','')
@@ -289,13 +293,28 @@ def get_varvals(ncv,varn0):
             varvals=np.squeeze(ncv[varn][:])
             longname = ncv[varn].long_name
             units=ncv[varn].units
-            if len(varvals.shape)==1: #if 1-dimensional variable (e.g., airt)
-                valsat='plate'
-            elif varn in ['nuh', 'nus']:
-                valsat='int'
-            else:
-                valsat='center'
+    if len(varvals.shape)==1: #if 1-dimensional variable (e.g., airt)
+        valsat='plate'
+    elif varn in ['nuh', 'nus']:
+        valsat='int'
+    else:
+        valsat='center'
     return (True,varvals,valsat,longname,units)
+
+def get_varvals_avg(ncv,varn0):
+    varn=zintstr=varn0.split('_avg')[0]
+    zintstr=varn0.split('_avg')[1]
+    #assume that zintstr=0-30 means below 0, and above 30m depth
+    zint=[np.float(zintstr.split('-')[0]),np.float(zintstr.split('-')[1])]
+    depth=np.squeeze(ncv['z'][:, :])*-1
+    zi=(depth>=zint[0]) * (depth<=zint[1])
+    vals=np.squeeze(ncv[varn])
+    valsM=np.ma.array(vals,mask=np.invert(zi))
+    varvals = np.mean(valsM,axis=1)
+    longname=ncv[varn].long_name
+    units=ncv[varn].units
+
+    return (True,varvals,longname,units)
 
 def get_varvals_op(ncv,varn0):
     if '+' in varn0:
@@ -325,13 +344,7 @@ def get_varvals_op(ncv,varn0):
     elif '/' in varn0:
         varvals=v1/v2
         units=ncv[varn].units + '/' + ncv[varn2].units
-    if len(varvals.shape)==1: #if 1-dimensional variable (e.g., airt)
-        valsat='plate'
-    elif varn in ['nuh', 'nus']:
-        valsat='int'
-    else:
-        valsat='center'
-    return (True,varvals,valsat,longname,units)
+    return (True,varvals,longname,units)
         
 def format_date_axis(ax,tspan):
     import matplotlib.dates as mpldates
