@@ -2,12 +2,12 @@
 # python plot_1D-NflexPD.py /file/path/file_name.nc num_years_to_plot(counting_backwards_from_the_last) modname
 # python plot_1D-NflexPD.py ${rootdir}/${out_pref}/${out_pref}_mean.nc 3 FS-IA-DA
 # python plot_1D-NflexPD.py ${rootdir}/${out_pref}/${out_pref}_mean.nc 3 phy_FS
-    
-from pylab import *
+
+import matplotlib.pyplot as plt
 import netCDF4 as nc4
 import netcdftime
 import sys
-import warnings
+import numpy as np
 
 varlims={'abio_PAR_dmean':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf':[-100,0],'wind':[-6,26],
          'abio_detc_sed/abio_detn_sed':[4.0,14.0],'abio_detc/abio_detn':[5.0,30.0],'abio_doc/abio_don':[5.0,30.0],
@@ -42,7 +42,7 @@ def main(fname, numyears, modname):
       #models = ['phy_IOQ', 'phy_DOQ']
       #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
       models = ['phy_FS', 'phy_IA', 'phy_DA']
-      varsets={'abio0':['I_0','airt', 'wind'],
+      varsets={#'abio0':['I_0','airt', 'wind'],
              'abio12':['temp','mld_surf','abio_din','abio_PAR_dmean',],
              'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
              'phy-1':['C','N','Q'],
@@ -125,19 +125,20 @@ def plot_nflexpd(fname,numyears,groupname,varset,models):
     yeari=np.where((years>=years2plot[0]) * (years<=years2plot[-1]))
     tvecC=tvec[yeari[0]]
 
-    z=np.squeeze(ncv['z'][ti,:]) #depths at layer centers (fabm variables, temp, salt, etc)
-    zi=np.squeeze(ncv['zi'][ti,:]) #depths at layer interfaces (diffusivities, fluxes, etc)
+    #assume that z does not vary and vectorize:
+    z=np.squeeze(ncv['z'][0,:]) #depths at layer centers (fabm variables, temp, salt, etc)
+    zi=np.squeeze(ncv['zi'][0,:]) #depths at layer interfaces (diffusivities, fluxes, etc)
 
-    f=figure(figsize=figuresize)
+    f=plt.figure(figsize=figuresize)
     f.subplots_adjust(left=fpar['left'],right=fpar['right'],top=fpar['top'],bottom=fpar['bottom'],hspace=fpar['hspace'],wspace=fpar['wspace'])
 
     numvar=len(varnames)
 
     for i,varn in enumerate(varnames):       
-        print varn
+        print (varn)
         varn_basic,model=get_basic_varname(varn,models)
 
-        ax=subplot(ceil(numvar/numcol),numcol,i+1)
+        ax=plt.subplot(np.ceil(numvar/numcol),numcol,i+1)
 
         if (varn == 'skip'):
             continue
@@ -203,7 +204,7 @@ def plot_nflexpd(fname,numyears,groupname,varset,models):
                 prettyname='(%s) $%s$'%(model.split('phy_')[1],prettynames[varn_basic])
             if varn_basic in prettyunits:
                 units = prettyunits[varn_basic]
-            title('%s [$%s$]'%(prettyname,units), size=12.0)
+            plt.title('%s [$%s$]'%(prettyname,units), size=12.0)
 
             cmap = plt.get_cmap(colmap)
             if valsat == 'plate':
@@ -217,15 +218,15 @@ def plot_nflexpd(fname,numyears,groupname,varset,models):
                     pcf = ax.contourf(t, depth, datC, cmap=cmap,vmin=vmin,vmax=vmax)
                 else:
                     if varn_basic in varlims.keys():
-                        levels=linspace(varlims[varn_basic][0],varlims[varn_basic][1],numlevels)
+                        levels=np.linspace(varlims[varn_basic][0],varlims[varn_basic][1],numlevels)
                         extendopt,cmap=get_extendopt(levels,datC,cmap)
-                        pcf=ax.contourf(tvecC,depth,transpose(datC),cmap=cmap,levels=levels,extend=extendopt)
+                        pcf=ax.contourf(tvecC,depth,np.transpose(datC),cmap=cmap,levels=levels,extend=extendopt)
                     else:
-                        pcf = ax.contourf(tvecC, depth, transpose(datC), cmap=cmap)
+                        pcf = ax.contourf(tvecC, depth, np.transpose(datC), cmap=cmap)
 
-                ylabel('depth [m]')
+                plt.ylabel('depth [m]')
 
-                cbar = colorbar(pcf, shrink=0.9)
+                cbar = plt.colorbar(pcf, shrink=0.9)
                 # cbar.solids.set_edgecolor("face")
                 # draw()
                 if (np.max(datC)-np.min(datC)<1e-4):
@@ -238,14 +239,12 @@ def plot_nflexpd(fname,numyears,groupname,varset,models):
         
         #x-axis
         format_date_axis(ax,[tvecC[0], tvecC[-1]])
-        xlabel('')
-        
+        plt.xlabel('')
 
     nc.close()
     figname=fname.split('.nc')[0]+'_cont_'+groupname+ '_'+str(numyears)+'y.png'
-    savefig(figname)
-    disp('python contour plot saved in: '+figname)
-    #show()
+    plt.savefig(figname)
+    print('python contour plot saved in: '+figname)
 
 def get_extendopt(levels, datC,cmap):
 
@@ -280,7 +279,7 @@ def get_varvals(ncv,varn0):
             return (False,0,0,'','')
         else:
             varn=varn0
-            varvals=squeeze(ncv[varn][:])
+            varvals=np.squeeze(ncv[varn][:])
             longname = ncv[varn].long_name
             units=ncv[varn].units
             if len(varvals.shape)==1: #if 1-dimensional variable (e.g., airt)
@@ -304,8 +303,8 @@ def get_varvals_op(ncv,varn0):
         return (False,0,0,'','')
     varn=varn0.split(symb)[0]
     varn2 = varn0.split(symb)[1]
-    v1=squeeze(ncv[varn][:,:])
-    v2 = squeeze(ncv[varn2][:,:])
+    v1 = np.squeeze(ncv[varn][:,:])
+    v2 = np.squeeze(ncv[varn2][:,:])
     longname='%s %s %s'%(varn,symb,varn2)
     if '+' in varn0:
         varvals=v1+v2
@@ -328,55 +327,56 @@ def get_varvals_op(ncv,varn0):
     return (True,varvals,valsat,longname,units)
         
 def format_date_axis(ax,tspan):
+    import matplotlib.dates as mpldates
     ax.set_xlim(tspan[0], tspan[1])
-    if diff(tspan)[0].days<63:
-        ax.xaxis.set_major_locator(matplotlib.dates.WeekdayLocator(byweekday=matplotlib.dates.MO) )
-        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%b\n%d'))
-    elif diff(tspan)[0].days<367:
-        ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=12) )
-        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter(''))
-        ax.xaxis.set_minor_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=2) )
-        ax.xaxis.set_minor_formatter(matplotlib.dates.DateFormatter('%b'))
+    if np.diff(tspan)[0].days<63:
+        ax.xaxis.set_major_locator(mpldates.WeekdayLocator(byweekday=mpldates.MO) )
+        ax.xaxis.set_major_formatter(mpldates.DateFormatter('%b\n%d'))
+    elif np.diff(tspan)[0].days<367:
+        ax.xaxis.set_major_locator(mpldates.MonthLocator(bymonthday=1, interval=12) )
+        ax.xaxis.set_major_formatter(mpldates.DateFormatter(''))
+        ax.xaxis.set_minor_locator(mpldates.MonthLocator(bymonthday=1, interval=2) )
+        ax.xaxis.set_minor_formatter(mpldates.DateFormatter('%b'))
         ax.grid(b=True, axis='x', which='minor', color='0.5', linestyle='-')
         #ax.xaxis.set_tick_params(which='major', pad=15)
-    elif diff(tspan)[0].days<732:
-        ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=12) )
-        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%Y'))
-        ax.xaxis.set_minor_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=3) )
-        ax.xaxis.set_minor_formatter(matplotlib.dates.DateFormatter('%b'))
+    elif np.diff(tspan)[0].days<732:
+        ax.xaxis.set_major_locator(mpldates.MonthLocator(bymonthday=1, interval=12) )
+        ax.xaxis.set_major_formatter(mpldates.DateFormatter('%Y'))
+        ax.xaxis.set_minor_locator(mpldates.MonthLocator(bymonthday=1, interval=3) )
+        ax.xaxis.set_minor_formatter(mpldates.DateFormatter('%b'))
         ax.xaxis.set_tick_params(which='major', pad=10)
-    elif diff(tspan)[0].days<1466:
-        ax.xaxis.set_minor_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=1))
-        ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=12) )
-        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%Y'))
+    elif np.diff(tspan)[0].days<1466:
+        ax.xaxis.set_minor_locator(mpldates.MonthLocator(bymonthday=1, interval=1))
+        ax.xaxis.set_major_locator(mpldates.MonthLocator(bymonthday=1, interval=12) )
+        ax.xaxis.set_major_formatter(mpldates.DateFormatter('%Y'))
         ax.grid(b=True, axis='x', which='major', color='0.5', linestyle='-')
         #ax.xaxis.set_tick_params(which='major', pad=10)
-    elif diff(tspan)[0].days<3655:
-        ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=12) )
-        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%Y'))
-    elif diff(tspan)[0].days<9130: #25*365=9125
-        ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=60) )
-        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%Y'))
+    elif np.diff(tspan)[0].days<3655:
+        ax.xaxis.set_major_locator(mpldates.MonthLocator(bymonthday=1, interval=12) )
+        ax.xaxis.set_major_formatter(mpldates.DateFormatter('%Y'))
+    elif np.diff(tspan)[0].days<9130: #25*365=9125
+        ax.xaxis.set_major_locator(mpldates.MonthLocator(bymonthday=1, interval=60) )
+        ax.xaxis.set_major_formatter(mpldates.DateFormatter('%Y'))
     else:
-        ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(bymonthday=1, interval=120) )
-        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%Y'))
+        ax.xaxis.set_major_locator(mpldates.MonthLocator(bymonthday=1, interval=120) )
+        ax.xaxis.set_major_formatter(mpldates.DateFormatter('%Y'))
 
 if __name__ == "__main__":
     # if you call this script from the command line (the shell) it will
     # run the 'main' function
     if len(sys.argv) < 2: #this means no arguments were passed      
       #fname='/home/onur/setups/test-BGCmodels/nflexpd/1D-NS-40m/1D-40m_NflexPD.nc'
-      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_wfile_mean.nc'
-      disp('plotting default file:'+fname)
+      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/20-05-15/Highlat-100m_wconst_FS-IA-DA/Highlat-100m_wconst_FS-IA-DA_mean.nc'
+      print('plotting default file:'+fname)
     else:
-      disp('plotting file specified:'+sys.argv[1])
+      print('plotting file specified:'+sys.argv[1])
       fname=sys.argv[1]
       
     if len(sys.argv)<3: #no third argument was passed
       numyears=-1 # -1 means plot everything
     else: 
       numyears=int(sys.argv[2]) #number of years to plot (counting from the last year backwards)
-    disp('plotting last '+str(numyears)+' year of the simulation')
+    print('plotting last '+str(numyears)+' year of the simulation')
     
     if len(sys.argv)<4:
       modname='FS-IA-DA'
