@@ -23,8 +23,7 @@ prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{M
              'Chl':'Phy_{Chl}','C':'Phy_C','N':'Phy_N',
              'Q':'Q','V_N':'f_{DIN-Phy}','mu':'\mu',
              'R_N':'R_N','R_Chl':'R_{Chl}','fN':'L_N','fL':'L_I',
-             'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}',
-             'fL_avg0-30':'L_I','fN_avg0-30':'L_N', 'mu_avg0-30':'\mu', 'C_avg0-30':'Phy_C'}
+             'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}'}
 numlevels=6
 #depth range to be shown:
 prescylim=[0,0] #[0,0] means no ylimits are prescribed, full depth range will be shown'
@@ -45,19 +44,21 @@ def main(fname, numyears, modname):
     elif modname=='FS-IA-DA': #i.e., competition experiment
       #models = ['phy_IOQ', 'phy_DOQ']
       #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
-      models = ['phy_IA', 'phy_DA'] # 'phy_FS',
+      models = ['phy_FS', 'phy_IA', 'phy_DA']
       varsets={#'abio0':['I_0','airt', 'wind'],
-             #'abio12':['temp','mld_surf','abio_din','abio_PAR_dmean',],
-             #'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
-             #'phy-1':['C','N','Q'],
-             #'phy-2':['mu','V_N','R_N','R_Chl'],
-             #'phy-3':['fA','fV','fN','fL'] #, 'ThetaHat']
-             'phy-4': ['fL_avg0-30', 'fN_avg0-30', 'C_avg0-30']
+             'abio12':['temp','mld_surf','abio_din','abio_PAR_dmean',],
+             'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
+             'phy-1':['C','N','Q'],
+             'phy-2':['mu','V_N','R_N','R_Chl'],
+             'phy-3':['fA','fV','fN','fL'] #, 'ThetaHat']
+             'phy-avg1': ['Q_avg0-30', 'fN_avg0-30', 'C_avg0-30'],
+             'phy-avg2': ['mu_avg0-30', 'V_N_avg0-30', 'R_N_avg0-30', 'R_Chl_avg0-30',
+                          'mu_avg30-100', 'V_N_avg30-100', 'R_N_avg30-100', 'R_Chl_avg30-100']
              }
       
     for groupname,varset in varsets.iteritems():
         #print ('%s,%s'%(groupname,varset))
-        if groupname == 'phy-4':
+        if 'avg' in groupname:
             plot_multivar(fname, numyears, groupname, varset, models)
         else:
             plot_singlevar(fname, numyears, groupname, varset, models)
@@ -65,8 +66,14 @@ def main(fname, numyears, modname):
 def plot_multivar(fname, numyears, groupname, varset, models):
     cols=['darkblue','orange'] #'lightblue',
     lst=[':','-'] #'-',
-    numcol = len(varset)*1.0
-    numrow = np.ceil(len(models) / numcol)
+    if len(varset)<5:
+        numcol = len(varset)*1.0
+    else:
+        if len(varset) in [3,6,9]:
+            numcol=3.0
+        elif len(varset) in [4,8,12]:
+            numcol=4.0
+    numrow = np.ceil(len(varset) / numcol)
     figuresize = (1 + 4*numcol, 1. + 1.5*numrow)
     fpar = {'left': 0.05, 'right': 0.99, 'top': 0.93, 'bottom': 0.07, 'hspace': 0.5, 'wspace': 0.2}
     if numrow == 1:
@@ -110,7 +117,9 @@ def plot_multivar(fname, numyears, groupname, varset, models):
 
         if varn_basic in prettyunits:
             units = prettyunits[varn_basic]
-        plt.title('$%s$ [$%s$]' % (prettynames[varn_basic], units), size=12.0)
+        varn_basic_root=varn_basic.split('_avg')[0]
+        depthintstr=varn_basic.split('_avg')[1] #.split.('_')[0]
+        plt.title('%sm mean $%s$ [$%s$]' % (depthintstr, prettynames[varn_basic_root], units), size=12.0)
 
         # shrink the axes width by 20% to fit that of the contour plots, and put the legend in that space
         box = ax.get_position()
@@ -118,8 +127,8 @@ def plot_multivar(fname, numyears, groupname, varset, models):
         if varn_basic in varlims.keys():
             ax.set_ylim(varlims[varn][0], varlims[varn][1])
 
-        if (j+1)%numcol==0:
-            ax.legend(loc='center left', bbox_to_anchor=(.9, 0.8))
+        if (j+1)%numcol==1:
+            ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.8),fontsize=12)
 
         ax.grid(b=True, axis='y', which='major', color='0.5', linestyle='-')
         # x-axis
