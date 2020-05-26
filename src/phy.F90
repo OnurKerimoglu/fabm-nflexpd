@@ -39,7 +39,7 @@
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_depth
       type (type_horizontal_dependency_id) :: id_FDL
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyC,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
-      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_respN,id_respChl
+      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_vN,id_respN,id_respChl
       type (type_diagnostic_variable_id)   :: id_fQ,id_fNmonod,id_fN,id_fL,id_Tfac
       type(type_diagnostic_variable_id)    :: id_fphydoc,id_fphydon,id_fphydetc,id_fphydetn
       
@@ -174,7 +174,9 @@
                                      
    call self%register_diagnostic_variable(self%id_mu, 'mu','/d',    'net sp. growth rate',           &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_fdinphy_sp, 'V_N','molN/molC/d',    'net sp. N uptake',           &
+   call self%register_diagnostic_variable(self%id_vN, 'vN','/d',    'Specific N uptake',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_fdinphy_sp, 'f_dinphy','molN/molC/d',    'effective net sp. N uptake',           &
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_respN, 'R_N','/d',    'Respiration cost of N uptake',           &
                                      output=output_time_step_averaged)
@@ -450,6 +452,7 @@
    _SET_DIAGNOSTIC_(self%id_Tfac, Tfac)
    _SET_DIAGNOSTIC_(self%id_fdinphy_sp, f_din_phy/phyC * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day) !*s_p_d such that output is in d-1
+   _SET_DIAGNOSTIC_(self%id_vN, vN * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_respN, respN * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_respChl, Rchl * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_ThetaHat, ThetaHat) 

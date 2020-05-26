@@ -13,7 +13,7 @@ varlims={'abio_PAR_dmean':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'm
          'abio_detc_sed/abio_detn_sed':[4.0,14.0],'abio_detc/abio_detn':[5.0,30.0],'abio_doc/abio_don':[5.0,30.0],
          'abio_din': [0, 30],'abio_detc':[0,80],'abio_detn':[0,6], 'abio_doc':[0,80], 'abio_don':[0,8],
          'Chl':[0,10.],'C':[0,50.0],'N':[0,7.5],'Q':[0.025,0.225],'Chl2C':[0.0,0.5],
-         'PPR':[0,20.],'mu':[0,0.5],'V_N':[0,0.05],'R_N':[0,0.05],'R_Chl':[0,0.1],
+         'PPR':[0,20.],'mu':[0,0.5],'vN':[0,0.05],'f_dinphy':[0,0.5],'R_N':[0,0.05],'R_Chl':[0,0.1],
          'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.04,0.54],'fN':[0,0.2],'fL':[0.,1]}
 prettyunits={'abio_detc_sed/abio_detn_sed':'molC/molN','abio_detc/abio_detn':'molC/molN','abio_doc/abio_don':'molC/molN'}
 prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{MLD}',
@@ -21,7 +21,8 @@ prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{M
              'abio_din':'DIN','abio_detc_sed/abio_detn_sed':'\mathrm{C:N \ of \ POM-export}','abio_detc/abio_detn':'POC:PON','abio_doc/abio_don':'DOC:DON',
              'abio_detc':'POC','abio_detn':'PON','abio_doc':'DOC','abio_don':'DON',
              'Chl':'Phy_{Chl}','C':'Phy_C','N':'Phy_N',
-             'Q':'Q','V_N':'f_{DIN-Phy}','mu':'\mu',
+             'f_dinphy':'f_{DIN-Phy}',
+             'Q':'Q','vN':'v_N','mu':'\mu',
              'R_N':'R_N','R_Chl':'R_{Chl}','fN':'L_N','fL':'L_I',
              'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}'}
 numlevels=6
@@ -38,8 +39,11 @@ def main(fname, numyears, modname):
              'abio2':['abio_din','abio_detc/abio_detn','abio_detc_sed/abio_detn_sed'], #'abio_doc/abio_don'],
              'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
              'phy-1':['C','N','Q'],
-             'phy-2':['mu','V_N','R_N','R_Chl'],
-             'phy-3':['fA','fV','fN','fL'] #, 'ThetaHat']
+             'phy-2':['mu','vN','R_N','R_Chl'],
+             'phy-3':['fA','fV','fN','fL'], #, 'ThetaHat']
+             'phy-avg1': ['Q_avg0-30', 'fN_avg0-30', 'C_avg0-30'],
+             'phy-avg2': ['mu_avg0-30', 'vN_avg0-30', 'R_N_avg0-30', 'R_Chl_avg0-30',
+                          'mu_avg30-100', 'vN_avg30-100', 'R_N_avg30-100', 'R_Chl_avg30-100']
              }
     elif modname=='FS-IA-DA': #i.e., competition experiment
       #models = ['phy_IOQ', 'phy_DOQ']
@@ -49,11 +53,11 @@ def main(fname, numyears, modname):
              'abio12':['temp','mld_surf','abio_din','abio_PAR_dmean',],
              'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
              'phy-1':['C','N','Q'],
-             'phy-2':['mu','V_N','R_N','R_Chl'],
-             'phy-3':['fA','fV','fN','fL'] #, 'ThetaHat']
+             'phy-2':['mu','vN','R_N','R_Chl'],
+             'phy-3':['fA','fV','fN','fL'], #, 'ThetaHat']
              'phy-avg1': ['Q_avg0-30', 'fN_avg0-30', 'C_avg0-30'],
-             'phy-avg2': ['mu_avg0-30', 'V_N_avg0-30', 'R_N_avg0-30', 'R_Chl_avg0-30',
-                          'mu_avg30-100', 'V_N_avg30-100', 'R_N_avg30-100', 'R_Chl_avg30-100']
+             'phy-avg2': ['mu_avg0-30', 'vN_avg0-30', 'R_N_avg0-30', 'R_Chl_avg0-30',
+                          'mu_avg30-100', 'vN_avg30-100', 'R_N_avg30-100', 'R_Chl_avg30-100']
              }
       
     for groupname,varset in varsets.iteritems():
@@ -64,8 +68,8 @@ def main(fname, numyears, modname):
             plot_singlevar(fname, numyears, groupname, varset, models)
 
 def plot_multivar(fname, numyears, groupname, varset, models):
-    cols=['darkblue','orange'] #'lightblue',
-    lst=[':','-'] #'-',
+    cols=['lightblue','darkblue','orange']
+    linestyles=['-',':','-']
     if len(varset)<5:
         numcol = len(varset)*1.0
     else:
@@ -113,7 +117,7 @@ def plot_multivar(fname, numyears, groupname, varset, models):
                 datC = dat[yeari[0]]
             else:
                 raise(Exception('Resulting valus are not 1-dimensional'))
-            ax.plot(t, datC, label=model.split('phy_')[1], color=cols[i])
+            ax.plot(t, datC, label=model.split('phy_')[1], color=cols[i],linestyle=linestyles[i])
 
         if varn_basic in prettyunits:
             units = prettyunits[varn_basic]
@@ -216,7 +220,7 @@ def plot_singlevar(fname,numyears,groupname,varset,models):
     f.subplots_adjust(left=fpar['left'],right=fpar['right'],top=fpar['top'],bottom=fpar['bottom'],hspace=fpar['hspace'],wspace=fpar['wspace'])
 
     numvar=len(varnames)
-
+    ylimsuf = ''
     for i,varn in enumerate(varnames):       
         print (varn)
         varn_basic,model=get_basic_varname(varn,models)
@@ -290,7 +294,6 @@ def plot_singlevar(fname,numyears,groupname,varset,models):
             plt.title('%s [$%s$]'%(prettyname,units), size=12.0)
 
             cmap = plt.get_cmap(colmap)
-            ylimsuf = ''
             if valsat == 'plate':
                 ax.plot(t,datC)
                 #shrink the axes width by 20% to fit that of the contour plots
@@ -373,7 +376,7 @@ def get_varvals(ncv,varn0):
             units=ncv[varn].units
     if len(varvals.shape)==1: #if 1-dimensional variable (e.g., airt)
         valsat='plate'
-    elif varn in ['nuh', 'nus']:
+    elif varn0 in ['nuh', 'nus']:
         valsat='int'
     else:
         valsat='center'
@@ -462,9 +465,9 @@ def format_date_axis(ax,tspan):
 if __name__ == "__main__":
     # if you call this script from the command line (the shell) it will
     # run the 'main' function
-    if len(sys.argv) < 2: #this means no arguments were passed      
-      #fname='/home/onur/setups/test-BGCmodels/nflexpd/1D-NS-40m/1D-40m_NflexPD.nc'
-      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/20-05-15/Highlat-100m_wconst_FS-IA-DA/Highlat-100m_wconst_FS-IA-DA_mean.nc'
+    if len(sys.argv) < 2: #this means no arguments were passed
+      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_wconst_FS-IA-DA/Highlat-100m_wconst_FS-IA-DA_mean.nc'
+      #fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_wconst-DA/Highlat-100m_wconst-DA_mean.nc'
       print('plotting default file:'+fname)
     else:
       print('plotting file specified:'+sys.argv[1])
@@ -478,6 +481,7 @@ if __name__ == "__main__":
     
     if len(sys.argv)<4:
       modname='FS-IA-DA'
+      # modname = 'phy_DA'
     else:
       modname=sys.argv[3]
     main(fname, numyears, modname)
