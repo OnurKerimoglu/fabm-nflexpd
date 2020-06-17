@@ -48,7 +48,7 @@
       real(rk) :: zetaN,zetaChl,M0p,Mpart,RMChl
       real(rk) :: mu0hat,aI
       real(rk) :: A0hat,V0hat,Q0,Qmax,KN_monod
-      real(rk) :: fA_fixed,fV_fixed,TheHat_fixed,Q_fixed
+      real(rk) :: fA_fixed,fV_fixed,TheHat_fixed,Q_fixed,ThetaHat_min
       logical  :: dynQN,fV_opt,fA_opt,Theta_opt,mimic_Monod
       real(rk) :: dic_per_n
 
@@ -101,6 +101,7 @@
    call self%get_parameter(self%mimic_Monod, 'mimic_Monod','-', 'whether to mimic Monod model', default=.false.)
    !light-related
    call self%get_parameter(self%TheHat_fixed, 'TheHat_fixed','gChl molC-1', 'Theta_Hat to use when Theta_opt=false', default=0.6_rk)
+   call self%get_parameter(self%ThetaHat_min, 'ThetaHat_min','gChl molC-1', 'Minimum allowed value, which is also used when par<I_0', default=0.1_rk)
    call self%get_parameter(self%RMchl, 'RMchl','d-1', 'loss rate of chlorophyll', default=0.1_rk,scale_factor=d_per_s)
    call self%get_parameter(self%mu0hat, 'mu0hat','d-1', 'max. potential growth rate', default=5.0_rk,scale_factor=d_per_s)
    call self%get_parameter(self%aI, 'aI','(m^2 E-1 molC gChl-1)', 'Chl-specific slope of the PI curve', default=1.0_rk) ! really /mol or /micromol?
@@ -304,14 +305,14 @@
        !larg=min(1e38,larg) !larg can explode if aI is too large compared to mu0hat*zetaChl
        ! eq. 8 in Smith et al 2016
        ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par_dm)
-       ThetaHat=max(0.0,ThetaHat) !  a small positive value 
+       ThetaHat=max(self%ThetaHat_min,ThetaHat) !  a small positive value 
        !if (ThetaHat .lt. 0.09)then
        !  write(*,*)'larg, self%aI*par_dm, self%mu0hat*Tfac*self%zetaChl',larg, self%aI*par_dm, self%mu0hat*Tfac*self%zetaChl
          !write(*,*)'ThetaHat,larg,WAPR',ThetaHat,larg,WAPR(larg,0,0)
        !end if
      else
        !write(*,*)'par_dm,I_0',par_dm,I_zero
-       ThetaHat = 0.1  !  a small positive value
+       ThetaHat = self%ThetaHat_min  !  a small positive value
        !in cmo: ThetaHat=0.0 
      end if
    else
