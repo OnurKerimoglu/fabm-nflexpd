@@ -11,9 +11,9 @@ import numpy as np
 
 varlims={'abio_PAR_dmean':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf':[-100,0],'wind':[-6,26],
          'abio_detc_sed/abio_detn_sed':[4.0,14.0],'abio_detc/abio_detn':[5.0,30.0],'abio_doc/abio_don':[5.0,30.0],
-         'abio_din': [0, 30],'abio_detc':[0,80],'abio_detn':[0,6], 'abio_doc':[0,80], 'abio_don':[0,8],
-         'Chl':[0,10.],'C':[0,50.0],'N':[0,7.5],'Q':[0.025,0.225],'Chl2C':[0.0,0.5],
-         'PPR':[0,20.],'mu':[0,0.5],'vN':[0,0.05],'f_dinphy':[0,0.5],'R_N':[0,0.05],'R_Chl':[0,0.1],
+         'abio_din': [0, 30],'abio_detc':[0,80],'abio_detn':[0,6], 'abio_doc':[0,80], 'abio_don':[0,6],
+         'Chl':[0,10.],'C':[0,50.0],'N':[0,7.5],'Q':[0.0,0.25],'Chl2C':[0.0,0.5],
+         'PPR':[0,20.],'mu':[0,0.4],'vN':[0,0.05],'f_dinphy':[0,0.5],'R_N':[0,0.04],'R_Chl':[0,0.1],
          'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.04,0.54],'fN':[0,0.2],'fL':[0.,1]}
 prettyunits={'abio_detc_sed/abio_detn_sed':'molC/molN','abio_detc/abio_detn':'molC/molN','abio_doc/abio_don':'molC/molN'}
 prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{MLD}',
@@ -41,9 +41,9 @@ def main(fname, numyears, modname):
              'phy-1':['C','N','Q'],
              'phy-2':['mu','vN','R_N','R_Chl'],
              'phy-3':['fA','fV','fN','fL'], #, 'ThetaHat']
-             'phy-avg1': ['Q_avg0-30', 'fN_avg0-30', 'C_avg0-30'],
-             'phy-avg2': ['mu_avg0-30', 'vN_avg0-30', 'R_N_avg0-30', 'R_Chl_avg0-30',
-                          'mu_avg30-100', 'vN_avg30-100', 'R_N_avg30-100', 'R_Chl_avg30-100']
+             'phy-avg1': ['Q_avg0-50', 'fN_avg0-50', 'C_avg0-50'],
+             'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
+                          'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
              }
     elif modname=='FS-IA-DA': #i.e., competition experiment
       #models = ['phy_IOQ', 'phy_DOQ']
@@ -55,9 +55,9 @@ def main(fname, numyears, modname):
              'phy-1':['C','N','Q'],
              'phy-2':['mu','vN','R_N','R_Chl'],
              'phy-3':['fA','fV','fN','fL'], #, 'ThetaHat']
-             'phy-avg1': ['Q_avg0-30', 'fN_avg0-30', 'C_avg0-30'],
-             'phy-avg2': ['mu_avg0-30', 'vN_avg0-30', 'R_N_avg0-30', 'R_Chl_avg0-30',
-                          'mu_avg30-100', 'vN_avg30-100', 'R_N_avg30-100', 'R_Chl_avg30-100']
+             'phy-avg1': ['Q_avg0-50', 'fN_avg0-50', 'C_avg0-50'],
+             'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
+                          'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
              }
       
     for groupname,varset in varsets.iteritems():
@@ -68,8 +68,8 @@ def main(fname, numyears, modname):
             plot_singlevar(fname, numyears, groupname, varset, models)
 
 def plot_multivar(fname, numyears, groupname, varset, models):
-    cols=['lightblue','darkblue','orange']
-    linestyles=['-',':','-']
+    cols=['green','darkblue','orange']
+    linestyles=['--',':','-']
     if len(varset)<5:
         numcol = len(varset)*1.0
     else:

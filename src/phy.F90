@@ -266,9 +266,8 @@
      _GET_(self%id_phyC,phyC)  ! phytoplankton-C
      !Dynamically calculated quota is needed for calculating some rates below
      Q= phyN/phyC
-     !calculate a down-regulation term for nutrient uptake to avoid Q>Qmax
-     fQ=min(1.0,max(0.01, (self%Qmax-Q)/(self%Qmax-self%Q0/2.0)))
-     !fQ=1.0
+     !relative Quota (used as a down-regulation term in classical droop model)
+     fQ=min(1.0,max(0.0, (self%Qmax-Q)/(self%Qmax-self%Q0/2.0)))
    end if
      
    _GET_(self%id_din,din)    ! nutrients
@@ -396,7 +395,9 @@
    if ( self%dynQN ) then !Explicit uptake rate
      !to prevent model crashing:
      if (din .gt. self%mindin) then !can be interpreted as 'din detection limit' for phytoplankton
-       vN = fV*vNhat*fQ !molN/molC/d
+       !Downgregulation term cannot be applied without considering fQ when solving fV
+       !vN = fV*vNhat*fQ !molN/molC/d
+       vN = fV*vNhat !molN/molC/d
      else
        vN = 0.0_rk
      end if

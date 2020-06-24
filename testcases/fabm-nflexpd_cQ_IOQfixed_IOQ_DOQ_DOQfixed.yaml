@@ -19,11 +19,11 @@ instances:
       fV_fixed: 0.25                 # fV to use when fv_opt=false (-)
       Q_fixed: 0.150943              # Q to use when provided, dynQN=false and fV_opt=false 
       Q0: 0.039                      # Subsistence cell quota (molN molC-1)
-      V0hat: 2.5                     # Potential maximum uptake rate (molN molC-1 d-1)
-      A0hat: 1.0                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
+      V0hat: 1.0                     # Potential maximum uptake rate (molN molC-1 d-1)
+      A0hat: 0.1                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
       #KN_monod: 5.0                  # Half saturation constant for growth [only relevant when Q is fixed] [if not provided, KN_monod=V0hat*T/A0hat]
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
-      zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
+      zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 1.0                     # part of the mortality that goes to detritus
     initialization:
@@ -55,10 +55,10 @@ instances:
       fA_fixed: 0.6                  # fA to use when fa_opt=false (-)
       fV_fixed: 0.25                 # fV to use when fv_opt=false (-)
       Q0: 0.039                      # Subsistence cell quota (molN molC-1)
-      V0hat: 2.5                     # Potential maximum uptake rate (molN molC-1 d-1)
-      A0hat: 1.0                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
+      V0hat: 1.0                     # Potential maximum uptake rate (molN molC-1 d-1)
+      A0hat: 0.1                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
-      zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
+      zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 1.0                     # part of the mortality that goes to detritus
     initialization:
@@ -91,10 +91,10 @@ instances:
       fA_fixed: 0.6                  # fA to use when fa_opt=false (-)
       fV_fixed: 0.25                 # fV to use when fv_opt=false (-)
       Q0: 0.039                      # Subsistence cell quota (molN molC-1)
-      V0hat: 2.5                     # Potential maximum uptake rate (molN molC-1 d-1)
-      A0hat: 1.0                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
+      V0hat: 1.0                     # Potential maximum uptake rate (molN molC-1 d-1)
+      A0hat: 0.1                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
-      zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
+      zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 1.0                     # part of the mortality that goes to detritus
     initialization:
@@ -128,10 +128,10 @@ instances:
       fV_fixed: 0.25                 # fV to use when fv_opt=false (-)
       Qmax: 0.225                    # Max.Q value to calculate a down-regulation term
       Q0: 0.039                      # Subsistence cell quota (molN molC-1)
-      V0hat: 2.5                     # Potential maximum uptake rate (molN molC-1 d-1)
-      A0hat: 1.0                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
+      V0hat: 1.0                     # Potential maximum uptake rate (molN molC-1 d-1)
+      A0hat: 0.1                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
-      zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
+      zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 1.0                     # part of the mortality that goes to detritus
     initialization:
@@ -165,10 +165,10 @@ instances:
       fV_fixed: 0.25                 # fV to use when fv_opt=false (-)
       Qmax: 0.15                     # Max.Q value to calculate a down-regulation term
       Q0: 0.039                      # Subsistence cell quota (molN molC-1)
-      V0hat: 2.5                     # Potential maximum uptake rate (molN molC-1 d-1)
-      A0hat: 1.0                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
+      V0hat: 1.0                     # Potential maximum uptake rate (molN molC-1 d-1)
+      A0hat: 0.1                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
-      zetaChl: 0.8                   # C-cost of Chlorophyll synthesis (molC gChl-1)
+      zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 1.0                     # part of the mortality that goes to detritus
     initialization:
