@@ -401,7 +401,13 @@
        vN = 0.0_rk
      end if
    else
-       vN = muIN*Q !/d * molN/molC 
+       !for dynQN=false, vN is needed only for calculating respiration, and to save as diagnostic
+       if ( self%mimic_Monod ) then
+         !vN=mu*Q; solve vN for mu=muIN-vN*zetaN-Rchl=muIN-mu*Q*zetaN-Rchl
+         vN = (muIN-Rchl)/(1+Q*self%zetaN)*Q !/d * molN/molC
+       else !for the IA variant
+         vN = fV*vNhat !molN/molC/d 
+       end if
    end if
    
    respN=self%zetaN*vN !molC/molN *molN/molC/d = /d
