@@ -387,6 +387,8 @@
      fN = 0.0_rk
    end if
    
+   !write(*,*)'depth,DIN,fN,fV,Q,Q0/(2.0*Q):',depth,din,fN,fV,Q,self%Q0/(2.0*Q)
+      
    muIN =  muIhat * fN
    
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
@@ -406,6 +408,8 @@
        if ( self%mimic_Monod ) then
          !vN=mu*Q; solve vN for mu=muIN-vN*zetaN-Rchl=muIN-mu*Q*zetaN-Rchl
          vN = (muIN-Rchl)/(1+Q*self%zetaN)*Q !/d * molN/molC
+         !don't allow negative vN, which can happen when Rchl>muIN (?)
+         !vN=max(0.0_rk,vN)
        else !for the IA variant
          vN = fV*vNhat !molN/molC/d 
        end if
