@@ -38,7 +38,7 @@
       type (type_state_variable_id)        :: id_din,id_don,id_doc,id_detn,id_detc
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_depth
       type (type_horizontal_dependency_id) :: id_FDL
-      type (type_diagnostic_variable_id)   :: id_Q,id_d_phyC,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
+      type (type_diagnostic_variable_id)   :: id_Q,id_Qnew,id_d_phyC,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_muIN,id_muIhat,id_vNhat,id_vN,id_respN,id_respChl
       type (type_diagnostic_variable_id)   :: id_fQ,id_fNmonod,id_fN,id_fL,id_Tfac
       type(type_diagnostic_variable_id)    :: id_fphydoc,id_fphydon,id_fphydetc,id_fphydetn
@@ -168,6 +168,8 @@
    ! Register diagnostic variables
    call self%register_diagnostic_variable(self%id_Q, 'Q','molN/molC',    'cellular nitrogen Quota',           &
                                      output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_Qnew, 'Qnew','molN/molC',    'cellular nitrogen Quota (alternative formulation)',           &
+                                     output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_Chl, 'Chl','mgChl/m^3',    'Chlorophyll concentration',           &
                                      output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_Chl2C, 'Chl2C','gChl/molC',    'cellular chlorophyll content',           &
@@ -252,7 +254,7 @@
 ! !LOCAL VARIABLES:
    real(rk)                   :: din,phyC,phyN,parW,par,par_dm,Ld
    real(rk)                   :: ThetaHat,vNhat,muIhat
-   real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
+   real(rk)                   :: Q,Qnew,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
    real(rk)                   :: vN,Vhat_fNT
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac,depth
@@ -368,7 +370,9 @@
        fN_monod = din / ( KN_monod + din)
      else
        ! eq. 14 in Smith et al 2016
-       Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)       
+       Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
+       Qnew = ( ( (self%Q0 / 2.0)*muIhat) + (fV*vNhat) )  / ( (1-fV) * muIhat - fV* self%zetaN * vNhat )
+       !write(*,*)'depth,fV,Qnew,nom,denom',depth,fV,Qnew,((self%Q0/2.0)*muIhat)+(fV*vNhat),(1-fV)*muIhat-fV*self%zetaN*vNhat
      end if
      phyC=phyN/Q
    end if
@@ -454,6 +458,7 @@
 
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_Q, Q)
+   _SET_DIAGNOSTIC_(self%id_Qnew, Qnew)
    if ( self%dynQN ) then
      _SET_DIAGNOSTIC_(self%id_fQ, fQ)
    else
