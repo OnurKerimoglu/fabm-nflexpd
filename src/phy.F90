@@ -39,7 +39,7 @@
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_depth
       type (type_horizontal_dependency_id) :: id_FDL
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyC,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
-      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_vN,id_respN,id_respChl
+      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_muIN,id_vN,id_respN,id_respChl
       type (type_diagnostic_variable_id)   :: id_fQ,id_fNmonod,id_fN,id_fL,id_Tfac
       type(type_diagnostic_variable_id)    :: id_fphydoc,id_fphydon,id_fphydetc,id_fphydetn
       
@@ -173,6 +173,8 @@
    call self%register_diagnostic_variable(self%id_Chl2C, 'Chl2C','gChl/molC',    'cellular chlorophyll content',           &
                                      output=output_instantaneous)
                                      
+   call self%register_diagnostic_variable(self%id_muIN, 'muIN','/d',    'gross sp. growth rate',           &
+                                     output=output_time_step_averaged)                                  
    call self%register_diagnostic_variable(self%id_mu, 'mu','/d',    'net sp. growth rate',           &
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_vN, 'vN','/d',    'Specific N uptake',           &
@@ -464,6 +466,7 @@
    _SET_DIAGNOSTIC_(self%id_Tfac, Tfac)
    _SET_DIAGNOSTIC_(self%id_fdinphy_sp, f_din_phy/phyC * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day) !*s_p_d such that output is in d-1
+   _SET_DIAGNOSTIC_(self%id_muIN, muIN * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_vN, vN * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_respN, respN * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_respChl, Rchl * secs_pr_day)
