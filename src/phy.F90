@@ -357,7 +357,7 @@
    else
      fV = self%fV_fixed
    end if
-   
+
    if (.not. self%dynQN) then
      !!$ ***  Calculating the optimal cell quota, based on the term ZINT, as calculated above
      if ( self%mimic_Monod ) then
@@ -373,11 +373,15 @@
        ! formulation where fV is eliminated:
        Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
        Qnew = ( ( (self%Q0 / 2.0)*muIhat) + (fV*vNhat) )  / ( (1-fV) * muIhat - fV* self%zetaN * vNhat )
+       ! if fV is not optimized, Q can become implausible. Constrain it to plausible values:
        if ( .not. self%fV_opt) then
-          ! if fV is not optimized, Q can become implausible. Constrain it to plausible values: 
           Qnew = max(self%Q0,min(self%Qmax,Qnew))
+       ! if fV and muIhat are both 0, Q becomes 0/0 -> NaN
+       ! this kind of singularity should happen only, e.g., at the very first time step where par_dm is not yet available
+       else if (muIhat == 0.0_rk .and. fV == 0.0_rk ) then 
+          Qnew = self%Q0
        end if
-       !write(*,*)'depth,fV,Q,nom,denom',depth,fV,Q,((self%Q0/2.0)*muIhat)+(fV*vNhat),(1-fV)*muIhat-fV*self%zetaN*vNhat
+       !write(*,*)'depth,fV,Qnew,muIhat,vNhat,fV',depth,fV,Qnew,muIhat,vNhat,fV
      end if
      phyC=phyN/Q
    end if
