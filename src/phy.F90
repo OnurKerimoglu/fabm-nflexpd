@@ -38,7 +38,7 @@
       type (type_state_variable_id)        :: id_din,id_don,id_doc,id_detn,id_detc
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_depth
       type (type_horizontal_dependency_id) :: id_FDL
-      type (type_diagnostic_variable_id)   :: id_Q,id_Qnew,id_d_phyC,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
+      type (type_diagnostic_variable_id)   :: id_Q,id_QfVfree,id_d_phyC,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_muIN,id_muIhat,id_vNhat,id_vN,id_respN,id_respChl
       type (type_diagnostic_variable_id)   :: id_fQ,id_fNmonod,id_fN,id_fL,id_Tfac
       type(type_diagnostic_variable_id)    :: id_fphydoc,id_fphydon,id_fphydetc,id_fphydetn
@@ -168,7 +168,7 @@
    ! Register diagnostic variables
    call self%register_diagnostic_variable(self%id_Q, 'Q','molN/molC',    'cellular nitrogen Quota',           &
                                      output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_Qnew, 'Qnew','molN/molC',    'cellular nitrogen Quota (alternative formulation)',           &
+   call self%register_diagnostic_variable(self%id_QfVfree, 'QfVfree','molN/molC',    'cellular nitrogen Quota (with the solution free from fV)',           &
                                      output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_Chl, 'Chl','mgChl/m^3',    'Chlorophyll concentration',           &
                                      output=output_instantaneous)
@@ -254,7 +254,7 @@
 ! !LOCAL VARIABLES:
    real(rk)                   :: din,phyC,phyN,parW,par,par_dm,Ld
    real(rk)                   :: ThetaHat,vNhat,muIhat
-   real(rk)                   :: Q,Qnew,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
+   real(rk)                   :: Q,Q_fVfree,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
    real(rk)                   :: vN,Vhat_fNT
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac,depth
@@ -370,18 +370,19 @@
        fN_monod = din / ( KN_monod + din)
      else
        ! eq. 14 in Smith et al 2016
-       ! formulation where fV is eliminated:
-       Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
-       Qnew = ( ( (self%Q0 / 2.0)*muIhat) + (fV*vNhat) )  / ( (1-fV) * muIhat - fV* self%zetaN * vNhat )
+       ! solution where fV is eliminated:
+       Q_fVfree = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
+       ! fV-explicit, raw solution:
+       Q = ( ( (self%Q0 / 2.0)*muIhat) + (fV*vNhat) )  / ( (1-fV) * muIhat - fV* self%zetaN * vNhat )
        ! if fV is not optimized, Q can become implausible. Constrain it to plausible values:
        if ( .not. self%fV_opt) then
-          Qnew = max(self%Q0,min(self%Qmax,Qnew))
+          Q = max(self%Q0,min(self%Qmax,Q))
        ! if fV and muIhat are both 0, Q becomes 0/0 -> NaN
        ! this kind of singularity should happen only, e.g., at the very first time step where par_dm is not yet available
        else if (muIhat == 0.0_rk .and. fV == 0.0_rk ) then 
-          Qnew = self%Q0
+          Q = self%Q0
        end if
-       !write(*,*)'depth,fV,Qnew,muIhat,vNhat,fV',depth,fV,Qnew,muIhat,vNhat,fV
+       !write(*,*)'depth,fV,Q,muIhat,vNhat,fV',depth,fV,Q,muIhat,vNhat,fV
      end if
      phyC=phyN/Q
    end if
@@ -467,7 +468,7 @@
 
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_Q, Q)
-   _SET_DIAGNOSTIC_(self%id_Qnew, Qnew)
+   _SET_DIAGNOSTIC_(self%id_QfVfree, Q_fVfree)
    if ( self%dynQN ) then
      _SET_DIAGNOSTIC_(self%id_fQ, fQ)
    else
