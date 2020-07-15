@@ -38,7 +38,7 @@
       type (type_state_variable_id)        :: id_din,id_don,id_doc,id_detn,id_detc
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_depth
       type (type_horizontal_dependency_id) :: id_FDL
-      type (type_diagnostic_variable_id)   :: id_muIhatNET,id_Q_muIhatNET,id_fV_muIhatNET
+      type (type_diagnostic_variable_id)   :: id_muIhatNET,id_Q_muIhat,id_fV_muIhat
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyC,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_muIN,id_muIhat,id_vNhat,id_vN,id_respN,id_respChl
       type (type_diagnostic_variable_id)   :: id_fQ,id_fNmonod,id_fN,id_fL,id_Tfac
@@ -169,7 +169,7 @@
    ! Register diagnostic variables
    call self%register_diagnostic_variable(self%id_Q, 'Q','molN/molC',    'cellular nitrogen Quota',           &
                                      output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_Q_muIhatNET, 'Q_muIhatNET','molN/molC',    'cellular nitrogen Quota (based on muIhatNET)',           &
+   call self%register_diagnostic_variable(self%id_Q_muIhat, 'Q_muIhat','molN/molC',    'cellular nitrogen Quota (based on muIhat)',           &
                                      output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_Chl, 'Chl','mgChl/m^3',    'Chlorophyll concentration',           &
                                      output=output_instantaneous)
@@ -198,7 +198,7 @@
                                      
    call self%register_diagnostic_variable(self%id_fV, 'fV','-',    'fV',           &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_fV_muIhatNET, 'fV_muIhatNET','-',    'fV_muIhatNET',           &
+   call self%register_diagnostic_variable(self%id_fV_muIhat, 'fV_muIhat','-',    'fV (based on muIhat)',           &
                                      output=output_time_step_averaged)                                     
                                      
    call self%register_diagnostic_variable(self%id_fA, 'fA','-',    'fA',           &
@@ -261,7 +261,7 @@
    real(rk)                   :: din,phyC,phyN,parW,par,par_dm,Ld
    real(rk)                   :: ThetaHat,vNhat,muIhat
    real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
-   real(rk)                   :: muIhatNET,Q_muIhatNET,fV_muIhatNET,ZINT_muIhatNET
+   real(rk)                   :: muIhatNET,Q_muIhat,fV_muIhat,ZINT_muIhat
    real(rk)                   :: vN,Vhat_fNT
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac,depth
@@ -339,8 +339,8 @@
    !write(*,*)'depth,par_dm,SIT',depth,par_dm,1.0-exp(-self%aI*ThetaHat*par_dm/(Tfac*self%mu0hat))
    muIhat = self%mu0hat * Tfac * fL
    
-   !Net light limited growth rate, muIhatNET (A-cursive in Pahlow, 2018)
-   !mu = fC*muIhat - Rchl - respN, where Rchl=fC*(muIhat+RMChl)*zetaChl*ThetaHat
+   !'Net' light limited growth rate, muIhatNET (= A-cursive in Pahlow etal 2013, Appendix 1)
+   !mu = fC*muIhat - Rchl - respN, where Rchl=fC*(muIhat+RMChl)*zetaChl*ThetaHat; and fC= (1-fV-self%Q0/(2.0*Q) )
    !mu = fC*muIhat -fC*muIhat*zetaChl*ThetaHat - fC*RMChl*zetaChl*ThetaHat -respN
    !mu = fC*(muIhat(1-zetaChl*ThetaHat)-RMChl*zetaChl*ThetaHat) - respN
    !mu = fC*muIhatNET - respN, where, muIhatNET=muIhat(1-zetaChl*ThetaHat)-RMChl*zetaChl*ThetaHat
@@ -363,15 +363,17 @@
    
    !Optimization of fV (synthesis vs nut. uptake)
    !Intermediate term  in brackets that appears in Smith et al 2016, eqs. 13 & 14
-   ZINT = (self%zetaN + muIhat/vNhat) * self%Q0 / 2.0
+   ! The solution based on muIhat (not accounts for Rchl):
+   ZINT_muIhat = (self%zetaN + muIhat/vNhat) * self%Q0 / 2.0
+   ! The solution based on muIhatNET (accounts for Rchl):
+   ZINT = (self%zetaN + muIhatNET/vNhat) * self%Q0 / 2.0
    !write(*,'(A,4F12.5)')'  (phy) ZINT, muIhat/vNhat:',ZINT,muIhat/vNhat
    
    if( self%fV_opt ) then
-     ! The solution that does not consider Rchl (eq. 13  in Smith et al 2016)
-     fV = (-1.0 + sqrt(1.0 + 1.0 / ZINT) ) * (self%Q0 / 2.0) * muIhat / vNhat
-     ! The solution that considers Rchl:
-     ZINT_muIhatNET = (self%zetaN + muIhatNET/vNhat) * self%Q0 / 2.0
-     fV_muIhatNET=(-1.0 + sqrt(1.0 + 1.0 / ZINT_muIhatNET) ) * (self%Q0 / 2.0) * muIhatNET / vNhat
+     ! The solution based on muIhat, i.e., not accounts for Rchl (eq. 13  in Smith et al 2016)
+     fV_muIhat = (-1.0 + sqrt(1.0 + 1.0 / ZINT_muIhat) ) * (self%Q0 / 2.0) * muIhat / vNhat
+     ! The solution based on muIhatNET (accounts for Rchl)
+     fV=(-1.0 + sqrt(1.0 + 1.0 / ZINT) ) * (self%Q0 / 2.0) * muIhatNET / vNhat
    else
      fV = self%fV_fixed
    end if
@@ -389,10 +391,10 @@
        fN_monod = din / ( KN_monod + din)
      else
        ! eq. 14 in Smith et al 2016
-       ! Q solution that ignores Rchl, where fV is eliminated:
+       ! muIhat-based Q solution that ignores Rchl, where fV is eliminated:
        !Q_fVfree = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
-       ! fV-explicit, raw solution that ignores Rchl
-       Q = ( ( (self%Q0 / 2.0)*muIhat) + (fV*vNhat) )  / ( (1-fV) * muIhat - fV* self%zetaN * vNhat )
+       ! fV-explicit (raw), muIhat-based Q solution that ignores Rchl
+       Q_muIhat = ( ( (self%Q0 / 2.0)*muIhat) + (fV_muIhat*vNhat) )  / ( (1-fV_muIhat) * muIhat - fV_muIhat* self%zetaN * vNhat )
        ! if fV is not optimized, Q can become implausible. Constrain it to plausible values:
        if ( .not. self%fV_opt) then
           Q = max(self%Q0,min(self%Qmax,Q))
@@ -401,8 +403,8 @@
        else if (muIhat == 0.0_rk .and. fV == 0.0_rk ) then 
           Q = self%Q0
        end if
-       !Q solution that considers Rchl, ie., based on muIhatNET, not muIhat
-       Q_muIhatNET=(fV_muIhatNET*vNhat + (self%Q0/2.0)*muIhatNET) / ((1.0-fV_muIhatNET)*muIhatNET - self%zetaN*fV_muIhatNET*vNhat)
+       !muIhatNET-based Q solution (accounts for Rchl)
+       Q=(fV*vNhat + (self%Q0/2.0)*muIhatNET) / ((1.0-fV)*muIhatNET - self%zetaN*fV*vNhat)
        !write(*,*)'depth,fV,Q,muIhat,vNhat,fV',depth,fV,Q,muIhat,vNhat,fV
      end if
      phyC=phyN/Q
@@ -410,7 +412,8 @@
    
    ! Losses due to Chlorophyll
    ! eq. 26 in Smith et al 2016
-   Rchl = (muIhat + self%RMchl*Tfac) * ( 1 - fV - self%Q0/(2.0*Q) ) * self%zetaChl * ThetaHat
+   ! Rchl=fC*(muIhat+RMChl)*zetaChl*ThetaHat
+   Rchl = (muIhat + self%RMchl) * ( 1 - fV - self%Q0/(2.0*Q) ) * self%zetaChl * ThetaHat
    
    !  Net specific growth rate, assuming instantantaneous optimal resource allocation. 
       !  Either equation gives the same result, provided fA, fV and QN have been optimized.  
@@ -489,7 +492,7 @@
 
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_Q, Q)
-   _SET_DIAGNOSTIC_(self%id_Q_muIhatNET, Q_muIhatNET)
+   _SET_DIAGNOSTIC_(self%id_Q_muIhat, Q_muIhat)
    if ( self%dynQN ) then
      _SET_DIAGNOSTIC_(self%id_fQ, fQ)
    else
@@ -501,7 +504,7 @@
    _SET_DIAGNOSTIC_(self%id_Chl, Theta*phyC)
    _SET_DIAGNOSTIC_(self%id_Chl2C, Theta)
    _SET_DIAGNOSTIC_(self%id_fV, fV)
-   _SET_DIAGNOSTIC_(self%id_fV_muIhatNET, fV_muIhatNET)
+   _SET_DIAGNOSTIC_(self%id_fV_muIhat, fV_muIhat)
    _SET_DIAGNOSTIC_(self%id_fA, fA)
    _SET_DIAGNOSTIC_(self%id_fN, fN)
    _SET_DIAGNOSTIC_(self%id_fL, fL)
