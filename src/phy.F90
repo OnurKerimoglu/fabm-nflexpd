@@ -41,7 +41,7 @@
       type (type_diagnostic_variable_id)   :: id_muIhatNET,id_Q_muIhat,id_fV_muIhat
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyC,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_muIN,id_muIhat,id_vNhat,id_vN,id_respN,id_respChl
-      type (type_diagnostic_variable_id)   :: id_fQ,id_fNmonod,id_fN,id_fL,id_Tfac
+      type (type_diagnostic_variable_id)   :: id_fQ,id_limfunc_Nmonod,id_fC,id_limfunc_L,id_Tfac
       type(type_diagnostic_variable_id)    :: id_fphydoc,id_fphydon,id_fphydetc,id_fphydetn
       
 !     Model parameters
@@ -205,9 +205,9 @@
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_ThetaHat, 'ThetaHat','-', 'ThetaHat',           &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_fN, 'fN','-',    'N limitation function',&
+   call self%register_diagnostic_variable(self%id_fC, 'fC','-',    'fractional allocation to Carbon fixation (=1-fV-Qs/Q) (or =limfunc_Nmonod)',&
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_fL, 'fL','-',    'Light limitation function',&
+   call self%register_diagnostic_variable(self%id_limfunc_L, 'limfunc_L','-',    'Light limitation function',&
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_Tfac, 'Tfac','-',    'Temperature factor',&
                                      output=output_time_step_averaged)
@@ -222,7 +222,7 @@
                                      output=output_instantaneous) 
    end if
    if ( self%mimic_Monod ) then
-     call self%register_diagnostic_variable(self%id_fNmonod, 'fN_monod','-',    'Monod function of DIN',   &
+     call self%register_diagnostic_variable(self%id_limfunc_Nmonod, 'limfunc_Nmonod','-',    'Monod function of DIN',   &
                                      output=output_instantaneous) 
    end if
    
@@ -266,7 +266,7 @@
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac,depth
    real(rk)                   :: mu,respN,mort,Pprod,muIN,KN_monod
-   real(rk)                   :: fL,fN,fN_monod
+   real(rk)                   :: limfunc_L,fC,limfunc_Nmonod
    real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
@@ -335,9 +335,9 @@
    end if
    
    ! Light limited growth rate (eq. 6 in Smith et al 2016)
-   fL=SIT(self%aI,self%mu0hat,par_dm,ThetaHat,Tfac)
+   limfunc_L=SIT(self%aI,self%mu0hat,par_dm,ThetaHat,Tfac)
    !write(*,*)'depth,par_dm,SIT',depth,par_dm,1.0-exp(-self%aI*ThetaHat*par_dm/(Tfac*self%mu0hat))
-   muIhat = self%mu0hat * Tfac * fL
+   muIhat = self%mu0hat * Tfac * limfunc_L
    
    !'Net' light limited growth rate, muIhatNET (= A-cursive in Pahlow etal 2013, Appendix 1)
    !mu = fC*muIhat - Rchl - respN, where Rchl=fC*(muIhat+RMChl)*zetaChl*ThetaHat; and fC= (1-fV-self%Q0/(2.0*Q) )
@@ -388,7 +388,7 @@
        else
           KN_monod =self%KN_monod
        end if
-       fN_monod = din / ( KN_monod + din)
+       limfunc_Nmonod = din / ( KN_monod + din)
      else
        ! eq. 14 in Smith et al 2016
        ! muIhat-based Q solution that ignores Rchl, where fV is eliminated:
@@ -424,17 +424,17 @@
    !to prevent model crashing:
    if (din .gt. self%mindin) then !can be interpreted as 'din detection limit' for phytoplankton
      if ( self%mimic_Monod ) then
-       fN = fN_monod
+       fC = limfunc_Nmonod
      else
-       fN = 1.0_rk - fV - self%Q0/(2.0*Q) 
+       fC = 1.0_rk - fV - self%Q0/(2.0*Q) 
      end if
    else
-     fN = 0.0_rk
+     fC = 0.0_rk
    end if
    
-   !write(*,*)'depth,DIN,fN,fV,Q,Q0/(2.0*Q):',depth,din,fN,fV,Q,self%Q0/(2.0*Q)
+   !write(*,*)'depth,DIN,fC,fV,Q,Q0/(2.0*Q):',depth,din,fC,fV,Q,self%Q0/(2.0*Q)
       
-   muIN =  muIhat * fN
+   muIN =  muIhat * fC
    
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
    Theta= (1 - self%Q0 / 2 / Q - fV) * ThetaHat
@@ -499,15 +499,15 @@
       _SET_DIAGNOSTIC_(self%id_d_phyC, phyC)
    end if
    if ( self%mimic_Monod ) then
-     _SET_DIAGNOSTIC_(self%id_fNmonod,fN_monod)
+     _SET_DIAGNOSTIC_(self%id_limfunc_Nmonod,limfunc_Nmonod)
    end if
    _SET_DIAGNOSTIC_(self%id_Chl, Theta*phyC)
    _SET_DIAGNOSTIC_(self%id_Chl2C, Theta)
    _SET_DIAGNOSTIC_(self%id_fV, fV)
    _SET_DIAGNOSTIC_(self%id_fV_muIhat, fV_muIhat)
    _SET_DIAGNOSTIC_(self%id_fA, fA)
-   _SET_DIAGNOSTIC_(self%id_fN, fN)
-   _SET_DIAGNOSTIC_(self%id_fL, fL)
+   _SET_DIAGNOSTIC_(self%id_fC, fC)
+   _SET_DIAGNOSTIC_(self%id_limfunc_L, limfunc_L)
    _SET_DIAGNOSTIC_(self%id_Tfac, Tfac)
    _SET_DIAGNOSTIC_(self%id_fdinphy_sp, f_din_phy/phyC * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day) !*s_p_d such that output is in d-1
