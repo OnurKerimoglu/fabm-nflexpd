@@ -376,6 +376,8 @@
      fV_muIhat = (-1.0 + sqrt(1.0 + 1.0 / ZINT_muIhat) ) * (self%Q0 / 2.0) * muIhat / vNhat
      ! The solution based on muIhatNET (accounts for Rchl)
      fV=(-1.0 + sqrt(1.0 + 1.0 / ZINT) ) * (self%Q0 / 2.0) * muIhatNET / vNhat
+     !In low light, muIhatNET can become strongly negative, which makes fV also negative.
+     fV=max(0.0, fV) !don't allow negative fV
    else
      fV = self%fV_fixed
    end if
