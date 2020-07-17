@@ -38,7 +38,7 @@
       type (type_state_variable_id)        :: id_din,id_don,id_doc,id_detn,id_detc
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_depth
       type (type_horizontal_dependency_id) :: id_FDL
-      type (type_diagnostic_variable_id)   :: id_muIhatNET,id_Q_muIhat,id_fV_muIhat
+      type (type_diagnostic_variable_id)   :: id_muIhatNET,id_ZINT,id_Q_muIhat,id_fV_muIhat
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyC,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_muIN,id_muIhat,id_vNhat,id_vN,id_respN,id_respChl
       type (type_diagnostic_variable_id)   :: id_fQ,id_limfunc_Nmonod,id_fC,id_limfunc_L,id_Tfac
@@ -196,6 +196,8 @@
    call self%register_diagnostic_variable(self%id_respChl, 'R_Chl','/d',    'Respiration cost of Chl uptake',     &
                                      output=output_time_step_averaged)
                                      
+   call self%register_diagnostic_variable(self%id_ZINT, 'ZINT','-',    'Qs*(muIhatNET/vNhat+zetaN)',           &
+                                     output=output_time_step_averaged)                                     
    call self%register_diagnostic_variable(self%id_fV, 'fV','-',    'fV',           &
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_fV_muIhat, 'fV_muIhat','-',    'fV (based on muIhat)',           &
@@ -503,6 +505,7 @@
    end if
    _SET_DIAGNOSTIC_(self%id_Chl, Theta*phyC)
    _SET_DIAGNOSTIC_(self%id_Chl2C, Theta)
+   _SET_DIAGNOSTIC_(self%id_ZINT, ZINT)
    _SET_DIAGNOSTIC_(self%id_fV, fV)
    _SET_DIAGNOSTIC_(self%id_fV_muIhat, fV_muIhat)
    _SET_DIAGNOSTIC_(self%id_fA, fA)
