@@ -12,9 +12,9 @@ import numpy as np
 varlims={'abio_PAR_dmean':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf':[-100,0],'wind':[-6,26],
          'abio_detc_sed/abio_detn_sed':[4.0,14.0],'abio_detc/abio_detn':[5.0,30.0],'abio_doc/abio_don':[5.0,30.0],
          'abio_din': [0, 30],'abio_detc':[0,80],'abio_detn':[0,6], 'abio_doc':[0,80], 'abio_don':[0,6],
-         'Chl':[0,10.],'C':[0,50.0],'N':[0,7.5],'Q':[0.0,0.25],'Chl2C':[0.0,0.5],
+         'Chl':[0,10.],'C':[0,50.0],'N':[0,7.5],'Q':[0.02,0.22],'Chl2C':[0.00,0.05],
          'PPR':[0,20.],'mu':[0,0.4],'vN':[0,0.05],'f_dinphy':[0,0.5],'R_N':[0,0.04],'R_Chl':[0,0.1],
-         'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.04,0.54],'fN':[0,0.2],'fL':[0.,1]}
+         'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.00,0.05],'fC':[0,0.2],'limfunc_L':[0.,1]}
 prettyunits={'abio_detc_sed/abio_detn_sed':'molC/molN','abio_detc/abio_detn':'molC/molN','abio_doc/abio_don':'molC/molN'}
 prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{MLD}',
              'airt': 'T_{air}','temp': 'T','u10':'\mathrm{Wind \ Speed \ (-u)}','wind':'\mathrm{Wind \ Speed}',
@@ -23,8 +23,8 @@ prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{M
              'Chl':'Phy_{Chl}','C':'Phy_C','N':'Phy_N',
              'f_dinphy':'f_{DIN-Phy}',
              'Q':'Q','vN':'v_N','mu':'\mu',
-             'R_N':'R_N','R_Chl':'R_{Chl}','fN':'L_N','fL':'L_I',
-             'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}'}
+             'R_N':'R_N','R_Chl':'R_{Chl}','fC':'f_C','limfunc_L':'L_I',
+             'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}','Chl2C':'\Theta'}
 numlevels=6
 #depth range to be shown:
 prescylim=[0,0] #[0,0] means no ylimits are prescribed, full depth range will be shown'
@@ -38,10 +38,10 @@ def main(fname, numyears, modname):
              'abio1':['abio_PAR_dmean','temp', 'mld_surf'],
              'abio2':['abio_din','abio_detc/abio_detn','abio_detc_sed/abio_detn_sed'], #'abio_doc/abio_don'],
              'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
-             'phy-1':['C','N','Q'],
+             'phy-1':['C','N','Q','Chl','Chl2C'],
              'phy-2':['mu','vN','R_N','R_Chl'],
-             'phy-3':['fA','fV','fN','fL'], #, 'ThetaHat']
-             'phy-avg1': ['Q_avg0-50', 'fN_avg0-50', 'C_avg0-50'],
+             'phy-3':['ThetaHat','fA','fV','fC','limfunc_L'], #, 'ThetaHat']
+             'phy-avg1': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50'],
              'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
                           'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
              }
@@ -50,14 +50,14 @@ def main(fname, numyears, modname):
       #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
       models = ['phy_FS', 'phy_IA', 'phy_DA']
       varsets={#'abio0':['I_0','airt', 'wind'],
-             'abio12':['temp','mld_surf','abio_din','abio_PAR_dmean',],
-             'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
-             'phy-1':['C','N','Q'],
-             'phy-2':['mu','vN','R_N','R_Chl'],
-             'phy-3':['fA','fV','fN','fL'], #, 'ThetaHat']
-             'phy-avg1': ['Q_avg0-50', 'fN_avg0-50', 'C_avg0-50'],
-             'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
-                          'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
+             #'abio12':['temp','mld_surf','abio_din','abio_PAR_dmean',],
+             #'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
+             'phy-1':['C','N','Q','Chl','Chl2C'],
+             #'phy-2':['mu','vN','R_N','R_Chl'],
+             #'phy-3':['ThetaHat', 'fA','fV','fC','limfunc_L'], #, 'ThetaHat']
+             #'phy-avg1': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50'],
+             #'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
+             #             'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
              }
       
     for groupname,varset in varsets.iteritems():

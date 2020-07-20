@@ -11,13 +11,13 @@ instances:
       Theta_opt : .false.            # whether to optimize theta (true/false)
       fA_opt : .false.               # whether to optimize fA (true/false)
       fV_opt : .false.               # whether to optimize fV (true/false)
-      TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
+      TheHat_fixed: 0.45              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
       RMchl: 0.1                     # loss rate of chlorophyll (d-1)
       mu0hat: 2.5                    # max. potential growth rate (d-1)
       aI: 1.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
-      fA_fixed: 0.6                  # fA to use when fa_opt=false (-)
-      fV_fixed: 0.25                 # fV to use when fv_opt=false (-)
-      Q_fixed: 0.150943              # Q to use when provided, dynQN=false and fV_opt=false 
+      fA_fixed: 0.74                 # fA to use when fa_opt=false (-)
+      fV_fixed: 0.335                # fV to use when fv_opt=false (-)
+      Q_fixed: 0.08                  # Q to use when provided, dynQN=false and fV_opt=false, RF=0.150943
       Q0: 0.039                      # Subsistence cell quota (molN molC-1)
       V0hat: 1.0                     # Potential maximum uptake rate (molN molC-1 d-1)
       A0hat: 0.1                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
@@ -81,11 +81,11 @@ instances:
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
       dynQN: .false.                 # whether to dynamically represent QN (explicit state var for N- and C-)
-      Theta_opt : .false.            # whether to optimize theta (true/false)
+      Theta_opt : .true.            # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
       fV_opt : .true.                # whether to optimize fV (true/false)
       TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
-      ThetaHat_min: 0.1              # Minimum allowed value, which is also used when par<I_0
+      ThetaHat_min: 0.01           # Minimum allowed value, which is also used when par<I_0
       RMchl: 0.1                     # loss rate of chlorophyll (d-1)
       mu0hat: 2.5                    # max. potential growth rate (d-1)
       aI: 1.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
@@ -117,12 +117,12 @@ instances:
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
       dynQN: .true.                  # whether to dynamically represent QN (explicit state var for N- and C-)
-      Theta_opt : .false.             # whether to optimize theta (true/false)
+      Theta_opt : .true.             # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
       fV_opt : .true.                # whether to optimize fV (true/false)
       TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
-      ThetaHat_min: 0.1              # Minimum allowed value, which is also used when par<I_0
-      RMchl: 0.1                     # loss rate of chlorophyll (d-1)
+      ThetaHat_min: 0.01           # Minimum allowed value, which is also used when par<I_0
+      RMchl: 0.1                   # loss rate of chlorophyll (d-1)
       mu0hat: 2.5                    # max. potential growth rate (d-1)
       aI: 1.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
       fA_fixed: 0.6                  # fA to use when fa_opt=false (-)
