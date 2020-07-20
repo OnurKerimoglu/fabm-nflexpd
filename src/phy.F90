@@ -173,7 +173,7 @@
                                      output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_Chl, 'Chl','mgChl/m^3',    'Chlorophyll concentration',           &
                                      output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_Chl2C, 'Chl2C','gChl/molC',    'cellular chlorophyll content',           &
+   call self%register_diagnostic_variable(self%id_Chl2C, 'Chl2C','gChl/gC',    'cellular chlorophyll content',           &
                                      output=output_instantaneous)
                                      
    call self%register_diagnostic_variable(self%id_muIN, 'muIN','/d',    'gross sp. growth rate',           &
@@ -205,7 +205,7 @@
                                      
    call self%register_diagnostic_variable(self%id_fA, 'fA','-',    'fA',           &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_ThetaHat, 'ThetaHat','-', 'ThetaHat',           &
+   call self%register_diagnostic_variable(self%id_ThetaHat, 'ThetaHat','gChl/gC', 'ThetaHat',           &
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_fC, 'fC','-',    'fractional allocation to Carbon fixation (=1-fV-Qs/Q) (or =limfunc_Nmonod)',&
                                      output=output_time_step_averaged)
@@ -507,8 +507,8 @@
    if ( self%mimic_Monod ) then
      _SET_DIAGNOSTIC_(self%id_limfunc_Nmonod,limfunc_Nmonod)
    end if
-   _SET_DIAGNOSTIC_(self%id_Chl, Theta*phyC)
-   _SET_DIAGNOSTIC_(self%id_Chl2C, Theta)
+   _SET_DIAGNOSTIC_(self%id_Chl, Theta*phyC) 
+   _SET_DIAGNOSTIC_(self%id_Chl2C, Theta/12.0) !gChl/molC*1molC/12gC =gChl/gC
    _SET_DIAGNOSTIC_(self%id_ZINT, ZINT)
    _SET_DIAGNOSTIC_(self%id_fV, fV)
    _SET_DIAGNOSTIC_(self%id_fV_muIhat, fV_muIhat)
@@ -525,7 +525,7 @@
    _SET_DIAGNOSTIC_(self%id_vNhat, vNhat * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_respN, respN * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_respChl, Rchl * secs_pr_day)
-   _SET_DIAGNOSTIC_(self%id_ThetaHat, ThetaHat) 
+   _SET_DIAGNOSTIC_(self%id_ThetaHat, ThetaHat/12.0) !gChl/molC*1molC/12gC =gChl/gC
    _SET_DIAGNOSTIC_(self%id_PPR, mu*phyC*secs_pr_day) !*s_p_d such that output is in d-1
    
    !Export diagnostic bulk fluxes
