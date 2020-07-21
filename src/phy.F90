@@ -321,6 +321,8 @@
    ! Optimization of ThetaHat (optimal Chl content in the chloroplasts)
    ! in cmo, mu0=phy%V0*ft/(phy%rdl + phy%daylen)
    I_zero = self%zetaChl * self%RMchl * Tfac / (Ld*self%aI)   ! Threshold irradiance
+   zetaChl=self%zetaChl
+   RMchl=self%RMchl
    if( self%theta_opt ) then
      if( par_dm .gt. I_zero ) then !in cmo: .and. (mu0>0.0)
        !argument for the Lambert's W function
@@ -328,12 +330,10 @@
        !larg=min(1e38,larg) !larg can explode if aI is too large compared to mu0hat*zetaChl
        ! eq. 8 in Smith et al 2016
        ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par_dm)
-       zetaChl=self%zetaChl
-       RMchl=self%RMchl
        if (ThetaHat .lt. self%ThetaHat_min) then
          ThetaHat = self%ThetaHat_min  !  a small positive value
-         zetaChl=0.0
-         RMchl=0.0
+         !zetaChl=0.0
+         !RMchl=0.0
        end if 
        !ThetaHat=max(self%ThetaHat_min,ThetaHat) !  a small positive value 
        !if (ThetaHat .lt. 0.09)then
@@ -343,8 +343,8 @@
      else
        !write(*,*)'par_dm,I_0',par_dm,I_zero
        ThetaHat = self%ThetaHat_min  !  a small positive value
-       zetaChl=0.0
-       RMchl=0.0
+       !zetaChl=0.0
+       !RMchl=0.0
        !in cmo: ThetaHat=0.0 -> but that makes fV and muIhatNET 0 -> Q=NaN
      end if
    else
