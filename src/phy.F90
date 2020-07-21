@@ -264,7 +264,7 @@
    real(rk)                   :: ThetaHat,vNhat,muIhat
    real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
    real(rk)                   :: muIhatNET,Q_muIhat,fV_muIhat,ZINT_muIhat
-   real(rk)                   :: vN,Vhat_fNT
+   real(rk)                   :: vN,Vhat_fNT,RMchl,zetaChl
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac,depth
    real(rk)                   :: mu,respN,mort,Pprod,muIN,KN_monod
@@ -302,6 +302,12 @@
      par_dm=par
    end if
    
+   !when par_dm=0, muIhatNET and fV becomes both 0, which makes Q=NaN
+   !so we set it to a very small value
+   if (par_dm .eq. 0.0 ) then
+     par_dm=1e-6
+   end if
+   
    !get Ld (fractional day length)
    _GET_HORIZONTAL_(self%id_FDL,Ld)
    
@@ -322,7 +328,14 @@
        !larg=min(1e38,larg) !larg can explode if aI is too large compared to mu0hat*zetaChl
        ! eq. 8 in Smith et al 2016
        ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par_dm)
-       ThetaHat=max(self%ThetaHat_min,ThetaHat) !  a small positive value 
+       zetaChl=self%zetaChl
+       RMchl=self%RMchl
+       if (ThetaHat .lt. self%ThetaHat_min) then
+         ThetaHat = self%ThetaHat_min  !  a small positive value
+         zetaChl=0.0
+         RMchl=0.0
+       end if 
+       !ThetaHat=max(self%ThetaHat_min,ThetaHat) !  a small positive value 
        !if (ThetaHat .lt. 0.09)then
        !  write(*,*)'larg, self%aI*par_dm, self%mu0hat*Tfac*self%zetaChl',larg, self%aI*par_dm, self%mu0hat*Tfac*self%zetaChl
          !write(*,*)'ThetaHat,larg,WAPR',ThetaHat,larg,WAPR(larg,0,0)
@@ -330,7 +343,9 @@
      else
        !write(*,*)'par_dm,I_0',par_dm,I_zero
        ThetaHat = self%ThetaHat_min  !  a small positive value
-       !in cmo: ThetaHat=0.0 
+       zetaChl=0.0
+       RMchl=0.0
+       !in cmo: ThetaHat=0.0 -> but that makes fV and muIhatNET 0 -> Q=NaN
      end if
    else
      ThetaHat = self%TheHat_fixed
@@ -346,7 +361,7 @@
    !mu = fC*muIhat -fC*muIhat*zetaChl*ThetaHat - fC*RMChl*zetaChl*ThetaHat -respN
    !mu = fC*(muIhat(1-zetaChl*ThetaHat)-RMChl*zetaChl*ThetaHat) - respN
    !mu = fC*muIhatNET - respN, where, muIhatNET=muIhat(1-zetaChl*ThetaHat)-RMChl*zetaChl*ThetaHat
-   muIhatNET=muIhat*(1.0-self%zetaChl*ThetaHat)-self%RMchl*self%zetaChl*ThetaHat
+   muIhatNET=muIhat*(1.0-zetaChl*ThetaHat)-RMchl*zetaChl*ThetaHat
    
    
    !Optimal allocation for affinity vs max. uptake
@@ -411,7 +426,7 @@
        end if
        !muIhatNET-based Q solution (accounts for Rchl)
        Q=(fV*vNhat + (self%Q0/2.0)*muIhatNET) / ((1.0-fV)*muIhatNET - self%zetaN*fV*vNhat)
-       !write(*,*)'depth,fV,Q,muIhat,vNhat,fV',depth,fV,Q,muIhat,vNhat,fV
+       !write(*,*)'depth,fV,Q,muIhatNET,vNhat',depth,fV,Q,muIhatNET,vNhat
      end if
      phyC=phyN/Q
    end if
@@ -419,7 +434,7 @@
    ! Losses due to Chlorophyll
    ! eq. 26 in Smith et al 2016
    ! Rchl=fC*(muIhat+RMChl)*zetaChl*ThetaHat
-   Rchl = (muIhat + self%RMchl) * ( 1 - fV - self%Q0/(2.0*Q) ) * self%zetaChl * ThetaHat
+   Rchl = (muIhat + RMchl) * ( 1 - fV - self%Q0/(2.0*Q) ) * zetaChl * ThetaHat
    
    !  Net specific growth rate, assuming instantantaneous optimal resource allocation. 
       !  Either equation gives the same result, provided fA, fV and QN have been optimized.  
