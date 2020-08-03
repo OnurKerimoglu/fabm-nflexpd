@@ -15,7 +15,8 @@ varlims={'abio_PAR_dmean':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'm
          'Chl':[0,10.],'C':[0,50.0],'N':[0,7.5],'Q':[0.02,0.22],'Chl2C':[0.00,0.05],
          'PPR':[0,20.],'mu':[0,0.4],'vN':[0,0.05],'f_dinphy':[0,0.5],'R_N':[0,0.04],'R_Chl':[0,0.1],
          'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.00,0.05],'fC':[0,0.2],'limfunc_L':[0.,1]}
-prettyunits={'abio_detc_sed/abio_detn_sed':'molC/molN','abio_detc/abio_detn':'molC/molN','abio_doc/abio_don':'molC/molN'}
+#prettyunits={'abio_detc_sed/abio_detn_sed':'molC/molN','abio_detc/abio_detn':'molC/molN','abio_doc/abio_don':'molC/molN'}
+prettyunits={}
 prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{MLD}',
              'airt': 'T_{air}','temp': 'T','u10':'\mathrm{Wind \ Speed \ (-u)}','wind':'\mathrm{Wind \ Speed}',
              'abio_din':'DIN','abio_detc_sed/abio_detn_sed':'\mathrm{C:N \ of \ POM-export}','abio_detc/abio_detn':'POC:PON','abio_doc/abio_don':'DOC:DON',
@@ -37,13 +38,13 @@ def main(fname, numyears, modname):
       varsets={#'abio0':['airt', 'wind', 'I_0'],
              'abio1':['abio_PAR_dmean','temp', 'mld_surf'],
              'abio2':['abio_din','abio_detc/abio_detn','abio_detc_sed/abio_detn_sed'], #'abio_doc/abio_don'],
-             'abio3':['abio_detn','abio_detc','abio_don','abio_doc']
+             'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
              'phy-1':['C','N','Q','Chl','Chl2C'],
              'phy-2':['mu','vN','R_N','R_Chl'],
              'phy-3':['ThetaHat', 'fA','fV','fC','limfunc_L'],
              'phy-avg1': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50'],
              'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
-             #             'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
+                          'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
              }
     elif modname=='FS-IA-DA': #i.e., competition experiment
       #models = ['phy_IOQ', 'phy_DOQ']
@@ -55,6 +56,21 @@ def main(fname, numyears, modname):
              'phy-1':['C','N','Q','Chl','Chl2C'],
              'phy-2':['mu','vN','R_N','R_Chl'],
              'phy-3':['ThetaHat', 'fA','fV','fC','limfunc_L'],
+             #'phy-avg1': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50'],
+             #'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
+             #             'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
+             }
+    elif modname=='FS-IA-DA_merged': #i.e., merged single experiment
+      #models = ['phy_IOQ', 'phy_DOQ']
+      #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
+      models = ['phy_FS','phy_IA', 'phy_DA']
+      varsets={#'abio0':['I_0','airt', 'wind'],
+             #'abio12':['temp','mld_surf','abio_din','abio_PAR_dmean',],
+             #'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
+             #'phy-1':['C','N','Q','Chl','Chl2C'],
+             #'phy-2':['mu','vN','R_N','R_Chl'],
+             #'phy-3':['ThetaHat', 'fA','fV','fC','limfunc_L'],
+             'abio-avg1':['din_avg0-50', 'detc/detn_avg0-50', 'detc_sed/detn_sed'],
              'phy-avg1': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50'],
              'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
                           'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
@@ -107,7 +123,16 @@ def plot_multivar(fname, numyears, groupname, varset, models):
         ax = plt.subplot(numrow, numcol, j + 1)
 
         for i,model in enumerate(models):
-            varn = '%s_%s'%(models[i], varn_basic)
+            if 'abio' in groupname:
+                modelpref=models[i].split('phy_')[1]
+                if '/' in varn_basic:
+                    varn_basic0='abio_%s_%s' % (modelpref, varn_basic.split('/')[0])
+                    varn_basic1 = 'abio_%s_%s' % (modelpref, varn_basic.split('/')[1])
+                    varn='%s/%s'%(varn_basic0,varn_basic1)
+                else:
+                    varn = 'abio_%s_%s' % (modelpref, varn_basic)
+            else:
+                varn = '%s_%s'%(models[i], varn_basic)
 
             varfound, dat, valsat, longname, units = get_varvals(ncv, varn)
 
@@ -121,9 +146,25 @@ def plot_multivar(fname, numyears, groupname, varset, models):
 
         if varn_basic in prettyunits:
             units = prettyunits[varn_basic]
-        varn_basic_root=varn_basic.split('_avg')[0]
-        depthintstr=varn_basic.split('_avg')[1] #.split.('_')[0]
-        plt.title('%sm mean $%s$ [$%s$]' % (depthintstr, prettynames[varn_basic_root], units), size=12.0)
+        if 'avg' in varn_basic:
+            varn_basic_root = varn_basic.split('_avg')[0]
+            depthintstr=varn_basic.split('_avg')[1] #.split.('_')[0]
+        else:
+            varn_basic_root = varn_basic
+            depthintstr =''
+        if 'abio' in groupname:
+            if '/' in varn_basic:
+                varn_basic0 = 'abio_%s' % (varn_basic.split('/')[0])
+                varn_basic1 = 'abio_%s' % (varn_basic.split('/')[1].split('_avg')[0])
+                varn_basic_root = '%s/%s' % (varn_basic0, varn_basic1)
+            else:
+                varn_basic_root = 'abio_%s' % varn_basic_root
+        if varn_basic_root in prettyunits:
+            units = prettyunits[varn_basic_root]
+        if 'avg' in varn_basic:
+            plt.title('%sm mean $%s$ [$%s$]' % (depthintstr, prettynames[varn_basic_root], units), size=12.0)
+        else:
+            plt.title('$%s$ [$%s$]' % (prettynames[varn_basic_root], units), size=12.0)
 
         # shrink the axes width by 20% to fit that of the contour plots, and put the legend in that space
         box = ax.get_position()
@@ -396,17 +437,18 @@ def get_varvals(ncv,varn0):
     return (True,varvals,valsat,longname,units)
 
 def get_varvals_avg(ncv,varn0):
-    varn=zintstr=varn0.split('_avg')[0]
-    zintstr=varn0.split('_avg')[1]
-    #assume that zintstr=0-30 means below 0, and above 30m depth
+    zintstr = varn0.split('_avg')[1]
+    varn=varn0.split('_avg')[0]
+    varfound, varvals, valsat,longname, units = get_varvals(ncv, varn)
+    #assume that zintstr=0-X means below 0, and above Xm depth
     zint=[np.float(zintstr.split('-')[0]),np.float(zintstr.split('-')[1])]
     depth=np.squeeze(ncv['z'][:, :])*-1
     zi=(depth>=zint[0]) * (depth<=zint[1])
-    vals=np.squeeze(ncv[varn])
-    valsM=np.ma.array(vals,mask=np.invert(zi))
+    #vals=np.squeeze(ncv[varn])
+    valsM=np.ma.array(varvals,mask=np.invert(zi))
     varvals = np.mean(valsM,axis=1)
-    longname=ncv[varn].long_name
-    units=ncv[varn].units
+    #longname=ncv[varn].long_name
+    #units=ncv[varn].units
 
     return (True,varvals,longname,units)
 
@@ -438,6 +480,10 @@ def get_varvals_op(ncv,varn0):
     elif '/' in varn0:
         varvals=v1/v2
         units=ncv[varn].units + '/' + ncv[varn2].units
+        if units=='mmolC/m^2/d/mmolN/m^2/d':
+            units='molC/molN'
+        elif units=='mmolC/m^3/mmolN/m^3':
+            units='molC/molN'
     return (True,varvals,longname,units)
         
 def format_date_axis(ax,tspan):
@@ -479,7 +525,7 @@ if __name__ == "__main__":
     # if you call this script from the command line (the shell) it will
     # run the 'main' function
     if len(sys.argv) < 2: #this means no arguments were passed
-      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_wconst_FS-IA-DA/Highlat-100m_wconst_FS-IA-DA_mean.nc'
+      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_wconst_FS-IA-DA_merged/Highlat-100m_wconst_FS-IA-DA_merged_mean.nc'
       #fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_wconst-DA/Highlat-100m_wconst-DA_mean.nc'
       print('plotting default file:'+fname)
     else:
@@ -493,8 +539,8 @@ if __name__ == "__main__":
     print('plotting last '+str(numyears)+' year of the simulation')
     
     if len(sys.argv)<4:
-      modname='FS-IA-DA'
-      # modname = 'phy_DA'
+      modname='FS-IA-DA_merged'
+      #modname = 'phy_DA'
     else:
       modname=sys.argv[3]
     main(fname, numyears, modname)
