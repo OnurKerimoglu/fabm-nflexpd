@@ -37,27 +37,27 @@ def main(fname, numyears, modname):
       varsets={#'abio0':['airt', 'wind', 'I_0'],
              'abio1':['abio_PAR_dmean','temp', 'mld_surf'],
              'abio2':['abio_din','abio_detc/abio_detn','abio_detc_sed/abio_detn_sed'], #'abio_doc/abio_don'],
-             'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
+             'abio3':['abio_detn','abio_detc','abio_don','abio_doc']
              'phy-1':['C','N','Q','Chl','Chl2C'],
              'phy-2':['mu','vN','R_N','R_Chl'],
-             'phy-3':['ThetaHat','fA','fV','fC','limfunc_L'], #, 'ThetaHat']
+             'phy-3':['ThetaHat', 'fA','fV','fC','limfunc_L'],
              'phy-avg1': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50'],
              'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
-                          'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
+             #             'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
              }
     elif modname=='FS-IA-DA': #i.e., competition experiment
       #models = ['phy_IOQ', 'phy_DOQ']
       #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
-      models = ['phy_FS', 'phy_IA', 'phy_DA']
+      models = ['phy_FS','phy_IA', 'phy_DA'] 
       varsets={#'abio0':['I_0','airt', 'wind'],
-             #'abio12':['temp','mld_surf','abio_din','abio_PAR_dmean',],
-             #'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
+             'abio12':['temp','mld_surf','abio_din','abio_PAR_dmean',],
+             'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
              'phy-1':['C','N','Q','Chl','Chl2C'],
-             #'phy-2':['mu','vN','R_N','R_Chl'],
-             #'phy-3':['ThetaHat', 'fA','fV','fC','limfunc_L'], #, 'ThetaHat']
-             #'phy-avg1': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50'],
-             #'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
-             #             'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
+             'phy-2':['mu','vN','R_N','R_Chl'],
+             'phy-3':['ThetaHat', 'fA','fV','fC','limfunc_L'],
+             'phy-avg1': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50'],
+             'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
+                          'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
              }
       
     for groupname,varset in varsets.iteritems():
@@ -70,13 +70,13 @@ def main(fname, numyears, modname):
 def plot_multivar(fname, numyears, groupname, varset, models):
     cols=['green','darkblue','orange']
     linestyles=['--',':','-']
-    if len(varset)<5:
-        numcol = len(varset)*1.0
-    else:
+    if len(varset)>3:
         if len(varset) in [3,6,9]:
             numcol=3.0
         elif len(varset) in [4,8,12]:
             numcol=4.0
+    else:
+        numcol = len(varset)
     numrow = np.ceil(len(varset) / numcol)
     figuresize = (1 + 4*numcol, 1. + 1.5*numrow)
     fpar = {'left': 0.05, 'right': 0.99, 'top': 0.93, 'bottom': 0.07, 'hspace': 0.5, 'wspace': 0.2}
@@ -146,33 +146,35 @@ def plot_multivar(fname, numyears, groupname, varset, models):
 
 def plot_singlevar(fname,numyears,groupname,varset,models):
     colmap='viridis'
-    
+    #default:
+    fpar = {'left': 0.05, 'right': 0.99, 'top': 0.85, 'bottom': 0.15, 'hspace': 0.5, 'wspace': 0.2}
     if 'phy' in groupname:
         if len(models)==1:
-            if len(varset)>4:
-                numcol = 3.0
+            if len(varset)>5:
+                numrow = 5.0
             else:
-                numcol=len(varset)
-            figuresize = (1 + 4 * numcol, .5 + 1.5 * len(varset)/numcol)
+                numrow = len(varset)
+            numcol = len(varset)/numrow
+            figuresize = (0.25 + 4 * numcol, .5 + 1.5 * numrow)
             varnames = []
             for var in varset:
                 varnames.append('%s_%s' % (models[0], var))
-            if len(varset)/numcol==1:
-               fpar = {'left':0.05, 'right':0.99, 'top': 0.85, 'bottom': 0.15, 'hspace': 0.5, 'wspace': 0.2}
-            else:
-                fpar = {'left':0.05, 'right':0.99, 'top': 0.93, 'bottom': 0.07, 'hspace': 0.5, 'wspace': 0.2}
+            if numrow!=1:
+                fpar = {'left':0.15, 'right':0.99, 'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.2}
         elif len(models)==2: #show the difference between models in the 3rd column
             numcol = 3.0
-            figuresize = (1 + 4 * numcol, 1 + 1.5 * len(varset))
+            numrow = len(varset)
+            figuresize = (1 + 4 * numcol, 1 + 1.5 * numrow)
             varnames = []
             for var in varset:
                 varnames.append('%s_%s' % (models[0], var))
                 varnames.append('%s_%s' % (models[1], var))
                 varnames.append('%s_%s-%s_%s' % (models[0], var, models[1], var))
-            fpar = {'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.2}
+            fpar = {'left':0.1, 'right':0.9, 'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.2}
         elif len(models)>2:
             numcol = len(models)
-            figuresize = (1 + 4 * len(models), .5 + 1.5 * len(varset))
+            numrow = len(varset)
+            figuresize = (1 + 4 * numcol, .5 + 1.5 * numrow)
             varnames = []
             for var in varset:
                 for i in range(len(models)):
@@ -181,20 +183,29 @@ def plot_singlevar(fname,numyears,groupname,varset,models):
                 fpar = {'left': 0.05, 'right': 0.99, 'top': 0.93, 'bottom': 0.07, 'hspace': 0.5, 'wspace': 0.2}
             elif len(varset)>2:
                 fpar = {'left':0.05, 'right':0.99, 'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.2}
-            else:
-                print('len(varset):%s'%(len(varset)))
     else:
         varnames = varset
-        if len(varset)>4:
-            numcol = 3.0
+        if len(models)==1:
+            if len(varset)>5:
+                numrow = 5.0
+            else:
+                numrow = len(varset)
+            numcol = len(varset)/numrow
+            figuresize = (0.25 + 4 * numcol, .5 + 1.5 * numrow)
+            if numrow!=1:
+                fpar = {'left':0.15, 'right':0.99, 'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.2}
         else:
-            numcol=len(varset)
-        #figuresize = (1 + 4 * len(models), .5 + 1.5 * len(varset)/numcol)
-        figuresize = (1 + 4 * numcol, .5 + 1.5 * len(varset)/numcol)
-        if len(varset)/numcol==1:
-            fpar = {'left':0.05, 'right':0.99, 'top': 0.85, 'bottom': 0.15, 'hspace': 0.5, 'wspace': 0.2}
-        else:
-            fpar = {'left':0.05, 'right':0.99, 'top': 0.93, 'bottom': 0.07, 'hspace': 0.5, 'wspace': 0.2}
+            if len(varset)>4:
+                numcol = 3.0
+            else:
+                numcol=len(varset)
+            numrow=len(varset)/numcol
+            #figuresize = (1 + 4 * len(models), .5 + 1.5 * len(varset)/numcol)
+            figuresize = (1 + 4 * numcol, .5 + 1.5 * numrow)
+            if len(varset)/numcol==1:
+                fpar = {'left':0.05, 'right':0.99, 'top': 0.85, 'bottom': 0.15, 'hspace': 0.5, 'wspace': 0.2}
+            else:
+                fpar = {'left':0.05, 'right':0.99, 'top': 0.93, 'bottom': 0.07, 'hspace': 0.5, 'wspace': 0.2}
     
     #pelagic variables
     nc=nc4.Dataset(fname)
@@ -224,8 +235,8 @@ def plot_singlevar(fname,numyears,groupname,varset,models):
     for i,varn in enumerate(varnames):       
         print (varn)
         varn_basic,model=get_basic_varname(varn,models)
-
-        ax=plt.subplot(np.ceil(numvar/numcol),numcol,i+1)
+        
+        ax=plt.subplot(numrow,numcol,i+1)
 
         if (varn == 'skip'):
             continue
@@ -302,6 +313,8 @@ def plot_singlevar(fname,numyears,groupname,varset,models):
                 if varn_basic in varlims.keys():
                     ax.set_ylim(varlims[varn][0],varlims[varn][1])
             else:
+                #coloring of values exactly 0.0 becomes arbitrary. Tip them over the positive side to prevent alarming results
+                datC[datC==0.0]=1e-15
                 if len(z.shape) == 2:
                     pcf = ax.contourf(t, depth, datC, cmap=cmap,vmin=vmin,vmax=vmax)
                 else:
