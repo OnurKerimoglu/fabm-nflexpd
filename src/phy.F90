@@ -49,7 +49,7 @@
       real(rk) :: zetaN,zetaChl,M0p,Mpart,RMChl
       real(rk) :: mu0hat,aI
       real(rk) :: A0hat,V0hat,Q0,Qmax,KN_monod
-      real(rk) :: fA_fixed,fV_fixed,TheHat_fixed,Q_fixed,ThetaHat_min
+      real(rk) :: fA_fixed,fV_fixed,TheHat_fixed,Q_fixed,ThetaHat_min,fV_min
       logical  :: dynQN,fV_opt,fA_opt,Theta_opt,mimic_Monod
       real(rk) :: dic_per_n
 
@@ -109,6 +109,7 @@
    !nutrient-related
    call self%get_parameter(self%fA_fixed, 'fA_fixed','-', 'fA to use when fa_opt=false', default=0.5_rk)
    call self%get_parameter(self%fV_fixed, 'fV_fixed','-', 'fV to use when fv_opt=false', default=0.25_rk)
+   call self%get_parameter(self%fV_min, 'fV_min','-', 'fV_min to use when fv<fv_min', default=-1.0_rk)
    call self%get_parameter(self%Q_fixed, 'Q_fixed','-', 'Q to use when provided, dynQN=false and fV_opt=false', default=-1.0_rk)
    call self%get_parameter(self%Qmax, 'Qmax','molN molC-1', 'Maximum cell quota', default=0.3_rk)
    call self%get_parameter(self%Q0, 'Q0','molN molC-1', 'Subsistence cell quota', default=0.039_rk)
@@ -332,8 +333,8 @@
        ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par_dm)
        if (ThetaHat .lt. self%ThetaHat_min) then
          ThetaHat = self%ThetaHat_min  !  a small positive value
-         !zetaChl=0.0
-         !RMchl=0.0
+         zetaChl=0.0
+         RMchl=0.0
        end if 
        !ThetaHat=max(self%ThetaHat_min,ThetaHat) !  a small positive value 
        !if (ThetaHat .lt. 0.09)then
@@ -343,8 +344,8 @@
      else
        !write(*,*)'par_dm,I_0',par_dm,I_zero
        ThetaHat = self%ThetaHat_min  !  a small positive value
-       !zetaChl=0.0
-       !RMchl=0.0
+       zetaChl=0.0
+       RMchl=0.0
        !in cmo: ThetaHat=0.0 -> but that makes fV and muIhatNET 0 -> Q=NaN
      end if
    else
@@ -391,10 +392,11 @@
      fV_muIhat = (-1.0 + sqrt(1.0 + 1.0 / ZINT_muIhat) ) * (self%Q0 / 2.0) * muIhat / vNhat
      ! The solution based on muIhatNET (accounts for Rchl)
      fV=(-1.0 + sqrt(1.0 + 1.0 / ZINT) ) * (self%Q0 / 2.0) * muIhatNET / vNhat
-     !In low light, muIhatNET can become strongly negative, which makes fV also negative.
-     !if (self%dynQN) then
-     !  fV=max(0.0, fV) !don't allow negative fV
-     !end if
+     !In low light, muIhatNET can become negative, which makes fV also negative.
+     !Force non-zero/non-negative fV to allow luxury uptake
+     if (self%fV_min .ge. 0.0) then
+       fV=max(self%fV_min, fV) 
+     end if
    else
      fV = self%fV_fixed
    end if
