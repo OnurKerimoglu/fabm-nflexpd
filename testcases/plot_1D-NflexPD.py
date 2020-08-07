@@ -10,7 +10,7 @@ import sys
 import numpy as np
 
 varlims={'abio_PAR_dmean':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf':[-100,0],'wind':[-6,26],
-         'abio_detc_sed/abio_detn_sed':[4.0,14.0],'abio_detc/abio_detn':[5.0,30.0],'abio_doc/abio_don':[5.0,30.0],
+         'abio_detc_sed/abio_detn_sed':[4.0,16.0],'abio_detc/abio_detn':[5.0,30.0],'abio_doc/abio_don':[5.0,30.0],
          'abio_din': [0, 30],'abio_detc':[0,80],'abio_detn':[0,6], 'abio_doc':[0,80], 'abio_don':[0,6],
          'Chl':[0,10.],'C':[0,50.0],'N':[0,7.5],'Q':[0.02,0.22],'Chl2C':[0.00,0.05],
          'PPR':[0,20.],'mu':[0,0.4],'vN':[0,0.05],'f_dinphy':[0,0.5],'R_N':[0,0.04],'R_Chl':[0,0.1],
@@ -35,7 +35,7 @@ def main(fname, numyears, modname):
     
     if not '-' in modname: #i.e., single model runs
       models = [modname]
-      varsets={#'abio0':['airt', 'wind', 'I_0'],
+      varsets={'abio0':['airt', 'wind', 'I_0'],
              'abio1':['abio_PAR_dmean','temp', 'mld_surf'],
              'abio2':['abio_din','abio_detc/abio_detn','abio_detc_sed/abio_detn_sed'], #'abio_doc/abio_don'],
              'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
@@ -50,7 +50,7 @@ def main(fname, numyears, modname):
       #models = ['phy_IOQ', 'phy_DOQ']
       #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
       models = ['phy_FS','phy_IA', 'phy_DA'] 
-      varsets={#'abio0':['I_0','airt', 'wind'],
+      varsets={'abio0':['I_0','airt', 'wind'],
              'abio12':['temp','mld_surf','abio_din','abio_PAR_dmean',],
              'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
              'phy-1':['C','N','Q','Chl','Chl2C'],
@@ -404,11 +404,19 @@ def get_extendopt(levels, datC,cmap):
     return (extendopt,cmap)
 
 def get_basic_varname(varn,models):
-    for model in models:
+    if len(models)>1:
+        for model in models:
+            if model in varn:
+                varn_basic=varn.split(model+'_')[1]
+                return (varn_basic, model)
+        return (varn, '')
+    else:
+        model=models[0]
         if model in varn:
-            varn_basic=varn.split(model+'_')[1]
-            return (varn_basic,model)
-    return (varn,'')
+            varn_basic = varn.split(model + '_')[1]
+            return (varn_basic, model)
+        else:
+            return (varn,model)
 
 def get_varvals(ncv,varn0):
     if 'avg' in varn0:
@@ -520,8 +528,8 @@ if __name__ == "__main__":
     # if you call this script from the command line (the shell) it will
     # run the 'main' function
     if len(sys.argv) < 2: #this means no arguments were passed
-      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_wconst_FS-IA-DA_merged/Highlat-100m_wconst_FS-IA-DA_merged_mean.nc'
-      #fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_wconst-DA/Highlat-100m_wconst-DA_mean.nc'
+      #fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_wconst_FS-IA-DA_merged/Highlat-100m_wconst_FS-IA-DA_merged_mean.nc'
+      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_wconst-DA/Highlat-100m_wconst-DA_mean.nc'
       print('plotting default file:'+fname)
     else:
       print('plotting file specified:'+sys.argv[1])
@@ -534,8 +542,8 @@ if __name__ == "__main__":
     print('plotting last '+str(numyears)+' year of the simulation')
     
     if len(sys.argv)<4:
-      modname='FS-IA-DA_merged'
-      #modname = 'phy_DA'
+      #modname='FS-IA-DA_merged'
+      modname = 'phy_DA'
     else:
       modname=sys.argv[3]
     main(fname, numyears, modname)
