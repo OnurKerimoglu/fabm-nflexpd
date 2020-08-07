@@ -56,20 +56,15 @@ def main(fname, numyears, modname):
              'phy-1':['C','N','Q','Chl','Chl2C'],
              'phy-2':['mu','vN','R_N','R_Chl'],
              'phy-3':['ThetaHat', 'fA','fV','fC','limfunc_L'],
-             #'phy-avg1': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50'],
-             #'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
-             #             'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
+             'phy-avg1': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50'],
+             'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
+                          'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
              }
-    elif modname=='FS-IA-DA_merged': #i.e., merged single experiment
+    elif modname=='FS-IA-DA_merged': #i.e., merged single experiments
       #models = ['phy_IOQ', 'phy_DOQ']
       #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
       models = ['phy_FS','phy_IA', 'phy_DA']
-      varsets={#'abio0':['I_0','airt', 'wind'],
-             #'abio12':['temp','mld_surf','abio_din','abio_PAR_dmean',],
-             #'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
-             #'phy-1':['C','N','Q','Chl','Chl2C'],
-             #'phy-2':['mu','vN','R_N','R_Chl'],
-             #'phy-3':['ThetaHat', 'fA','fV','fC','limfunc_L'],
+      varsets={
              'abio-avg1':['din_avg0-50', 'detc/detn_avg0-50', 'detc_sed/detn_sed'],
              'phy-avg1': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50'],
              'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
