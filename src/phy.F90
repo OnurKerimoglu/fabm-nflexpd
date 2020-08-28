@@ -474,10 +474,13 @@
    else
        !for dynQN=false, vN is needed only for calculating respiration, and to save as diagnostic
        if ( self%mimic_Monod ) then
-         !vN=mu*Q; solve vN for mu=muIN-vN*zetaN-Rchl=muIN-mu*Q*zetaN-Rchl
-         vN = (muIN-Rchl)/(1+Q*self%zetaN)*Q !/d * molN/molC
+         !vN=mu*Q; #this is wrong, as it becomes negative for 
+         !solve vN for mu=muIN-vN*zetaN-Rchl=muIN-mu*Q*zetaN-Rchl
+         !vN = (muIN-Rchl)/(1+Q*self%zetaN)*Q !/d * molN/molC
          !don't allow negative vN, which can happen when Rchl>muIN (?)
          !vN=max(0.0_rk,vN)
+         !this is more realistic, as it doesn't allow any negative vN:
+         vN = muIN*Q
        else !for the IA variant
          vN = fV*vNhat !molN/molC/d 
        end if
