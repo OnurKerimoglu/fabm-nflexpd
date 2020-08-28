@@ -85,7 +85,7 @@ instances:
       fA_opt : .true.                # whether to optimize fA (true/false)
       fV_opt : .true.                # whether to optimize fV (true/false)
       TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
-      ThetaHat_min: 0.01           # Minimum allowed value, which is also used when par<I_0
+      ThetaHat_min: 0.00            # Minimum allowed value, which is also used when par<I_0
       RMchl: 0.1                     # loss rate of chlorophyll (d-1)
       mu0hat: 5.0                    # max. potential growth rate (d-1)
       aI: 1.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
@@ -122,7 +122,7 @@ instances:
       fA_opt : .true.                # whether to optimize fA (true/false)
       fV_opt : .true.                # whether to optimize fV (true/false)
       TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
-      ThetaHat_min: 0.01           # Minimum allowed value, which is also used when par<I_0
+      ThetaHat_min: 0.00           # Minimum allowed value, which is also used when par<I_0
       RMchl: 0.1                   # loss rate of chlorophyll (d-1)
       mu0hat: 5.0                    # max. potential growth rate (d-1)
       aI: 1.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)

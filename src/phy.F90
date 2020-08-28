@@ -38,7 +38,7 @@
       type (type_state_variable_id)        :: id_din,id_don,id_doc,id_detn,id_detc
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_depth
       type (type_horizontal_dependency_id) :: id_FDL
-      type (type_diagnostic_variable_id)   :: id_muIhatNET,id_ZINT,id_Q_muIhat,id_fV_muIhat
+      type (type_diagnostic_variable_id)   :: id_muIhatNET,id_ZINT,id_Q_muIhat
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyC,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_muIN,id_muIhat,id_vNhat,id_vN,id_respN,id_respChl
       type (type_diagnostic_variable_id)   :: id_fQ,id_limfunc_Nmonod,id_fC,id_limfunc_L,id_Tfac
@@ -200,9 +200,7 @@
    call self%register_diagnostic_variable(self%id_ZINT, 'ZINT','-',    'Qs*(muIhatNET/vNhat+zetaN)',           &
                                      output=output_time_step_averaged)                                     
    call self%register_diagnostic_variable(self%id_fV, 'fV','-',    'fV',           &
-                                     output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_fV_muIhat, 'fV_muIhat','-',    'fV (based on muIhat)',           &
-                                     output=output_time_step_averaged)                                     
+                                     output=output_time_step_averaged)                                 
                                      
    call self%register_diagnostic_variable(self%id_fA, 'fA','-',    'fA',           &
                                      output=output_time_step_averaged)
@@ -264,7 +262,7 @@
    real(rk)                   :: din,phyC,phyN,parW,par,par_dm,Ld
    real(rk)                   :: ThetaHat,vNhat,muIhat
    real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
-   real(rk)                   :: muIhatNET,Q_muIhat,fV_muIhat,ZINT_muIhat
+   real(rk)                   :: muIhatNET,Q_muIhat,ZINT_muIhat
    real(rk)                   :: vN,Vhat_fNT,RMchl,zetaChl
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac,depth
@@ -331,11 +329,11 @@
        !larg=min(1e38,larg) !larg can explode if aI is too large compared to mu0hat*zetaChl
        ! eq. 8 in Smith et al 2016
        ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par_dm)
-       if (ThetaHat .lt. self%ThetaHat_min) then
-         ThetaHat = self%ThetaHat_min  !  a small positive value
-         zetaChl=0.0
-         RMchl=0.0
-       end if 
+       !if (ThetaHat .lt. self%ThetaHat_min) then
+       !  ThetaHat = self%ThetaHat_min  !  a small positive value
+       !  zetaChl=0.0
+       !  RMchl=0.0
+       !end if 
        !ThetaHat=max(self%ThetaHat_min,ThetaHat) !  a small positive value 
        !if (ThetaHat .lt. 0.09)then
        !  write(*,*)'larg, self%aI*par_dm, self%mu0hat*Tfac*self%zetaChl',larg, self%aI*par_dm, self%mu0hat*Tfac*self%zetaChl
@@ -346,7 +344,9 @@
        ThetaHat = self%ThetaHat_min  !  a small positive value
        zetaChl=0.0
        RMchl=0.0
-       !in cmo: ThetaHat=0.0 -> but that makes fV and muIhatNET 0 -> Q=NaN
+       !: in cmo: ThetaHat=0.0 -> 
+       ! RESOLVED: with fV=f(muIhatNET,vNhat), Q=f(fV),  ThetaHat=0.0 makes fV and muIhatNET 0 -> Q=NaN
+       ! NOW: with Q=f(muIhatNET,vNhat) & fV=f(Q), ThetaHat=0.0 is allowed.
      end if
    else
      ThetaHat = self%TheHat_fixed
@@ -386,21 +386,21 @@
    ! The solution based on muIhatNET (accounts for Rchl):
    ZINT = (self%zetaN + muIhatNET/vNhat) * self%Q0 / 2.0
    !write(*,'(A,4F12.5)')'  (phy) ZINT, muIhat/vNhat:',ZINT,muIhat/vNhat
-   
-   if( self%fV_opt ) then
-     ! The solution based on muIhat, i.e., not accounts for Rchl (eq. 13  in Smith et al 2016)
-     fV_muIhat = (-1.0 + sqrt(1.0 + 1.0 / ZINT_muIhat) ) * (self%Q0 / 2.0) * muIhat / vNhat
-     ! The solution based on muIhatNET (accounts for Rchl)
-     fV=(-1.0 + sqrt(1.0 + 1.0 / ZINT) ) * (self%Q0 / 2.0) * muIhatNET / vNhat
-     !In low light, muIhatNET can become negative, which makes fV also negative.
-     !Force non-zero/non-negative fV to allow luxury uptake
-     if (self%fV_min .ge. 0.0) then
-       fV=max(self%fV_min, fV) 
-     end if
-   else
-     fV = self%fV_fixed
-   end if
 
+   ! Direct solutions independent from Q (eq. 13  in Smith et al 2016): POTENTIALLY RESPONSIBLE FOR INSTABILITIES
+   ! if( self%fV_opt ) then
+   ! The solution based on muIhat, i.e., not accounts for Rchl
+   ! fV_muIhat = (-1.0 + sqrt(1.0 + 1.0 / ZINT_muIhat) ) * (self%Q0 / 2.0) * muIhat / vNhat
+   !  ! The solution based on muIhatNET (accounts for Rchl)
+   !  fV=(-1.0 + sqrt(1.0 + 1.0 / ZINT) ) * (self%Q0 / 2.0) * muIhatNET / vNhat
+   !  !In low light, muIhatNET can become negative, which makes fV also negative.
+   !  !Force non-zero/non-negative fV to allow luxury uptake
+   !  if (self%fV_min .ge. 0.0) then
+   !    fV=max(self%fV_min, fV) 
+   !  end if
+   ! else
+   !  fV = self%fV_fixed
+   ! end if
    
    if (.not. self%dynQN) then
      !!$ ***  Calculating the optimal cell quota, based on the term ZINT, as calculated above
@@ -413,24 +413,37 @@
        end if
        limfunc_Nmonod = din / ( KN_monod + din)
      else
-       ! eq. 14 in Smith et al 2016
-       ! muIhat-based Q solution that ignores Rchl, where fV is eliminated:
-       !Q_fVfree = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
-       ! fV-explicit (raw), muIhat-based Q solution that ignores Rchl
-       Q_muIhat = ( ( (self%Q0 / 2.0)*muIhat) + (fV_muIhat*vNhat) )  / ( (1-fV_muIhat) * muIhat - fV_muIhat* self%zetaN * vNhat )
+       ! muIhat-based Q solutions that ignore Rchl: 
+       ! fV-independent solution (eq. 23 in Smith et al 2016 = eq. 10 in Pahlow&Oschlies2013):
+       Q_muIhat = ( 1.0 + sqrt(1.0 + 1.0/ZINT_muIhat) )*(self%Q0/2.0)
+       ! fV-explicit (raw), muIhat-based solution:
+       !Q_muIhat = ( ( (self%Q0 / 2.0)*muIhat) + (fV_muIhat*vNhat) )  / ( (1-fV_muIhat) * muIhat - fV_muIhat* self%zetaN * vNhat )
+       !
        ! if fV is not optimized, Q can become implausible. Constrain it to plausible values:
-       if ( .not. self%fV_opt) then
-          Q = max(self%Q0,min(self%Qmax,Q))
+       !if ( .not. self%fV_opt) then
+       !   Q = max(self%Q0,min(self%Qmax,Q))
        ! if fV and muIhat are both 0, Q becomes 0/0 -> NaN
        ! this kind of singularity should happen only, e.g., at the very first time step where par_dm is not yet available
-       else if (muIhat == 0.0_rk .and. fV == 0.0_rk ) then 
-          Q = self%Q0
-       end if
-       !muIhatNET-based Q solution (accounts for Rchl)
-       Q=(fV*vNhat + (self%Q0/2.0)*muIhatNET) / ((1.0-fV)*muIhatNET - self%zetaN*fV*vNhat)
+       !else if (muIhat == 0.0_rk .and. fV == 0.0_rk ) then 
+       !   Q = self%Q0
+       !end if
+       !
+       !muIhatNET-based Q solutions that account for Rchl:
+       ! fV-independent solution (eq. 23 in Smith et al 2016 = eq. 10 in Pahlow&Oschlies2013, revised: muIhat replaced by muIhatNET):
+       Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
+       ! fV-explicit (raw), muIhatNET-based solution:
+       !Q=( fV*vNhat +(self%Q0/2.0)*muIhatNET) / ((1.0-fV)*muIhatNET - self%zetaN*fV*vNhat)
        !write(*,*)'depth,fV,Q,muIhatNET,vNhat',depth,fV,Q,muIhatNET,vNhat
      end if
      phyC=phyN/Q
+   end if
+   
+   ! Solution as a function fV (eq.9) in Pahlow and Oschlies, 2013
+   if( self%fV_opt ) then
+     fV=(self%Q0/2.0)/Q - self%zetaN*(Q - self%Q0)
+     !write(*,'(A,F5.2,A,F7.5,A,F7.5,A,F7.5,A,F7.5)')'depth:',depth,'  Q:',Q,'  fV:',fV,'  Q0/2/Q:',(self%Q0/2.0)/Q,'  zN*(Q-Q0):',self%zetaN*(Q - self%Q0)
+   else
+     fV = self%fV_fixed
    end if
    
    ! Losses due to Chlorophyll
@@ -531,7 +544,6 @@
    _SET_DIAGNOSTIC_(self%id_Chl2C, Theta/12.0) !gChl/molC*1molC/12gC =gChl/gC
    _SET_DIAGNOSTIC_(self%id_ZINT, ZINT)
    _SET_DIAGNOSTIC_(self%id_fV, fV)
-   _SET_DIAGNOSTIC_(self%id_fV_muIhat, fV_muIhat)
    _SET_DIAGNOSTIC_(self%id_fA, fA)
    _SET_DIAGNOSTIC_(self%id_fC, fC)
    _SET_DIAGNOSTIC_(self%id_limfunc_L, limfunc_L)
