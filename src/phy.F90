@@ -259,7 +259,7 @@
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
-   real(rk)                   :: din,phyC,phyN,parW,par,par_dm,Ld
+   real(rk)                   :: din,phyC,phyN,parW,par,par_24hm,par_dm,Ld
    real(rk)                   :: ThetaHat,vNhat,muIhat
    real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
    real(rk)                   :: muIhatNET,Q_muIhat,ZINT_muIhat
@@ -277,7 +277,13 @@
    _LOOP_BEGIN_
    
    _GET_(self%id_depth,depth)     ! depth
+   !get Ld (fractional day length)
+   _GET_HORIZONTAL_(self%id_FDL,Ld)
+   _GET_(self%id_temp,tC) ! temperature in Celcius
+   _GET_(self%id_din,din)    ! nutrients
+   
    _GET_(self%id_phyN,phyN)  ! phytoplankton-N
+   
    ! Retrieve current (local) state variable values.
    if ( self%dynQN ) then
      _GET_(self%id_phyC,phyC)  ! phytoplankton-C
@@ -286,16 +292,14 @@
      !relative Quota (used as a down-regulation term in classical droop model)
      fQ=min(1.0,max(0.0, (self%Qmax-Q)/(self%Qmax-self%Q0/2.0)))
    end if
-     
-   _GET_(self%id_din,din)    ! nutrients
    
    ! Retrieve current environmental conditions.
    _GET_(self%id_parW,parW)             ! local photosynthetically active radiation
    par=parW* 4.6 * 1e-6   !molE/m2/s
    ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
-   _GET_(self%id_par_dmean,par_dm) !in molE/m2/d
+   _GET_(self%id_par_dmean,par_24hm) !in molE/m2/d
    !write(*,*)'P.L275:depth,par_dm',depth,par_dm
-   par_dm=par_dm/secs_pr_day !convert to molE/m2/s
+   par_dm=(par_24hm/secs_pr_day/Ld) !convert to day-time-mean, in molE/m2/s 
    
    if ( par_dm .lt. 0.0 ) then
      par_dm=par
@@ -307,28 +311,25 @@
      par_dm=1e-6
    end if
    
-   !get Ld (fractional day length)
-   _GET_HORIZONTAL_(self%id_FDL,Ld)
-   
-   _GET_(self%id_temp,tC) ! temperature in Celcius
-   
    !Calculate intermediate terms:
    !Temperature factor 
    Tfac = FofT(tC)
    
    ! Primary production
    ! Optimization of ThetaHat (optimal Chl content in the chloroplasts)
-   ! in cmo, mu0=phy%V0*ft/(phy%rdl + phy%daylen)
    I_zero = self%zetaChl * self%RMchl * Tfac / (Ld*self%aI)   ! Threshold irradiance
+   !I_zero = self%zetaChl * self%RMchl / (Ld*self%aI)   ! Threshold irradiance
    zetaChl=self%zetaChl
    RMchl=self%RMchl
    if( self%theta_opt ) then
      if( par_dm .gt. I_zero ) then !in cmo: .and. (mu0>0.0)
        !argument for the Lambert's W function
        larg = (1.0 + self%RMchl * Tfac/(Ld*self%mu0hat*Tfac)) * exp(1.0 + self%aI*par_dm/(self%mu0hat*Tfac*self%zetaChl))
+       !larg = (1.0 + self%RMchl /(Ld*self%mu0hat*Tfac)) * exp(1.0 + self%aI*par_dm/(self%mu0hat*Tfac*self%zetaChl))
        !larg=min(1e38,larg) !larg can explode if aI is too large compared to mu0hat*zetaChl
        ! eq. 8 in Smith et al 2016
        ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par_dm)
+       !ThetaHat=max(0.0, ThetaHat)
        !if (ThetaHat .lt. self%ThetaHat_min) then
        !  ThetaHat = self%ThetaHat_min  !  a small positive value
        !  zetaChl=0.0
@@ -355,14 +356,19 @@
    ! Light limited growth rate (eq. 6 in Smith et al 2016)
    limfunc_L=SIT(self%aI,self%mu0hat,par_dm,ThetaHat,Tfac)
    !write(*,*)'depth,par_dm,SIT',depth,par_dm,1.0-exp(-self%aI*ThetaHat*par_dm/(Tfac*self%mu0hat))
-   muIhat = self%mu0hat * Tfac * limfunc_L
+   muIhat = Ld * self%mu0hat * Tfac * limfunc_L
    
    !'Net' light limited growth rate, muIhatNET (= A-cursive in Pahlow etal 2013, Appendix 1)
    !mu = fC*muIhat - Rchl - respN, where Rchl=fC*(muIhat+RMChl)*zetaChl*ThetaHat; and fC= (1-fV-self%Q0/(2.0*Q) )
    !mu = fC*muIhat -fC*muIhat*zetaChl*ThetaHat - fC*RMChl*zetaChl*ThetaHat -respN
    !mu = fC*(muIhat(1-zetaChl*ThetaHat)-RMChl*zetaChl*ThetaHat) - respN
    !mu = fC*muIhatNET - respN, where, muIhatNET=muIhat(1-zetaChl*ThetaHat)-RMChl*zetaChl*ThetaHat
-   muIhatNET=muIhat*(1.0-zetaChl*ThetaHat)-RMchl*zetaChl*ThetaHat
+   !
+   muIhatNET=muIhat*(1.0-zetaChl*ThetaHat)-Tfac*RMchl*zetaChl*ThetaHat
+   !muIhatNET=muIhat*(1.0-zetaChl*ThetaHat)-RMchl*zetaChl*ThetaHat
+   if (par_dm .gt. I_zero .and. muIhatNET .lt. 0.0) then
+     write(*,'(A,F10.8,A,F10.8,A,F5.2,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8)')'Ld:',Ld,'  fT:',Tfac,'  depth:',depth,'  I_C:',I_zero*86400,'  Idm:',par_dm*86400,'  WAPR:',WAPR(larg, 0, 0),'  ThetaHat:',ThetaHat,'  SI:',limfunc_L,'  muIhatNET:',muIhatNET*86400
+   end if
    
    
    !Optimal allocation for affinity vs max. uptake
@@ -441,6 +447,10 @@
    ! Solution as a function fV (eq.9) in Pahlow and Oschlies, 2013
    if( self%fV_opt ) then
      fV=(self%Q0/2.0)/Q - self%zetaN*(Q - self%Q0)
+     if (fV .lt. 0.0) then
+       write(*,*)'nudging negative fV:',fV,' to 0.0'
+       fV=0.0
+     end if
      !write(*,'(A,F5.2,A,F7.5,A,F7.5,A,F7.5,A,F7.5)')'depth:',depth,'  Q:',Q,'  fV:',fV,'  Q0/2/Q:',(self%Q0/2.0)/Q,'  zN*(Q-Q0):',self%zetaN*(Q - self%Q0)
    else
      fV = self%fV_fixed
@@ -449,7 +459,8 @@
    ! Losses due to Chlorophyll
    ! eq. 26 in Smith et al 2016
    ! Rchl=fC*(muIhat+RMChl)*zetaChl*ThetaHat
-   Rchl = (muIhat + RMchl) * ( 1 - fV - self%Q0/(2.0*Q) ) * zetaChl * ThetaHat
+   !Just as model diagnostic:
+   Rchl = (muIhat + Tfac*RMchl) * ( 1 - fV - self%Q0/(2.0*Q) ) * zetaChl * ThetaHat
    
    !  Net specific growth rate, assuming instantantaneous optimal resource allocation. 
       !  Either equation gives the same result, provided fA, fV and QN have been optimized.  
@@ -470,7 +481,7 @@
    
    !write(*,*)'depth,DIN,fC,fV,Q,Q0/(2.0*Q):',depth,din,fC,fV,Q,self%Q0/(2.0*Q)
       
-   muIN =  muIhat * fC
+   muIN =  muIhatNET * fC
    
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
    Theta= (1 - self%Q0 / 2 / Q - fV) * ThetaHat
@@ -492,15 +503,16 @@
          !vN = (muIN-Rchl)/(1+Q*self%zetaN)*Q !/d * molN/molC
          !don't allow negative vN, which can happen when Rchl>muIN (?)
          !vN=max(0.0_rk,vN)
-         !this is more realistic, as it doesn't allow any negative vN:
-         vN = muIN*Q
+         !take up proportional to light limited gross growth rate:
+         vN = muIhat * fC *Q
        else !for the IA variant
          vN = fV*vNhat !molN/molC/d 
        end if
    end if
    
    respN=self%zetaN*vN !molC/molN *molN/molC/d = /d
-   mu = muIN - (respN+Rchl)
+   !mu = muIN - (respN+Rchl)
+   mu = muIN - respN
    
    !Calculate fluxes between pools
    if ( self%dynQN ) then 
