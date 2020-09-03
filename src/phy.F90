@@ -259,7 +259,7 @@
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
-   real(rk)                   :: din,phyC,phyN,parW,par,par_24hm,par_dm,Ld
+   real(rk)                   :: din,phyC,phyN,parW,par,par_dm,Ld
    real(rk)                   :: ThetaHat,vNhat,muIhat
    real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
    real(rk)                   :: muIhatNET,Q_muIhat,ZINT_muIhat
@@ -297,9 +297,9 @@
    _GET_(self%id_parW,parW)             ! local photosynthetically active radiation
    par=parW* 4.6 * 1e-6   !molE/m2/s
    ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
-   _GET_(self%id_par_dmean,par_24hm) !in molE/m2/d
+   _GET_(self%id_par_dmean,par_dm) !par is assumed to be daytime average PAR, in molE/m2/d 
    !write(*,*)'P.L275:depth,par_dm',depth,par_dm
-   par_dm=(par_24hm/secs_pr_day/Ld) !convert to day-time-mean, in molE/m2/s 
+   par_dm=(par_dm/secs_pr_day) !in molE/m2/s 
    
    if ( par_dm .lt. 0.0 ) then
      par_dm=par

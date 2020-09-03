@@ -25,7 +25,7 @@
 !     Variable identifiers
       type (type_state_variable_id)     :: id_din,id_don,id_doc,id_detn,id_detc
       type (type_dependency_id)         :: id_temp,id_depth,id_parW,id_parW_dmean
-      type (type_horizontal_dependency_id)  :: id_lat
+      type (type_horizontal_dependency_id)  :: id_lat,id_depFDL
       type (type_global_dependency_id)  :: id_doy
       type (type_diagnostic_variable_id):: id_dPAR,id_dPAR_dmean
       type (type_diagnostic_variable_id):: id_fdetdon,id_fdetdoc,id_fdondin,id_fdocdic
@@ -107,7 +107,7 @@
    call self%register_horizontal_diagnostic_variable(self%id_detc_sed,'detc_sed','mmolC/m^2/d','sedimentation rate of detC')
    
    call self%register_diagnostic_variable(self%id_dPAR,'PAR','E/m^2/d',       'photosynthetically active radiation')
-   call self%register_diagnostic_variable(self%id_dPAR_dmean, 'PAR_dmean','E/m^2/d','photosynthetically active radiation, daily averaged')
+   call self%register_diagnostic_variable(self%id_dPAR_dmean, 'PAR_dmean','E/m^2/d','photosynthetically active radiation, daytime average')
    
    call self%register_diagnostic_variable(self%id_fdetdon, 'f_det_don','mmolN/m^3/d',    'bulk N flux from detritus to DOM',           &
                                      output=output_time_step_averaged)
@@ -121,6 +121,7 @@
    ! Register environmental dependencies
    call self%register_global_dependency(self%id_doy,standard_variables%number_of_days_since_start_of_the_year)
    call self%register_horizontal_dependency(self%id_lat,standard_variables%latitude)
+    call self%register_horizontal_dependency(self%id_depFDL, 'FDL','-',       'fractional day length')
    call self%register_dependency(self%id_depth,standard_variables%depth)
    call self%register_dependency(self%id_temp,standard_variables%temperature)
    call self%register_dependency(self%id_parW, standard_variables%downwelling_photosynthetic_radiative_flux)
@@ -165,6 +166,9 @@
    
    _GET_(self%id_parW,parW) ! local photosynthetically active radiation
    _GET_(self%id_parW_dmean,parW_dm)
+   
+   _GET_HORIZONTAL_(self%id_depFDL,Ld)
+   
    ! for the first day, the daily mean value doesn't yet exist (resulting in values in the order of -1e19), 
    ! so just restore it with a value obtained with an exp decay function to account for depth
    if ( parW_dm .lt. 0.0_rk ) then
@@ -172,7 +176,7 @@
     !parW_dm=self%par0_dt0*exp(-depth*self%kc_dt0) !todo: make the I0_det0&kc0 yaml pars?
    end if
    parE = parW * 4.6 * 1e-6 * secs_pr_day
-   parE_dm= parW_dm * 4.6 * 1e-6 * secs_pr_day
+   parE_dm= parW_dm * 4.6 * 1e-6 * secs_pr_day/Ld !division by Ld converts 24h average to daytime average
    ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
    !write(*,*)'A.L173:depth,par_dm',depth,parE_dm
 

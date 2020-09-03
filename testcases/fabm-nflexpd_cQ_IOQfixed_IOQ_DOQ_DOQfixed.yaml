@@ -30,7 +30,7 @@ instances:
       N: 0.16                        # Phytoplankton-N concentration (mmol m-3)
     coupling:
       FDL: abio/FDL                  # Fractional Day Length (-)
-      PAR_dmean: abio/PAR_dmean      # PAR, daily mean (mol/m2/d)
+      PAR_dmean: abio/PAR_dmean      # PAR, daytime-average (mol/m2/d)
       din: abio/din                  # nutrient source (mmol m-3)
       don: abio/don                  # sink for excreted matter (mmolN m-3)
       doc: abio/doc                  # sink for excreted matter (mmolC m-3)
@@ -66,7 +66,7 @@ instances:
       N: 0.16                        # Phytoplankton-N concentration (mmol m-3)
     coupling:
       FDL: abio/FDL                  # Fractional Day Length (-)
-      PAR_dmean: abio/PAR_dmean      # PAR, daily mean (mol/m2/d)
+      PAR_dmean: abio/PAR_dmean      # PAR, daytime-average (mol/m2/d)
       din: abio/din                  # nutrient source (mmol m-3)
       don: abio/don                  # sink for excreted matter (mmolN m-3)
       doc: abio/doc                  # sink for excreted matter (mmolC m-3)
@@ -103,7 +103,7 @@ instances:
       N: 0.16                        # Phytoplankton-N concentration (mmol m-3)
     coupling:
       FDL: abio/FDL                  # Fractional Day Length (-)
-      PAR_dmean: abio/PAR_dmean      # PAR, daily mean (mol/m2/d)
+      PAR_dmean: abio/PAR_dmean      # PAR, daytime-average (mol/m2/d)
       din: abio/din                  # nutrient source (mmol m-3)
       don: abio/don                  # sink for excreted matter (mmolN m-3)
       doc: abio/doc                  # sink for excreted matter (mmolC m-3)
@@ -142,7 +142,7 @@ instances:
       N: 0.16
     coupling:
       FDL: abio/FDL                  # Fractional Day Length (-)
-      PAR_dmean: abio/PAR_dmean      # PAR, daily mean (mol/m2/d)
+      PAR_dmean: abio/PAR_dmean      # PAR, daytime-average (mol/m2/d)
       din: abio/din                  # nutrient source (mmol m-3)
       don: abio/don                  # sink for excreted matter (mmolN m-3)
       doc: abio/doc                  # sink for excreted matter (mmolC m-3)
@@ -179,7 +179,7 @@ instances:
       N: 0.16
     coupling:
       FDL: abio/FDL                  # Fractional Day Length (-)
-      PAR_dmean: abio/PAR_dmean      # PAR, daily mean (mol/m2/d)
+      PAR_dmean: abio/PAR_dmean      # PAR, daytime-average (mol/m2/d)
       din: abio/din                  # nutrient source (mmol m-3)
       don: abio/don                  # sink for excreted matter (mmolN m-3)
       doc: abio/doc                  # sink for excreted matter (mmolC m-3)
