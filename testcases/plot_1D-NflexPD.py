@@ -16,11 +16,16 @@ varlims={'abio_PAR_dmean':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'm
          'PPR':[0,20.],'mu':[0,0.4],'vN':[0,0.05],'f_dinphy':[0,0.5],'R_N':[0,0.04],'R_Chl':[0,0.1],
          'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.00,0.05],'fC':[0,0.2],'limfunc_L':[0.,1]}
 #prettyunits={'abio_detc_sed/abio_detn_sed':'molC/molN','abio_detc/abio_detn':'molC/molN','abio_doc/abio_don':'molC/molN'}
-prettyunits={}
+prettyunits={'abio_PAR_dmean':'E\ m^{-2}\ d^{-1}','I_0':'E\ m^{-2}\ d^{-1}','wind':'m\ s^{-1}',
+             'abio_din':'mmolN\ m^{-3}','C':'mmolC\ m^{-3}', 'N':'mmolN\ m^{-3}',#'abio_din':'\mu M\ N','C':'\mu M\ C', 'N':'\mu M\ N',
+             'Q':'molN\ molC^{-1}','abio_detc/abio_detn':'molC\ molN^{-1}', 'abio_detc_sed/abio_detn_sed':'molC\ molN^{-1}',
+             'abio_detc':'mmolC\ m^{-3}','abio_doc':'mmolC\ m^{-3}','abio_detn':'mmolN\ m^{-3}','abio_don':'mmolN\ m^{-3}',
+             'Chl':'mgChl\ m^{-3}','Chl2C':'gChl\ gC^{-3}','ThetaHat':'gChl\ gC^{-3}',
+             'mu':'d^{-1}','R_N':'d^{-1}','R_Chl':'d^{-1}','vN':'molN\ molC^{-1}\ d^{-1}'}
 prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{MLD}',
              'airt': 'T_{air}','temp': 'T','u10':'\mathrm{Wind \ Speed \ (-u)}','wind':'\mathrm{Wind \ Speed}',
-             'abio_din':'DIN','abio_detc_sed/abio_detn_sed':'\mathrm{C:N \ of \ POM-export}','abio_detc/abio_detn':'POC:PON','abio_doc/abio_don':'DOC:DON',
-             'abio_detc':'POC','abio_detn':'PON','abio_doc':'DOC','abio_don':'DON',
+             'abio_din':'DIN','abio_detc_sed/abio_detn_sed':'\mathrm{C:N \ of \ Det_{bot}}','abio_detc/abio_detn':'Det_C:Det_N','abio_doc/abio_don':'DOC:DON',
+             'abio_detc':'det_C','abio_detn':'det_N','abio_doc':'DOC','abio_don':'DON',
              'Chl':'Phy_{Chl}','C':'Phy_C','N':'Phy_N',
              'f_dinphy':'f_{DIN-Phy}',
              'Q':'Q','vN':'v_N','mu':'\mu',
@@ -167,8 +172,10 @@ def plot_multivar(fname, numyears, groupname, varset, models):
         if varn_basic in varlims.keys():
             ax.set_ylim(varlims[varn][0], varlims[varn][1])
 
-        if (j+1)%numcol==1:
+        if j==0: #(j+1)%numcol==1 
             ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.8),fontsize=12)
+            #for the rates plot, place legend inside to avoid avorlap y axis labs
+            #ax.legend(loc='center left', bbox_to_anchor=(0.4, 0.7),fontsize=12)
 
         ax.grid(b=True, axis='y', which='major', color='0.5', linestyle='-')
         # x-axis
