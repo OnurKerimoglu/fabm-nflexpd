@@ -7,14 +7,14 @@
 ! 1) N-based models (dynQN=false), with:
 !!! 1a) (FS) constant-stoichiometry without any flexibility, mimics Monod model
 !!! 1b) (IA)(*) 'Instantaneously Acclimating' N:C based on flexible fA,fV (&ThetaHat)
-!!! 1c) (IAfix)(**): 'Instantaneously Adjusting' N:C based on fixed fA,fV,ThetaHat 
+!!! 1c) (IAfix)(**): 'Instantaneously Adjusting' N:C based on fixed fA,fV,ThetaHat (Requires the 'alternative algorithm')
 ! 2) N&C-based models (dynQN=true), with:
 !!! 2a) (DA) 'Dynamically Acclimating' N:C, based on flexible fA,fV (&ThetaHat)
-!!! 2b) (DAfix) 'Dynamically Adjusting' N:C based on flex fA,fV (&ThetaHat), mimics Droop model
+!!! 2b) (DAfix) 'Dynamically Adjusting' N:C based on flex fA,fV (&ThetaHat), mimics Droop model (Requires the 'alternative algorithm')
 !
 !(*,**): 'Flex' and 'Control' models in  Smith et al., 2016, J. Plankton Res. 38, 977–992
 ! 
-! Original Authors: O. Kerimoglu (v0:December 2018; v1: May 2020)
+! Original Authors: O. Kerimoglu (v0.1:December 2018; v0.2: May 2020; v1.0: Aug 2020 )
 !
 ! !INTERFACE:
    module nflexpd_phy
@@ -38,7 +38,7 @@
       type (type_state_variable_id)        :: id_din,id_don,id_doc,id_detn,id_detc
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_depth
       type (type_horizontal_dependency_id) :: id_FDL
-      type (type_diagnostic_variable_id)   :: id_muIhatNET,id_ZINT,id_Q_muIhatG
+      type (type_diagnostic_variable_id)   :: id_muIhatNET,id_ZINT
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyC,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_muG,id_muIhatG,id_vNhat,id_vN,id_respN,id_respChl
       type (type_diagnostic_variable_id)   :: id_fQ,id_limfunc_Nmonod,id_fC,id_limfunc_L,id_Tfac
@@ -49,7 +49,7 @@
       real(rk) :: zetaN,zetaChl,M0p,Mpart,RMChl
       real(rk) :: mu0hat,aI
       real(rk) :: A0hat,V0hat,Q0,Qmax,KN_monod
-      real(rk) :: fA_fixed,fV_fixed,TheHat_fixed,Q_fixed,ThetaHat_min,fV_min
+      real(rk) :: fA_fixed,fV_fixed,TheHat_fixed,Q_fixed,ThetaHat_min
       logical  :: dynQN,fV_opt,fA_opt,Theta_opt,mimic_Monod
       real(rk) :: dic_per_n
 
@@ -109,7 +109,6 @@
    !nutrient-related
    call self%get_parameter(self%fA_fixed, 'fA_fixed','-', 'fA to use when fa_opt=false', default=0.5_rk)
    call self%get_parameter(self%fV_fixed, 'fV_fixed','-', 'fV to use when fv_opt=false', default=0.25_rk)
-   call self%get_parameter(self%fV_min, 'fV_min','-', 'fV_min to use when fv<fv_min', default=-1.0_rk)
    call self%get_parameter(self%Q_fixed, 'Q_fixed','-', 'Q to use when provided, dynQN=false and fV_opt=false', default=-1.0_rk)
    call self%get_parameter(self%Qmax, 'Qmax','molN molC-1', 'Maximum cell quota', default=0.3_rk)
    call self%get_parameter(self%Q0, 'Q0','molN molC-1', 'Subsistence cell quota', default=0.039_rk)
@@ -169,8 +168,6 @@
 
    ! Register diagnostic variables
    call self%register_diagnostic_variable(self%id_Q, 'Q','molN/molC',    'cellular nitrogen Quota',           &
-                                     output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_Q_muIhatG, 'Q_muIhatG','molN/molC',    'cellular nitrogen Quota (based on muIhatG)',           &
                                      output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_Chl, 'Chl','mgChl/m^3',    'Chlorophyll concentration',           &
                                      output=output_instantaneous)
@@ -260,9 +257,8 @@
 !
 ! !LOCAL VARIABLES:
    real(rk)                   :: din,phyC,phyN,parW,par,par_dm,Ld
-   real(rk)                   :: ThetaHat,vNhat,muIhatG
+   real(rk)                   :: ThetaHat,vNhat,muIhatG,muIhatNET
    real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
-   real(rk)                   :: muIhatNET,Q_muIhatG,ZINT_muIhatG
    real(rk)                   :: vN,Vhat_fNT,RMchl,zetaChl
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac,depth
@@ -305,7 +301,7 @@
      par_dm=par
    end if
    
-   !when par_dm=0, muIhatNET and fV becomes both 0, which makes Q=NaN
+   !when par_dm=0 (eg., during the first day, where par_dm is not yet calculated, muIhatNET and fV becomes both 0, which makes Q=NaN
    !so we set it to a very small value
    if (par_dm .eq. 0.0 ) then
      par_dm=1e-6
@@ -318,36 +314,22 @@
    ! Primary production
    ! Optimization of ThetaHat (optimal Chl content in the chloroplasts)
    I_zero = self%zetaChl * self%RMchl * Tfac / (Ld*self%aI)   ! Threshold irradiance
-   !I_zero = self%zetaChl * self%RMchl / (Ld*self%aI)   ! Threshold irradiance
    zetaChl=self%zetaChl
    RMchl=self%RMchl
    if( self%theta_opt ) then
      if( par_dm .gt. I_zero ) then !in cmo: .and. (mu0>0.0)
        !argument for the Lambert's W function
        larg = (1.0 + self%RMchl * Tfac/(Ld*self%mu0hat*Tfac)) * exp(1.0 + self%aI*par_dm/(self%mu0hat*Tfac*self%zetaChl))
-       !larg = (1.0 + self%RMchl /(Ld*self%mu0hat*Tfac)) * exp(1.0 + self%aI*par_dm/(self%mu0hat*Tfac*self%zetaChl))
-       !larg=min(1e38,larg) !larg can explode if aI is too large compared to mu0hat*zetaChl
        ! eq. 8 in Smith et al 2016
        ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par_dm)
-       !ThetaHat=max(0.0, ThetaHat)
-       !if (ThetaHat .lt. self%ThetaHat_min) then
-       !  ThetaHat = self%ThetaHat_min  !  a small positive value
-       !  zetaChl=0.0
-       !  RMchl=0.0
-       !end if 
-       !ThetaHat=max(self%ThetaHat_min,ThetaHat) !  a small positive value 
-       !if (ThetaHat .lt. 0.09)then
-       !  write(*,*)'larg, self%aI*par_dm, self%mu0hat*Tfac*self%zetaChl',larg, self%aI*par_dm, self%mu0hat*Tfac*self%zetaChl
-         !write(*,*)'ThetaHat,larg,WAPR',ThetaHat,larg,WAPR(larg,0,0)
-       !end if
      else
        !write(*,*)'par_dm,I_0',par_dm,I_zero
        ThetaHat = self%ThetaHat_min  !  a small positive value
-       zetaChl=0.0
-       RMchl=0.0
-       !: in cmo: ThetaHat=0.0 -> 
-       ! RESOLVED: with fV=f(muIhatNET,vNhat), Q=f(fV),  ThetaHat=0.0 makes fV and muIhatNET 0 -> Q=NaN
-       ! NOW: with Q=f(muIhatNET,vNhat) & fV=f(Q), ThetaHat=0.0 is allowed.
+       !Setting zetaChl=RMchl=0 was necessary for using non-zero ThetaHat_min. 
+       !I think we shouldn't do that anymore, since ThatHat_min is perfectly consistent, and 
+       !Relatedly, ThataHat_min should be a constant, and not parameter
+       !zetaChl=0.0 
+       !RMchl=0.0
      end if
    else
      ThetaHat = self%TheHat_fixed
@@ -359,17 +341,10 @@
    muIhatG = Ld * self%mu0hat * Tfac * limfunc_L
    
    !'Net' light limited growth rate, muIhatNET (= A-cursive in Pahlow etal 2013, Appendix 1)
-   !mu = fC*muIhat - Rchl - respN, where Rchl=fC*(muIhat+RMChl)*zetaChl*ThetaHat; and fC= (1-fV-self%Q0/(2.0*Q) )
-   !mu = fC*muIhat -fC*muIhat*zetaChl*ThetaHat - fC*RMChl*zetaChl*ThetaHat -respN
-   !mu = fC*(muIhat(1-zetaChl*ThetaHat)-RMChl*zetaChl*ThetaHat) - respN
-   !mu = fC*muIhatNET - respN, where, muIhatNET=muIhat(1-zetaChl*ThetaHat)-RMChl*zetaChl*ThetaHat
-   !
    muIhatNET=muIhatG*(1.0-zetaChl*ThetaHat)-Tfac*RMchl*zetaChl*ThetaHat
-   !muIhatNET=muIhatG*(1.0-zetaChl*ThetaHat)-RMchl*zetaChl*ThetaHat
    if (par_dm .gt. I_zero .and. muIhatNET .lt. 0.0) then
      write(*,'(A,F10.8,A,F10.8,A,F5.2,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8)')'Ld:',Ld,'  fT:',Tfac,'  depth:',depth,'  I_C:',I_zero*86400,'  Idm:',par_dm*86400,'  WAPR:',WAPR(larg, 0, 0),'  ThetaHat:',ThetaHat,'  SI:',limfunc_L,'  muIhatNET:',muIhatNET*86400
    end if
-   
    
    !Optimal allocation for affinity vs max. uptake
    if( self%fA_opt ) then
@@ -379,7 +354,7 @@
      fA =  self%fA_fixed
    end if
    
-   ! T-dependence only for V0, not for A0 (as suggested by M. Pahlow)
+   ! T-dependence only for V0, not for A0
    vNhat = vAff( din, fA, self%A0hat, self%V0hat * Tfac )
    
    ! Alternative way of calculating vNhat
@@ -387,23 +362,12 @@
    
    !Optimization of fV (synthesis vs nut. uptake)
    !Intermediate term  in brackets that appears in Smith et al 2016, eqs. 13 & 14
-   ! The solution based on muIhat (not accounts for Rchl):
-   ZINT_muIhatG = (self%zetaN + muIhatG/vNhat) * self%Q0 / 2.0
-   ! The solution based on muIhatNET (accounts for Rchl):
    ZINT = (self%zetaN + muIhatNET/vNhat) * self%Q0 / 2.0
    !write(*,'(A,4F12.5)')'  (phy) ZINT, muIhatG/vNhat:',ZINT,muIhatG/vNhat
 
-   ! Direct solutions independent from Q (eq. 13  in Smith et al 2016): POTENTIALLY RESPONSIBLE FOR INSTABILITIES
-   ! if( self%fV_opt ) then
-   ! The solution based on muIhatG, i.e., not accounts for Rchl
-   ! fV_muIhatG = (-1.0 + sqrt(1.0 + 1.0 / ZINT_muIhatG) ) * (self%Q0 / 2.0) * muIhatG / vNhat
-   !  ! The solution based on muIhatNET (accounts for Rchl)
+   ! Alternative algorithm: First fV=f(muIhatNET,vNhat), then Q=f(fV) [(eq. 13  in Smith et al 2016): (potentially instable)]
+   ! if (self%fVopt
    !  fV=(-1.0 + sqrt(1.0 + 1.0 / ZINT) ) * (self%Q0 / 2.0) * muIhatNET / vNhat
-   !  !In low light, muIhatNET can become negative, which makes fV also negative.
-   !  !Force non-zero/non-negative fV to allow luxury uptake
-   !  if (self%fV_min .ge. 0.0) then
-   !    fV=max(self%fV_min, fV) 
-   !  end if
    ! else
    !  fV = self%fV_fixed
    ! end if
@@ -419,27 +383,11 @@
        end if
        limfunc_Nmonod = din / ( KN_monod + din)
      else
-       ! muIhatG-based Q solutions that ignore Rchl: 
-       ! fV-independent solution (eq. 23 in Smith et al 2016 = eq. 10 in Pahlow&Oschlies2013):
-       Q_muIhatG = ( 1.0 + sqrt(1.0 + 1.0/ZINT_muIhatG) )*(self%Q0/2.0)
-       ! fV-explicit (raw), muIhatG-based solution:
-       !Q_muIhatG = ( ( (self%Q0 / 2.0)*muIhatG) + (fV_muIhatG*vNhat) )  / ( (1-fV_muIhatG) * muIhatG - fV_muIhatG* self%zetaN * vNhat )
-       !
-       ! if fV is not optimized, Q can become implausible. Constrain it to plausible values:
-       !if ( .not. self%fV_opt) then
-       !   Q = max(self%Q0,min(self%Qmax,Q))
-       ! if fV and muIhatG are both 0, Q becomes 0/0 -> NaN
-       ! this kind of singularity should happen only, e.g., at the very first time step where par_dm is not yet available
-       !else if (muIhatG == 0.0_rk .and. fV == 0.0_rk ) then 
-       !   Q = self%Q0
-       !end if
-       !
-       !muIhatNET-based Q solutions that account for Rchl:
-       ! fV-independent solution (eq. 23 in Smith et al 2016 = eq. 10 in Pahlow&Oschlies2013, revised: muIhat replaced by muIhatNET):
+       !Optimal Q: 
+       ! fV-independent solution (eq. 23 in Smith et al 2016 = eq. 10 in Pahlow&Oschlies2013, muIhat denoted as muIhatNET):
        Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
-       ! fV-explicit (raw), muIhatNET-based solution:
+       ! Alternative algorithm: First fV=f(muIhatNET,vNhat), then Q=f(fV)
        !Q=( fV*vNhat +(self%Q0/2.0)*muIhatNET) / ((1.0-fV)*muIhatNET - self%zetaN*fV*vNhat)
-       !write(*,*)'depth,fV,Q,muIhatNET,vNhat',depth,fV,Q,muIhatNET,vNhat
      end if
      phyC=phyN/Q
    end if
@@ -458,18 +406,12 @@
    
    ! Losses due to Chlorophyll
    ! eq. 26 in Smith et al 2016
-   ! Rchl=fC*(muIhatG+RMChl)*zetaChl*ThetaHat
-   !Just as model diagnostic:
+   !Just as model diagnostic (Rchl is already accounted for in muIhatNET)
    Rchl = (muIhatG + Tfac*RMchl) * ( 1 - fV - self%Q0/(2.0*Q) ) * zetaChl * ThetaHat
    
-   !  Net specific growth rate, assuming instantantaneous optimal resource allocation. 
-      !  Either equation gives the same result, provided fA, fV and QN have been optimized.  
-      !  The term with ZINT accounts for the cost of N assimilation, but not for chl maintenance. 
-      !  mu = muIhatG * ( 1 + 2*( ZINT - sqrt(ZINT*(1 + ZINT)) ) )           - Rchl 
-   !!$      mu = muIhatG*(1.0 + 2.0*(ZINT - sqrt(ZINT*(1.0+ZINT))) ) - Rchl
-   ! eq. 5 in Pahlow and Oschlies 2013 (-Rchl)
-   !to prevent model crashing:
-   if (din .gt. self%mindin) then !can be interpreted as 'din detection limit' for phytoplankton
+   !fC
+   !can help avoiding model crashing:
+   if (din .gt. self%mindin) then ! 'din detection limit' for phytoplankton
      if ( self%mimic_Monod ) then
        fC = limfunc_Nmonod
      else
@@ -498,22 +440,20 @@
    else
        !for dynQN=false, vN is needed only for calculating respiration, and to save as diagnostic
        if ( self%mimic_Monod ) then
-         !vN=mu*Q; #this is wrong, as it becomes negative for 
-         !solve vN for mu=muG-vN*zetaN-Rchl=muG-mu*Q*zetaN-Rchl
+         !Attempt1: vN=mu*Q; #this is wrong, as it becomes negative for 
+         !Attempt2: solve vN for mu=muG-vN*zetaN-Rchl=muG-mu*Q*zetaN-Rchl
          !vN = (muG-Rchl)/(1+Q*self%zetaN)*Q !/d * molN/molC
          !don't allow negative vN, which can happen when Rchl>muG (?)
          !vN=max(0.0_rk,vN)
-         !take up proportional to light limited gross growth rate:
-         vN = muIhatG * fC *Q
+         !Most consistent: take up proportional to light limited gross growth rate:
+         vN = muIhatG * fC *Q !molN/molC/d !for the FS variant, this is just to calculate the respN
        else !for the IA variant
-         vN = fV*vNhat !molN/molC/d #this is just to save as diagnostic
-         !
+         vN = fV*vNhat !molN/molC/d !for the IA variant, this is just to calculate the respN
        end if
    end if
    
    respN=self%zetaN*vN !molC/molN *molN/molC/d = /d
-   !mu = muG - (respN+Rchl)
-   mu = muG - respN
+   mu = muG - respN !Note that muG already contains -Rchl 
    
    !Calculate fluxes between pools
    if ( self%dynQN ) then 
@@ -545,7 +485,6 @@
 
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_Q, Q)
-   _SET_DIAGNOSTIC_(self%id_Q_muIhatG, Q_muIhatG)
    if ( self%dynQN ) then
      _SET_DIAGNOSTIC_(self%id_fQ, fQ)
    else
