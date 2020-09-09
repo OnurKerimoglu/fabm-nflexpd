@@ -417,6 +417,26 @@
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
    Theta= (1 - self%Q0 / 2 / Q - fV) * ThetaHat
    
+   !Calculate respN:
+   if ( self%dynQN ) then !Explicit uptake rate
+     respN=self%zetaN*fV*vNhat !molC/molN *molN/molC/d = /d
+   else
+     if ( self%mimic_Monod ) then
+       !Attempt1: vN=mu*Q; #this is wrong, as it becomes negative for Rtot>mu
+       !Attempt2: solve vN for mu=muG-vN*zetaN-Rchl=muG-mu*Q*zetaN-Rchl
+       !vN = (muG-Rchl)/(1+Q*self%zetaN)*Q !/d * molN/molC : This can become negative again for muG>Rchl
+       !Most consistent: take up proportional to light limited gross growth rate:
+       !vN = muIhatG * fC *Q
+       respN=self%zetaN*muIhatG*fC*Q
+     else
+       respN=self%zetaN*fV*vNhat !molC/molN *molN/molC/d = /d
+     end if  
+   end if
+   
+   !Net growth rate
+   mu = muG - respN !Note that muG already contains -Rchl 
+   
+   
    if ( self%dynQN ) then !Explicit uptake rate
      !to prevent model crashing:
      if (din .gt. self%mindin) then !can be interpreted as 'din detection limit' for phytoplankton
@@ -427,30 +447,12 @@
        vN = 0.0_rk
      end if
    else
-       !for dynQN=false, vN is needed only for calculating respiration, and to save as diagnostic
-       if ( self%mimic_Monod ) then
-         !Attempt1: vN=mu*Q; #this is wrong, as it becomes negative for 
-         !Attempt2: solve vN for mu=muG-vN*zetaN-Rchl=muG-mu*Q*zetaN-Rchl
-         !vN = (muG-Rchl)/(1+Q*self%zetaN)*Q !/d * molN/molC
-         !don't allow negative vN, which can happen when Rchl>muG (?)
-         !vN=max(0.0_rk,vN)
-         !Most consistent: take up proportional to light limited gross growth rate:
-         vN = muIhatG * fC *Q !molN/molC/d !for the FS variant, this is just to calculate the respN
-       else !for the IA variant
-         vN = fV*vNhat !molN/molC/d !for the IA variant, this is just to calculate the respN
-       end if
+       !Balanced growth:
+       vN=mu*Q
    end if
-   
-   respN=self%zetaN*vN !molC/molN *molN/molC/d = /d
-   mu = muG - respN !Note that muG already contains -Rchl 
    
    !Calculate fluxes between pools
-   if ( self%dynQN ) then 
-     f_din_phy = vN * phyC
-   else
-     f_din_phy = mu*phyN
-     !equivalently,      = vN*phyC, where vN=muQ
-   end if
+   f_din_phy = vN * phyC
    
    ! Mortality
    mort=self%M0p * Tfac * PhyN**2
