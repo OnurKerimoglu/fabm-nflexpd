@@ -7,12 +7,10 @@
 ! 1) N-based models (dynQN=false), with:
 !!! 1a) (FS) constant-stoichiometry without any flexibility, mimics Monod model
 !!! 1b) (IA)(*) 'Instantaneously Acclimating' N:C based on flexible fA,fV (&ThetaHat)
-!!! 1c) (IAfix)(**): 'Instantaneously Adjusting' N:C based on fixed fA,fV,ThetaHat (Requires the 'alternative algorithm')
 ! 2) N&C-based models (dynQN=true), with:
 !!! 2a) (DA) 'Dynamically Acclimating' N:C, based on flexible fA,fV (&ThetaHat)
-!!! 2b) (DAfix) 'Dynamically Adjusting' N:C based on flex fA,fV (&ThetaHat), mimics Droop model (Requires the 'alternative algorithm')
 !
-!(*,**): 'Flex' and 'Control' models in  Smith et al., 2016, J. Plankton Res. 38, 977–992
+!(*): 'Flex' model in  Smith et al., 2016, J. Plankton Res. 38, 977–992
 ! 
 ! Original Authors: O. Kerimoglu (v0.1:December 2018; v0.2: May 2020; v1.0: Aug 2020 )
 !
@@ -357,7 +355,7 @@
    ! T-dependence only for V0, not for A0
    vNhat = vAff( din, fA, self%A0hat, self%V0hat * Tfac )
    
-   ! Alternative way of calculating vNhat
+   ! Equivalent way of calculating vNhat
    !vNhat2=vOU(din,self%A0hat,self%V0hat * Tfac)
    
    !Optimization of fV (synthesis vs nut. uptake)
@@ -365,13 +363,6 @@
    ZINT = (self%zetaN + muIhatNET/vNhat) * self%Q0 / 2.0
    !write(*,'(A,4F12.5)')'  (phy) ZINT, muIhatG/vNhat:',ZINT,muIhatG/vNhat
 
-   ! Alternative algorithm: First fV=f(muIhatNET,vNhat), then Q=f(fV) [(eq. 13  in Smith et al 2016): (potentially instable)]
-   ! if (self%fVopt
-   !  fV=(-1.0 + sqrt(1.0 + 1.0 / ZINT) ) * (self%Q0 / 2.0) * muIhatNET / vNhat
-   ! else
-   !  fV = self%fV_fixed
-   ! end if
-   
    if (.not. self%dynQN) then
      !!$ ***  Calculating the optimal cell quota, based on the term ZINT, as calculated above
      if ( self%mimic_Monod ) then
@@ -386,8 +377,6 @@
        !Optimal Q: 
        ! fV-independent solution (eq. 23 in Smith et al 2016 = eq. 10 in Pahlow&Oschlies2013, muIhat denoted as muIhatNET):
        Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
-       ! Alternative algorithm: First fV=f(muIhatNET,vNhat), then Q=f(fV)
-       !Q=( fV*vNhat +(self%Q0/2.0)*muIhatNET) / ((1.0-fV)*muIhatNET - self%zetaN*fV*vNhat)
      end if
      phyC=phyN/Q
    end if
