@@ -375,7 +375,9 @@
        !end if
        !limfunc_Nmonod = din / ( KN_monod + din)
        !A0hat*N/(V0hat+A0*N)
-       limfunc_Nmonod = self%A0hat*din / (self%V0hat*Tfac+self%A0hat*din)
+       !limfunc_Nmonod = self%A0hat*din / (self%V0hat*Tfac+self%A0hat*din)
+       !fA*A0hat*N/((1-fA)* V0hat +fA * A0hat*N)
+       limfunc_Nmonod = fA*self%A0hat*din / ((1.0-fA)*self%V0hat*Tfac+fA*self%A0hat*din)
      else
        !Optimal Q: 
        ! fV-independent solution (eq. 23 in Smith et al 2016 = eq. 10 in Pahlow&Oschlies2013, muIhat denoted as muIhatNET):
