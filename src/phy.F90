@@ -426,20 +426,23 @@
      respN=self%zetaN*fV*vNhat !molC/molN *molN/molC/d = /d
    else
      if ( self%mimic_Monod ) then
+       !Attempt0: just like the others: this gives entirely unrealistic results (too high at the bottom layers):
+       !respN=self%zetaN*fV*vNhat !molC/molN *molN/molC/d = /d
        !Attempt1: vN=mu*Q; #this is wrong, as it becomes negative for Rtot>mu
-       !Attempt2: solve vN for mu=muG-vN*zetaN-Rchl=muG-mu*Q*zetaN-Rchl
-       !vN = (muG-Rchl)/(1+Q*self%zetaN)*Q !/d * molN/molC : This can become negative again for muG>Rchl
-       !Most consistent: take up proportional to light limited gross growth rate:
-       !vN = muIhatG * fC *Q
-       respN=self%zetaN*muIhatG*fC*Q
+       !Attempt2: solve  respN=zetaN*vN=zetaN*muQ from mu=muIhatNET*fC-mu*Q*zetaN; mu=muIhatNET*fC/(1+Q*zetaN);
+       respN=self%zetaN*muIhatNET*fC*Q/(1.0+Q*self%zetaN) ! : This can become negative again for muG>Rchl
+       !Attempt3: take up proportional to light limited gross growth rate
+       !respN=self%zetaN*muIhatG*fC*Q  !where, muIhatG * fC *Q=vN
      else
        respN=self%zetaN*fV*vNhat !molC/molN *molN/molC/d = /d
      end if  
    end if
    
    !Net growth rate
-   mu = muG - respN !Note that muG already contains -Rchl 
-   
+   mu = muG - respN !Note that muG already contains -Rchl
+   !for FS, this becomes:
+   !mu= muG - zetaN*muG*Q/(1.0+Q*zetaN)= (muG (1+QzetaN) - muG Q ZetaN ) / (1+QzetaN) = muG/(1+QzetaN)
+   !mu+muQzetaN = muG -> mu=muG-muQ*zetaN
    
    if ( self%dynQN ) then !Explicit uptake rate
      !to prevent model crashing:
