@@ -339,6 +339,7 @@
    muIhatG = Ld * self%mu0hat * Tfac * limfunc_L
    
    !'Net' light limited growth rate, muIhatNET (= A-cursive in Pahlow etal 2013, Appendix 1)
+   !replace muIhatNET -> muhatNET 
    muIhatNET=muIhatG*(1.0-zetaChl*ThetaHat)-Tfac*RMchl*zetaChl*ThetaHat
    if (par_dm .gt. I_zero .and. muIhatNET .lt. 0.0) then
      write(*,'(A,F10.8,A,F10.8,A,F5.2,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8)')'Ld:',Ld,'  fT:',Tfac,'  depth:',depth,'  I_C:',I_zero*86400,'  Idm:',par_dm*86400,'  WAPR:',WAPR(larg, 0, 0),'  ThetaHat:',ThetaHat,'  SI:',limfunc_L,'  muIhatNET:',muIhatNET*86400
@@ -393,11 +394,6 @@
      fV = self%fV_fixed
    end if
    
-   ! Losses due to Chlorophyll
-   ! eq. 26 in Smith et al 2016
-   !Just as model diagnostic (Rchl is already accounted for in muIhatNET)
-   Rchl = (muIhatG + Tfac*RMchl) * ( 1 - fV - self%Q0/(2.0*Q) ) * zetaChl * ThetaHat
-   
    !fC
    !can help avoiding model crashing:
    if (din .gt. self%mindin) then ! 'din detection limit' for phytoplankton
@@ -410,8 +406,16 @@
      fC = 0.0_rk
    end if
    
+   ! Losses due to Chlorophyll
+   ! eq. 26 in Smith et al 2016
+   !Just as model diagnostic (Rchl is already accounted for in muIhatNET)
+   !For FS, scaling with (1-fV-Q0/2Q) is not consistent, as fV and Q are always constant
+   !Rchl = (muIhatG + Tfac*RMchl) * ( 1 - fV - self%Q0/(2.0*Q) ) * zetaChl * ThetaHat
+   !scaling with fC is more consistent, since it becomes low at the surface
+   Rchl = (muIhatG + Tfac*RMchl) * fC * zetaChl * ThetaHat
+   
    !write(*,*)'depth,DIN,fC,fV,Q,Q0/(2.0*Q):',depth,din,fC,fV,Q,self%Q0/(2.0*Q)
-      
+   !replace muG -> muNET   
    muG =  muIhatNET * fC
    
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
