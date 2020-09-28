@@ -36,9 +36,9 @@
       type (type_state_variable_id)        :: id_din,id_don,id_doc,id_detn,id_detc
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_depth
       type (type_horizontal_dependency_id) :: id_FDL
-      type (type_diagnostic_variable_id)   :: id_muIhatNET,id_ZINT
+      type (type_diagnostic_variable_id)   :: id_muhatNET,id_ZINT
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyC,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
-      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_muG,id_muIhatG,id_vNhat,id_vN,id_respN,id_respChl
+      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_muNET,id_muIhatG,id_vNhat,id_vN,id_respN,id_respChl
       type (type_diagnostic_variable_id)   :: id_fQ,id_limfunc_Nmonod,id_fC,id_limfunc_L,id_Tfac
       type(type_diagnostic_variable_id)    :: id_fphydoc,id_fphydon,id_fphydetc,id_fphydetn
       
@@ -172,15 +172,15 @@
    call self%register_diagnostic_variable(self%id_Chl2C, 'Chl2C','gChl/gC',    'cellular chlorophyll content',           &
                                      output=output_instantaneous)
                                      
-   call self%register_diagnostic_variable(self%id_muG, 'muG','/d',    'gross specific growth rate',           &
+   call self%register_diagnostic_variable(self%id_muNET, 'muNET','/d',    'muNET - Rchl',           &
                                      output=output_time_step_averaged)                                  
    call self%register_diagnostic_variable(self%id_mu, 'mu','/d',    'net sp. growth rate',           &
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_vN, 'vN','molN/molC/d',    'Specific N uptake rate',           &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_muIhatG, 'muIhatG','/d',    'Light-limited potential gross growth rate',           &
+   call self%register_diagnostic_variable(self%id_muIhatG, 'muIhatG','/d',    'Gross growth rate within chloroplast',           &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_muIhatNET, 'muIhatNET','/d',    'Light-limited potential net growth rate',           &
+   call self%register_diagnostic_variable(self%id_muhatNET, 'muhatNET','/d',   'Net growth rate within chloroplast',           &
                                      output=output_time_step_averaged)                                  
    call self%register_diagnostic_variable(self%id_vNhat, 'vNhat','molN/molC/d',    'Potential specific N uptake rate',           &
                                      output=output_time_step_averaged)                                     
@@ -192,7 +192,7 @@
    call self%register_diagnostic_variable(self%id_respChl, 'R_Chl','/d',    'Respiration cost of Chl uptake',     &
                                      output=output_time_step_averaged)
                                      
-   call self%register_diagnostic_variable(self%id_ZINT, 'ZINT','-',    'Qs*(muIhatNET/vNhat+zetaN)',           &
+   call self%register_diagnostic_variable(self%id_ZINT, 'ZINT','-',    'Qs*(muhatNET/vNhat+zetaN)',           &
                                      output=output_time_step_averaged)                                     
    call self%register_diagnostic_variable(self%id_fV, 'fV','-',    'fV',           &
                                      output=output_time_step_averaged)                                 
@@ -255,12 +255,12 @@
 !
 ! !LOCAL VARIABLES:
    real(rk)                   :: din,phyC,phyN,parW,par,par_dm,Ld
-   real(rk)                   :: ThetaHat,vNhat,muIhatG,muIhatNET
+   real(rk)                   :: ThetaHat,vNhat,muIhatG,muhatNET
    real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
    real(rk)                   :: vN,Vhat_fNT,RMchl,zetaChl
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac,depth
-   real(rk)                   :: mu,respN,mort,Pprod,muG,KN_monod
+   real(rk)                   :: mu,respN,mort,Pprod,muNET,KN_monod
    real(rk)                   :: limfunc_L,fC,limfunc_Nmonod
    real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
@@ -299,7 +299,7 @@
      par_dm=par
    end if
    
-   !when par_dm=0 (eg., during the first day, where par_dm is not yet calculated, muIhatNET and fV becomes both 0, which makes Q=NaN
+   !when par_dm=0 (eg., during the first day, where par_dm is not yet calculated, muhatNET and fV becomes both 0, which makes Q=NaN
    !so we set it to a very small value
    if (par_dm .eq. 0.0 ) then
      par_dm=1e-6
@@ -338,11 +338,10 @@
    !write(*,*)'depth,par_dm,SIT',depth,par_dm,1.0-exp(-self%aI*ThetaHat*par_dm/(Tfac*self%mu0hat))
    muIhatG = Ld * self%mu0hat * Tfac * limfunc_L
    
-   !'Net' light limited growth rate, muIhatNET (= A-cursive in Pahlow etal 2013, Appendix 1)
-   !replace muIhatNET -> muhatNET 
-   muIhatNET=muIhatG*(1.0-zetaChl*ThetaHat)-Tfac*RMchl*zetaChl*ThetaHat
-   if (par_dm .gt. I_zero .and. muIhatNET .lt. 0.0) then
-     write(*,'(A,F10.8,A,F10.8,A,F5.2,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8)')'Ld:',Ld,'  fT:',Tfac,'  depth:',depth,'  I_C:',I_zero*86400,'  Idm:',par_dm*86400,'  WAPR:',WAPR(larg, 0, 0),'  ThetaHat:',ThetaHat,'  SI:',limfunc_L,'  muIhatNET:',muIhatNET*86400
+   !'Net' light limited growth rate, muhatNET (= A-cursive in Pahlow etal 2013, Appendix 1)
+   muhatNET=muIhatG*(1.0-zetaChl*ThetaHat)-Tfac*RMchl*zetaChl*ThetaHat
+   if (par_dm .gt. I_zero .and. muhatNET .lt. 0.0) then
+     write(*,'(A,F10.8,A,F10.8,A,F5.2,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8)')'Ld:',Ld,'  fT:',Tfac,'  depth:',depth,'  I_C:',I_zero*86400,'  Idm:',par_dm*86400,'  WAPR:',WAPR(larg, 0, 0),'  ThetaHat:',ThetaHat,'  SI:',limfunc_L,'  muhatNET:',muhatNET*86400
    end if
    
    !Optimal allocation for affinity vs max. uptake
@@ -361,7 +360,7 @@
    
    !Optimization of fV (synthesis vs nut. uptake)
    !Intermediate term  in brackets that appears in Smith et al 2016, eqs. 13 & 14
-   ZINT = (self%zetaN + muIhatNET/vNhat) * self%Q0 / 2.0
+   ZINT = (self%zetaN + muhatNET/vNhat) * self%Q0 / 2.0
    !write(*,'(A,4F12.5)')'  (phy) ZINT, muIhatG/vNhat:',ZINT,muIhatG/vNhat
 
    if (.not. self%dynQN) then
@@ -380,7 +379,7 @@
        limfunc_Nmonod = fA*self%A0hat*din / ((1.0-fA)*self%V0hat*Tfac+fA*self%A0hat*din)
      else
        !Optimal Q: 
-       ! fV-independent solution (eq. 23 in Smith et al 2016 = eq. 10 in Pahlow&Oschlies2013, muIhat denoted as muIhatNET):
+       ! fV-independent solution (eq. 23 in Smith et al 2016 = eq. 10 in Pahlow&Oschlies2013, muIhat denoted as muhatNET):
        Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
      end if
      phyC=phyN/Q
@@ -412,15 +411,14 @@
    
    ! Losses due to Chlorophyll
    ! eq. 26 in Smith et al 2016
-   !Just as model diagnostic (Rchl is already accounted for in muIhatNET)
+   !Just as model diagnostic (Rchl is already accounted for in muhatNET)
    !For FS, scaling with (1-fV-Q0/2Q) is not consistent, as fV and Q are always constant
    !Rchl = (muIhatG + Tfac*RMchl) * ( 1 - fV - self%Q0/(2.0*Q) ) * zetaChl * ThetaHat
    !scaling with fC is more consistent, since it becomes low at the surface
    Rchl = (muIhatG + Tfac*RMchl) * fC * zetaChl * ThetaHat
    
-   !write(*,*)'depth,DIN,fC,fV,Q,Q0/(2.0*Q):',depth,din,fC,fV,Q,self%Q0/(2.0*Q)
-   !replace muG -> muNET   
-   muG =  muIhatNET * fC
+   !write(*,*)'depth,DIN,fC,fV,Q,Q0/(2.0*Q):',depth,din,fC,fV,Q,self%Q0/(2.0*Q)   
+   muNET =  muhatNET * fC
    
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
    Theta= (1 - self%Q0 / 2 / Q - fV) * ThetaHat
@@ -433,8 +431,8 @@
        !Attempt0: just like the others: this gives entirely unrealistic results (too high at the bottom layers):
        !respN=self%zetaN*fV*vNhat !molC/molN *molN/molC/d = /d
        !Attempt1: vN=mu*Q; #this is wrong, as it becomes negative for Rtot>mu
-       !Attempt2: solve  respN=zetaN*vN=zetaN*muQ from mu=muIhatNET*fC-mu*Q*zetaN; mu=muIhatNET*fC/(1+Q*zetaN);
-       respN=self%zetaN*muIhatNET*fC*Q/(1.0+Q*self%zetaN) ! : This can become negative again for muG>Rchl
+       !Attempt2: solve  respN=zetaN*vN=zetaN*muQ from mu=muhatNET*fC-mu*Q*zetaN; mu=muhatNET*fC/(1+Q*zetaN);
+       respN=self%zetaN*muhatNET*fC*Q/(1.0+Q*self%zetaN) ! : This can become negative again for muNET>Rchl
        !Attempt3: take up proportional to light limited gross growth rate
        !respN=self%zetaN*muIhatG*fC*Q  !where, muIhatG * fC *Q=vN
      else
@@ -443,10 +441,10 @@
    end if
    
    !Net growth rate
-   mu = muG - respN !Note that muG already contains -Rchl
+   mu = muNET - respN !Note that muNET already contains -Rchl
    !for FS, this becomes:
-   !mu= muG - zetaN*muG*Q/(1.0+Q*zetaN)= (muG (1+QzetaN) - muG Q ZetaN ) / (1+QzetaN) = muG/(1+QzetaN)
-   !mu+muQzetaN = muG -> mu=muG-muQ*zetaN
+   !mu= muNET - zetaN*muNET*Q/(1.0+Q*zetaN)= (muNET (1+QzetaN) - muNET Q ZetaN ) / (1+QzetaN) = muNET/(1+QzetaN)
+   !mu+muQzetaN = muNET -> mu=muNET-muQ*zetaN
    
    if ( self%dynQN ) then !Explicit uptake rate
      !to prevent model crashing:
@@ -505,10 +503,10 @@
    _SET_DIAGNOSTIC_(self%id_Tfac, Tfac)
    _SET_DIAGNOSTIC_(self%id_fdinphy_sp, f_din_phy/phyC * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day) !*s_p_d such that output is in d-1
-   _SET_DIAGNOSTIC_(self%id_muG, muG * secs_pr_day) !*s_p_d such that output is in d-1
+   _SET_DIAGNOSTIC_(self%id_muNET, muNET * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_vN, vN * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_muIhatG, muIhatG * secs_pr_day)
-   _SET_DIAGNOSTIC_(self%id_muIhatNET, muIhatNET * secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_muhatNET, muhatNET * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_vNhat, vNhat * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_respN, respN * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_respChl, Rchl * secs_pr_day)
