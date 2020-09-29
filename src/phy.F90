@@ -367,16 +367,15 @@
      !!$ ***  Calculating the optimal cell quota, based on the term ZINT, as calculated above
      if ( self%mimic_Monod ) then
        Q = self%Q_fixed !6.67 !Almost Redfield? (106/16=6.625)
-       !if (self%KN_monod .le. 0.0_rk) then
-       !   KN_monod = self%V0hat*Tfac/self%A0hat
-       !else
-       !   KN_monod =self%KN_monod
-       !end if
-       !limfunc_Nmonod = din / ( KN_monod + din)
-       !A0hat*N/(V0hat+A0*N)
-       !limfunc_Nmonod = self%A0hat*din / (self%V0hat*Tfac+self%A0hat*din)
-       !fA*A0hat*N/((1-fA)* V0hat +fA * A0hat*N)
-       limfunc_Nmonod = fA*self%A0hat*din / ((1.0-fA)*self%V0hat*Tfac+fA*self%A0hat*din)
+       !Nutrient limitation function in Monod-form
+       if (self%KN_monod .le. 0.0_rk) then
+          KN_monod = (1.0-self%fA_fixed)*self%V0hat*Tfac/(self%A0hat*self%fA_fixed)
+       else
+          KN_monod =self%KN_monod
+       end if
+       limfunc_Nmonod = din / ( KN_monod + din)
+       !Nutrient limitation function in affinity form:
+       !limfunc_Nmonod = fA*self%A0hat*din / ((1.0-fA)*self%V0hat*Tfac+fA*self%A0hat*din)
      else
        !Optimal Q: 
        ! fV-independent solution (eq. 23 in Smith et al 2016 = eq. 10 in Pahlow&Oschlies2013, muIhat denoted as muhatNET):
