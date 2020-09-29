@@ -36,7 +36,7 @@
       type (type_state_variable_id)        :: id_din,id_don,id_doc,id_detn,id_detc
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_depth
       type (type_horizontal_dependency_id) :: id_FDL
-      type (type_diagnostic_variable_id)   :: id_muhatNET,id_ZINT
+      type (type_diagnostic_variable_id)   :: id_muhatNET,id_ZINT,id_Vhat,id_Ahat,id_KN
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyC,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_muNET,id_muIhatG,id_vNhat,id_vN,id_respN,id_respChl
       type (type_diagnostic_variable_id)   :: id_fQ,id_limfunc_Nmonod,id_fC,id_limfunc_L,id_Tfac
@@ -219,7 +219,14 @@
    end if
    if ( self%mimic_Monod ) then
      call self%register_diagnostic_variable(self%id_limfunc_Nmonod, 'limfunc_Nmonod','-',    'Monod function of DIN',   &
-                                     output=output_instantaneous) 
+                                     output=output_instantaneous)
+   else
+     call self%register_diagnostic_variable(self%id_Vhat, 'Vhat','molN molC-1 d-1',    '(1-fA)*V0hat*fT',   &
+                                     output=output_instantaneous)
+     call self%register_diagnostic_variable(self%id_Ahat, 'Ahat','m3 mmolC-1 d-1',    'fA*A0hat',   &
+                                     output=output_instantaneous)
+     call self%register_diagnostic_variable(self%id_KN, 'K_N_equivalent','mmolN/m^3',    '(1-fA)*V0hat*fT/(fA*A0hat)',   &
+                                     output=output_instantaneous)                                
    end if
    
    call self%register_diagnostic_variable(self%id_fphydon, 'f_phy_don','molN/m^3/d',    'bulk phy-N loss to detritus',           &
@@ -491,6 +498,10 @@
    end if
    if ( self%mimic_Monod ) then
      _SET_DIAGNOSTIC_(self%id_limfunc_Nmonod,limfunc_Nmonod)
+   else
+     _SET_DIAGNOSTIC_(self%id_Vhat,(1.0-fA)*self%V0hat*Tfac*secs_pr_day)
+     _SET_DIAGNOSTIC_(self%id_Ahat,fA*self%A0hat*secs_pr_day)
+     _SET_DIAGNOSTIC_(self%id_KN,(1.0-fA)*self%V0hat*Tfac/(fA*self%A0hat)) 
    end if
    _SET_DIAGNOSTIC_(self%id_Chl, Theta*phyC) 
    _SET_DIAGNOSTIC_(self%id_Chl2C, Theta/12.0) !gChl/molC*1molC/12gC =gChl/gC
