@@ -427,7 +427,10 @@
    muNET =  muhatNET * fC
    
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
+   !This makes FS can considered to be inconsistent again, although concerning only the model diagnostic (Theta does not have any role in calculations)
    Theta= (1 - self%Q0 / 2 / Q - fV) * ThetaHat
+   !With this, behavior of IA and DA doesn't change, but FS becomes more consistent, although it's not a classical Monod-model with constant C:Chl ratio.
+   !Theta= fC * ThetaHat
    
    !Calculate respN:
    if ( self%dynQN ) then !Explicit uptake rate
