@@ -105,8 +105,8 @@
    call self%get_parameter(self%mu0hat, 'mu0hat','d-1', 'max. potential growth rate', default=5.0_rk,scale_factor=d_per_s)
    call self%get_parameter(self%aI, 'aI','(m^2 E-1 molC gChl-1)', 'Chl-specific slope of the PI curve', default=1.0_rk) ! really /mol or /micromol?
    !nutrient-related
-   call self%get_parameter(self%fA_fixed, 'fA_fixed','-', 'fA to use when fa_opt=false', default=0.5_rk)
-   call self%get_parameter(self%fV_fixed, 'fV_fixed','-', 'fV to use when fv_opt=false', default=0.25_rk)
+   call self%get_parameter(self%fA_fixed, 'fA_fixed','-', 'fA to use when fa_opt=false', default=-9.9_rk)
+   call self%get_parameter(self%fV_fixed, 'fV_fixed','-', 'fV to use when fv_opt=false', default=-9.9_rk)
    call self%get_parameter(self%Q_fixed, 'Q_fixed','-', 'Q to use when provided, dynQN=false and fV_opt=false', default=-1.0_rk)
    call self%get_parameter(self%Qmax, 'Qmax','molN molC-1', 'Maximum cell quota', default=0.3_rk)
    call self%get_parameter(self%Q0, 'Q0','molN molC-1', 'Subsistence cell quota', default=0.039_rk)
@@ -427,10 +427,13 @@
    muNET =  muhatNET * fC
    
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
-   !This makes FS can considered to be inconsistent again, although concerning only the model diagnostic (Theta does not have any role in calculations)
-   Theta= (1 - self%Q0 / 2 / Q - fV) * ThetaHat
-   !With this, behavior of IA and DA doesn't change, but FS becomes more consistent, although it's not a classical Monod-model with constant C:Chl ratio.
-   !Theta= fC * ThetaHat
+   if ( self%mimic_Monod .and. self%fV_fixed .gt. 0.0 ) then
+     !Specification of a positive fV_fixed implies that a constant Chl:C is desired. This can considered to be inconsistent with regard to the calculation of RChl (with fC)
+     Theta= (1 - self%Q0 / 2 / Q - fV) * ThetaHat
+   else
+     !With this, FS becomes more consistent (with regard to the calcualtion of RChl), although it's not a typical classical model constant C:Chl ratio anymore
+     Theta= fC * ThetaHat
+   end if
    
    !Calculate respN:
    if ( self%dynQN ) then !Explicit uptake rate

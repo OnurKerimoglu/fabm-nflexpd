@@ -42,7 +42,7 @@ def main(fname, numyears, modname):
       models = [modname]
       varsets={'abio0':['airt', 'wind', 'I_0'],
              'abio1':['abio_PAR_dmean','temp', 'mld_surf'],
-             'abio2':['abio_din','abio_detc/abio_detn','abio_detc_sed/abio_detn_sed'], #'abio_doc/abio_don'],
+             'abio2':['abio_din','abio_detc/abio_detn','abio_detc_sed/abio_detn_sed'], 
              'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
              'phy-1':['C','N','Q','Chl','Chl2C'],
              'phy-2':['mu','vN','R_N','R_Chl'],
@@ -194,6 +194,7 @@ def plot_multivar(fname, numyears, groupname, varset, models):
 
 def plot_singlevar(fname,numyears,groupname,varset,models):
     colmap='viridis'
+    axgrid=True
     #default:
     fpar = {'left': 0.05, 'right': 0.99, 'top': 0.85, 'bottom': 0.15, 'hspace': 0.5, 'wspace': 0.2}
     if 'phy' in groupname:
@@ -325,71 +326,72 @@ def plot_singlevar(fname,numyears,groupname,varset,models):
         else:
             t = tvecC
 
-        #not really plot, if all values are same
-        if False: #(np.max(datC)-np.min(datC)<1e-10):
-            ax.text(0.5,0.5,varnames[i]+'\n\n all: %3.2f'%np.max(datC),
-                    horizontalalignment='center',
-                    verticalalignment='center',
-                    transform=ax.transAxes)
-            continue
+        #if units in ['%']:
+        #    title(longname + ' [%s]'%units, size=10.0)
+        if units== 'Celsius':
+            units='^oC'
+        elif varn=='I_0' and units=='W/m2':
+            #convert to Watts to Einstein/d
+            units='E/m^2/d'
+            datC=datC*4.6 * 1e-6 * 86400
+        elif varn=='mld_surf':
+            #convert to absolute depth
+            datC=datC*-1
+        if model=='':
+            prettyname='$%s$'%prettynames[varn_basic]
         else:
-            #if units in ['%']:
-            #    title(longname + ' [%s]'%units, size=10.0)
-            if units== 'Celsius':
-                units='^oC'
-            elif varn=='I_0' and units=='W/m2':
-                #convert to Watts to Einstein/d
-                units='E/m^2/d'
-                datC=datC*4.6 * 1e-6 * 86400
-            elif varn=='mld_surf':
-                #convert to absolute depth
-                datC=datC*-1
-            if model=='':
-                prettyname='$%s$'%prettynames[varn_basic]
-            else:
-                prettyname='(%s) $%s$'%(model.split('phy_')[1],prettynames[varn_basic])
-            if varn_basic in prettyunits:
-                units = prettyunits[varn_basic]
-            plt.title('%s [$%s$]'%(prettyname,units), size=12.0)
-
-            cmap = plt.get_cmap(colmap)
-            if valsat == 'plate':
-                ax.plot(t,datC)
-                #shrink the axes width by 20% to fit that of the contour plots
-                box = ax.get_position()
-                ax.set_position([box.x0, box.y0, (box.x1 - box.x0) * 0.8, box.y1 - box.y0])
-                if varn_basic in varlims.keys():
-                    ax.set_ylim(varlims[varn][0],varlims[varn][1])
-            else:
-                #coloring of values exactly 0.0 becomes arbitrary. Tip them over the positive side to prevent alarming results
-                datC[datC==0.0]=1e-15
-                if len(z.shape) == 2:
-                    pcf = ax.contourf(t, depth, datC, cmap=cmap,vmin=vmin,vmax=vmax)
-                else:
-                    if varn_basic in varlims.keys():
-                        levels=np.linspace(varlims[varn_basic][0],varlims[varn_basic][1],numlevels)
-                        extendopt,cmap=get_extendopt(levels,datC,cmap)
-                        pcf=ax.contourf(tvecC,depth,np.transpose(datC),cmap=cmap,levels=levels,extend=extendopt)
-                    else:
-                        pcf = ax.contourf(tvecC, depth, np.transpose(datC), cmap=cmap)
-                    if not (prescylim[0]==0 and prescylim[1]==0):
-                        ax.set_ylim(prescylim[0], prescylim[1])
-                        ylimsuf='_ylim_%s-%s'%(prescylim[0],prescylim[1])
-                plt.ylabel('depth [m]')
-
-                cbar = plt.colorbar(pcf, shrink=0.9)
-                # cbar.solids.set_edgecolor("face")
-                # draw()
-                if (np.max(datC)-np.min(datC)<1e-4):
-                    #print mean concentration (rounded to 3rd digit)
-                    meanc=np.round(np.mean(datC)*1000)/1000
-                    ax.text(0.5,0.5,'constant: %3.3f'%meanc,
-                            horizontalalignment='center',verticalalignment='center',transform=ax.transAxes)
+            prettyname='(%s) $%s$'%(model.split('phy_')[1],prettynames[varn_basic])
+        if varn_basic in prettyunits:
+            units = prettyunits[varn_basic]
+        plt.title('%s [$%s$]'%(prettyname,units), size=12.0)
         
-        ax.grid(b=True, axis='y', which='major', color='0.5', linestyle='-')
+        cmap = plt.get_cmap(colmap)
+        if valsat == 'plate':
+            ax.plot(t,datC)
+            #shrink the axes width by 20% to fit that of the contour plots
+            box = ax.get_position()
+            ax.set_position([box.x0, box.y0, (box.x1 - box.x0) * 0.8, box.y1 - box.y0])
+            if varn_basic in varlims.keys():
+                ax.set_ylim(varlims[varn][0],varlims[varn][1])
+        else:
+            if ((np.max(datC)+9.9<0.01) & (np.min(datC)+9.9<0.01)):
+                datC[:,:]=np.nan
+            #coloring of values exactly 0.0 becomes arbitrary. Tip them over the positive side to prevent alarming results
+            datC[datC==0.0]=1e-15
+            if len(z.shape) == 2:
+                pcf = ax.contourf(t, depth, datC, cmap=cmap,vmin=vmin,vmax=vmax)
+            else:
+                if varn_basic in varlims.keys():
+                    levels=np.linspace(varlims[varn_basic][0],varlims[varn_basic][1],numlevels)
+                    extendopt,cmap=get_extendopt(levels,datC,cmap)
+                    pcf=ax.contourf(tvecC,depth,np.transpose(datC),cmap=cmap,levels=levels,extend=extendopt)
+                else:
+                    pcf = ax.contourf(tvecC, depth, np.transpose(datC), cmap=cmap)
+                if not (prescylim[0]==0 and prescylim[1]==0):
+                    ax.set_ylim(prescylim[0], prescylim[1])
+                    ylimsuf='_ylim_%s-%s'%(prescylim[0],prescylim[1])
+            plt.ylabel('depth [m]')
+
+            cbar = plt.colorbar(pcf, shrink=0.9)
+            # cbar.solids.set_edgecolor("face")
+            # draw()
+            #not really plot, if the variable is marked as 'missing value (-9.9'
+            if (np.isnan(datC).all()):
+                ax.text(0.5,0.5,'N/A',transform=ax.transAxes,
+                        horizontalalignment='center',verticalalignment='center')
+                axgrid=False
+                
+            elif (np.max(datC)-np.min(datC)<1e-4):
+                #print mean concentration (rounded to 3rd digit)
+                meanc=np.round(np.mean(datC)*1000)/1000
+                ax.text(0.5,0.5,'constant: %3.3f'%meanc,transform=ax.transAxes,
+                        horizontalalignment='center',verticalalignment='center')
+                axgrid=False
+            else:
+                ax.grid(b=True, axis='y', which='major', color='0.5', linestyle='-')
         
         #x-axis
-        format_date_axis(ax,[tvecC[0], tvecC[-1]])
+        format_date_axis(ax,[tvecC[0], tvecC[-1]], axgrid)
         plt.xlabel('')
 
     nc.close()
@@ -501,7 +503,7 @@ def get_varvals_op(ncv,varn0):
             units='molC/molN'
     return (True,varvals,longname,units)
         
-def format_date_axis(ax,tspan):
+def format_date_axis(ax,tspan,axgrid=True):
     import matplotlib.dates as mpldates
     ax.set_xlim(tspan[0], tspan[1])
     if np.diff(tspan)[0].days<63:
@@ -512,7 +514,8 @@ def format_date_axis(ax,tspan):
         ax.xaxis.set_major_formatter(mpldates.DateFormatter(''))
         ax.xaxis.set_minor_locator(mpldates.MonthLocator(bymonthday=1, interval=2) )
         ax.xaxis.set_minor_formatter(mpldates.DateFormatter('%b'))
-        ax.grid(b=True, axis='x', which='minor', color='0.5', linestyle='-')
+        if axgrid:
+            ax.grid(b=True, axis='x', which='minor', color='0.5', linestyle='-')
         #ax.xaxis.set_tick_params(which='major', pad=15)
     elif np.diff(tspan)[0].days<732:
         ax.xaxis.set_major_locator(mpldates.MonthLocator(bymonthday=1, interval=12) )
@@ -524,7 +527,8 @@ def format_date_axis(ax,tspan):
         ax.xaxis.set_minor_locator(mpldates.MonthLocator(bymonthday=1, interval=1))
         ax.xaxis.set_major_locator(mpldates.MonthLocator(bymonthday=1, interval=12) )
         ax.xaxis.set_major_formatter(mpldates.DateFormatter('%Y'))
-        ax.grid(b=True, axis='x', which='major', color='0.5', linestyle='-')
+        if axgrid:
+            ax.grid(b=True, axis='x', which='major', color='0.5', linestyle='-')
         #ax.xaxis.set_tick_params(which='major', pad=10)
     elif np.diff(tspan)[0].days<3655:
         ax.xaxis.set_major_locator(mpldates.MonthLocator(bymonthday=1, interval=12) )

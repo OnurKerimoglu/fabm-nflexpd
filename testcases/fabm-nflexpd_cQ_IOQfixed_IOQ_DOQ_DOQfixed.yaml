@@ -11,17 +11,17 @@ instances:
       Theta_opt : .false.            # whether to optimize theta (true/false)
       fA_opt : .false.               # whether to optimize fA (true/false)
       fV_opt : .false.               # whether to optimize fV (true/false)
-      TheHat_fixed: 0.518            # Theta_Hat to use when Theta_opt=false (gChl molC-1)
+      TheHat_fixed: 0.518            # [<IA>:0.043*12] Theta_Hat to use when Theta_opt=false (gChl molC-1)
       RMchl: 0.1                     # loss rate of chlorophyll (d-1)
       mu0hat: 5.0                    # max. potential growth rate (d-1)
       aI: 1.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
-      fA_fixed: 0.814                # fA to use when fa_opt=false (-)
-      fV_fixed: 0.32                 # fV to use when fv_opt=false (-)
-      Q_fixed: 0.084                 # Q to use when provided, dynQN=false and fV_opt=false, RF=0.150943, bmavg=0.08
+      #fA_fixed: 0.83                 # [<IA>:0.83] fA to use when fa_opt=false (-)
+      #fV_fixed: 0.33                 # [<IA>:0.33]fV to use when fv_opt=false (-)
+      Q_fixed: 0.084                 # [<IA>:0.083] Q to use when provided, dynQN=false and fV_opt=false, RF=0.150943
       Q0: 0.039                      # Subsistence cell quota (molN molC-1)
       V0hat: 5.0                     # Potential maximum uptake rate (molN molC-1 d-1)
       A0hat: 0.1                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
-      #KN_monod: 5.0                  # Half saturation constant for growth [only relevant when Q is fixed] [if not provided, KN_monod=V0hat*T/A0hat]
+      KN_monod: 4.84                 # [<IA>: 4.84] Half saturation constant for growth [only relevant when Q is fixed] [if not provided, KN_monod=V0hat*T/A0hat]
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
