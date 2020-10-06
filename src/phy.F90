@@ -448,7 +448,11 @@
        !Attempt3: take up proportional to light limited gross growth rate
        !respN=self%zetaN*muIhatG*fC*Q  !where, muIhatG * fC *Q=vN
      else
+       !like DA: RN based on V = fV*vNhat
        respN=self%zetaN*fV*vNhat !molC/molN *molN/molC/d = /d
+       !like for the FS: RN calculated based on V = mu*Q.
+       !respN=self%zetaN*muhatNET*fC*Q/(1.0+Q*self%zetaN)
+       !Problem: as muhatNET=0 in deep layers,RN becomes 0, which makes vN>0, which in turn makes mu>0
      end if  
    end if
    
