@@ -61,8 +61,11 @@ def main(fname, numyears, modname):
              'phy-1':['C','N','Q','Chl','Chl2C'],
              'phy-2':['mu','vN','R_N','R_Chl'],
              'phy-3':['ThetaHat', 'fA','fV','fC','limfunc_L'],
-             'phy-avg1': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50'],
-             'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
+             'phy-avg1': ['Q_avg0-100', 'fC_avg0-100', 'C_avg0-100'],
+             'phy-avg1SB': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50',
+                            'Q_avg50-100', 'fC_avg50-100', 'C_avg50-100'],
+             'phy-avg2': ['mu_avg0-100', 'vN_avg0-100', 'R_N_avg0-100', 'R_Chl_avg0-100'],
+             'phy-avg2SB': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
                           'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
              }
     elif modname=='FS-IA-DA_merged': #i.e., merged single experiments
