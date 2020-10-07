@@ -347,7 +347,7 @@
    
    !'Net' light limited growth rate, muhatNET (= A-cursive in Pahlow etal 2013, Appendix 1)
    muhatNET=muIhatG*(1.0-zetaChl*ThetaHat)-Tfac*RMchl*zetaChl*ThetaHat
-   if (par_dm .gt. I_zero .and. muhatNET .lt. 0.0) then
+   if (.not. self%mimic_Monod .and. par_dm .gt. I_zero .and. muhatNET .lt. 0.0) then
      write(*,'(A,F10.8,A,F10.8,A,F5.2,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8)')'Ld:',Ld,'  fT:',Tfac,'  depth:',depth,'  I_C:',I_zero*86400,'  Idm:',par_dm*86400,'  WAPR:',WAPR(larg, 0, 0),'  ThetaHat:',ThetaHat,'  SI:',limfunc_L,'  muhatNET:',muhatNET*86400
    end if
    
