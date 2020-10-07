@@ -262,7 +262,7 @@
 !
 ! !LOCAL VARIABLES:
    real(rk)                   :: din,phyC,phyN,parW,par,par_dm,Ld
-   real(rk)                   :: ThetaHat,vNhat,muIhatG,muhatNET
+   real(rk)                   :: ThetaHat,vNhat,muIhatG,RhatChl,muhatNET
    real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
    real(rk)                   :: vN,Vhat_fNT,RMchl,zetaChl
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
@@ -346,7 +346,11 @@
    muIhatG = Ld * self%mu0hat * Tfac * limfunc_L
    
    !'Net' light limited growth rate, muhatNET (= A-cursive in Pahlow etal 2013, Appendix 1)
-   muhatNET=muIhatG*(1.0-zetaChl*ThetaHat)-Tfac*RMchl*zetaChl*ThetaHat
+   !muhatNET=muIhatG*(1.0-zetaChl*ThetaHat)-Tfac*RMchl*zetaChl*ThetaHat
+   !Chloroplast-specific respiration rate:
+   RhatChl=muIhatG*zetaChl*ThetaHat + Tfac*RMchl*zetaChl*ThetaHat
+   !Chloroplast-specific net growth rate
+   muhatNET=muIhatG-RhatChl
    if (.not. self%mimic_Monod .and. par_dm .gt. I_zero .and. muhatNET .lt. 0.0) then
      write(*,'(A,F10.8,A,F10.8,A,F5.2,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8)')'Ld:',Ld,'  fT:',Tfac,'  depth:',depth,'  I_C:',I_zero*86400,'  Idm:',par_dm*86400,'  WAPR:',WAPR(larg, 0, 0),'  ThetaHat:',ThetaHat,'  SI:',limfunc_L,'  muhatNET:',muhatNET*86400
    end if
@@ -417,14 +421,19 @@
    
    ! Losses due to Chlorophyll
    ! eq. 26 in Smith et al 2016
-   !Just as model diagnostic (Rchl is already accounted for in muhatNET)
-   !For FS, scaling with (1-fV-Q0/2Q) is not consistent, as fV and Q are always constant
-   !Rchl = (muIhatG + Tfac*RMchl) * ( 1 - fV - self%Q0/(2.0*Q) ) * zetaChl * ThetaHat
-   !scaling with fC is more consistent, since it becomes low at the surface
-   Rchl = (muIhatG + Tfac*RMchl) * fC * zetaChl * ThetaHat
+   !For FS, fV>0 implies constant Chl:C, which necessitates scaling of RhatChl with (1 - fV - self%Q0/(2.0*Q))
+   !if ( self%mimic_Monod .and. self%fV_fixed .gt. 0.0 ) then
+   !  RChl = RhatChl * ( 1 - fV - self%Q0/(2.0*Q) )
+     !Rchl = (muIhatG + Tfac*RMchl) * ( 1 - fV - self%Q0/(2.0*Q) ) * zetaChl * ThetaHat
+   !else
+     !Default behavior is to scale with fC
+     RChl = RhatChl * fC
+     !Rchl = (muIhatG + Tfac*RMchl) * fC * zetaChl * ThetaHat
+   !end if
    
    !write(*,*)'depth,DIN,fC,fV,Q,Q0/(2.0*Q):',depth,din,fC,fV,Q,self%Q0/(2.0*Q)   
-   muNET =  muhatNET * fC
+   !muNET =  muhatNET * fC
+   muNET =muIhatG*fC - RChl !(RhatChl*fC)
    
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
    if ( self%mimic_Monod .and. self%fV_fixed .gt. 0.0 ) then
