@@ -422,14 +422,14 @@
    ! Losses due to Chlorophyll
    ! eq. 26 in Smith et al 2016
    !For FS, fV>0 implies constant Chl:C, which necessitates scaling of RhatChl with (1 - fV - self%Q0/(2.0*Q))
-   !if ( self%mimic_Monod .and. self%fV_fixed .gt. 0.0 ) then
-   !  RChl = RhatChl * ( 1 - fV - self%Q0/(2.0*Q) )
+   if ( self%mimic_Monod .and. self%fV_fixed .gt. 0.0 ) then
+     RChl = RhatChl * ( 1 - fV - self%Q0/(2.0*Q) )
      !Rchl = (muIhatG + Tfac*RMchl) * ( 1 - fV - self%Q0/(2.0*Q) ) * zetaChl * ThetaHat
-   !else
+   else
      !Default behavior is to scale with fC
      RChl = RhatChl * fC
      !Rchl = (muIhatG + Tfac*RMchl) * fC * zetaChl * ThetaHat
-   !end if
+   end if
    
    !write(*,*)'depth,DIN,fC,fV,Q,Q0/(2.0*Q):',depth,din,fC,fV,Q,self%Q0/(2.0*Q)   
    !muNET =  muhatNET * fC
