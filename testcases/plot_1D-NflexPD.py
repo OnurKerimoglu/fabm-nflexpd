@@ -14,7 +14,7 @@ varlims={'abio_PAR_dmean':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'm
          'abio_din': [0, 30],'abio_detc':[0,80],'abio_detn':[0,6], 'abio_doc':[0,80], 'abio_don':[0,6],
          'Chl':[0,10.],'C':[0,50.0],'N':[0,7.5],'Q':[0.02,0.22],'Chl2C':[0.00,0.05],
          'PPR':[0,20.],'mu':[0,0.4],'vN':[0,0.05],'f_dinphy':[0,0.5],'R_N':[0,0.04],'R_Chl':[0,0.1],
-         'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.00,0.05],'fC':[0,0.2],'limfunc_L':[0.,1]}
+         'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.00,0.05],'fC':[0,0.2],'limfunc_Nmonod':[0,0.2],'limfunc_L':[0.,1]}
 #prettyunits={'abio_detc_sed/abio_detn_sed':'molC/molN','abio_detc/abio_detn':'molC/molN','abio_doc/abio_don':'molC/molN'}
 prettyunits={'abio_PAR_dmean':'E\ m^{-2}\ d^{-1}','I_0':'E\ m^{-2}\ d^{-1}','wind':'m\ s^{-1}',
              'abio_din':'mmolN\ m^{-3}','C':'mmolC\ m^{-3}', 'N':'mmolN\ m^{-3}',#'abio_din':'\mu M\ N','C':'\mu M\ C', 'N':'\mu M\ N',
@@ -29,7 +29,7 @@ prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{M
              'Chl':'Phy_{Chl}','C':'Phy_C','N':'Phy_N',
              'f_dinphy':'f_{DIN-Phy}',
              'Q':'Q','vN':'v_N','mu':'\mu',
-             'R_N':'R_N','R_Chl':'R_{Chl}','fC':'f_C','limfunc_L':'L_I',
+             'R_N':'R_N','R_Chl':'R_{Chl}','fC':'f_C','limfunc_Nmonod':'L_N','limfunc_L':'L_I',
              'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}','Chl2C':'\Theta'}
 numlevels=6
 #depth range to be shown:
@@ -47,6 +47,7 @@ def main(fname, numyears, modname):
              'phy-1':['C','N','Q','Chl','Chl2C'],
              'phy-2':['mu','vN','R_N','R_Chl'],
              'phy-3':['ThetaHat', 'fA','fV','fC','limfunc_L'],
+             'phy-3b':['ThetaHat','fA','fV','limfunc_Nmonod','limfunc_L'],
              'phy-avg1': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50'],
              'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
                           'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
@@ -61,6 +62,7 @@ def main(fname, numyears, modname):
              'phy-1':['C','N','Q','Chl','Chl2C'],
              'phy-2':['mu','vN','R_N','R_Chl'],
              'phy-3':['ThetaHat', 'fA','fV','fC','limfunc_L'],
+             'phy-3b':['ThetaHat','fA','fV','limfunc_Nmonod','limfunc_L'],
              'phy-avg1': ['Q_avg0-100', 'fC_avg0-100', 'C_avg0-100'],
              'phy-avg1SB': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50',
                             'Q_avg50-100', 'fC_avg50-100', 'C_avg50-100'],
