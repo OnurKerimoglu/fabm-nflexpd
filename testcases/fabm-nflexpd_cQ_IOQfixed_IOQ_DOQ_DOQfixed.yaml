@@ -1,5 +1,5 @@
 instances:
-  phy_FS:
+  phy_FS: 
     use: true
     long_name: FS
     model: nflexpd/phy
@@ -16,7 +16,7 @@ instances:
       mu0hat: 5.0                    # max. potential growth rate (d-1)
       aI: 1.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
       #fA_fixed: 0.83                 # [<IA>:0.83] fA to use when fa_opt=false (-)
-      #fV_fixed: 0.33                 # [<IA>:0.33]fV to use when fv_opt=false (-)
+      fV_fixed: 0.33                 # [<IA>:0.33] a positive fV value will be used to calc a fixed fC (1-fV-Q0/(2Q)) to scale TheHat and RChlHat
       Q_fixed: 0.084                 # [<IA>:0.083] Q to use when provided, dynQN=false and fV_opt=false, RF=0.150943
       Q0: 0.039                      # Subsistence cell quota (molN molC-1)
       V0hat: 5.0                     # Potential maximum uptake rate (molN molC-1 d-1)

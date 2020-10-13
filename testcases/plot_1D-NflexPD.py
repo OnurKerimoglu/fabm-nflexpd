@@ -78,7 +78,7 @@ def main(fname, numyears, modname):
              'abio-avg1SB':['din_avg0-50', 'detc/detn_avg0-50', 'detc_sed/detn_sed',
                             'din_avg50-100', 'detc/detn_avg50-100', 'detc_sed/detn_sed'],
              'abio-avg1':['din_avg0-100', 'detc/detn_avg0-100', 'detc_sed/detn_sed'],
-             'phy-avg1S': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50',
+             'phy-avg1SB': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50',
                            'Q_avg50-100', 'fC_avg50-100', 'C_avg50-100'],
              'phy-avg1': ['Q_avg0-100', 'fC_avg0-100', 'C_avg0-100'],
              'phy-avg2SB': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
