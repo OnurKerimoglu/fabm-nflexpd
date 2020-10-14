@@ -9,6 +9,7 @@
 !!! 1b) (IA)(*) 'Instantaneously Acclimating' N:C based on flexible fA,fV (&ThetaHat)
 ! 2) N&C-based models (dynQN=true), with:
 !!! 2a) (DA) 'Dynamically Acclimating' N:C, based on flexible fA,fV (&ThetaHat)
+!!! 2b) (DQ) 'Dyamical Quota': variable N:C, based on fixed fV (&fA,ThetaHat)
 !
 !(*): 'Flex' model in  Smith et al., 2016, J. Plankton Res. 38, 977–992
 ! 
@@ -351,7 +352,7 @@
    RhatChl=muIhatG*zetaChl*ThetaHat + Tfac*RMchl*zetaChl*ThetaHat
    !Chloroplast-specific net growth rate
    muhatNET=muIhatG-RhatChl
-   if (.not. self%mimic_Monod .and. par_dm .gt. I_zero .and. muhatNET .lt. 0.0) then
+   if (.not. self%mimic_Monod .and. self%fV_opt .and. par_dm .gt. I_zero .and. muhatNET .lt. 0.0) then
      write(*,'(A,F10.8,A,F10.8,A,F5.2,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8)')'Ld:',Ld,'  fT:',Tfac,'  depth:',depth,'  I_C:',I_zero*86400,'  Idm:',par_dm*86400,'  WAPR:',WAPR(larg, 0, 0),'  ThetaHat:',ThetaHat,'  SI:',limfunc_L,'  muhatNET:',muhatNET*86400
    end if
    
@@ -446,7 +447,12 @@
    
    !Calculate respN:
    if ( self%dynQN ) then !Explicit uptake rate
-     respN=self%zetaN*fV*vNhat !molC/molN *molN/molC/d = /d
+     if ( .not. self%fV_opt) then
+       !!For the non-acclimative DA variant: downgregulation based on Q
+       respN=self%zetaN*fV*vNhat*fQ !molC/molN *molN/molC/d = /d
+     else
+       respN=self%zetaN*fV*vNhat !molC/molN *molN/molC/d = /d
+     end if
    else
      if ( self%mimic_Monod ) then
        !Attempt0: just like the others: this gives entirely unrealistic results (too high at the bottom layers):
@@ -474,9 +480,12 @@
    if ( self%dynQN ) then !Explicit uptake rate
      !to prevent model crashing:
      if (din .gt. self%mindin) then !can be interpreted as 'din detection limit' for phytoplankton
-       !Downgregulation term cannot be applied without considering fQ when solving fV
-       !vN = fV*vNhat*fQ !molN/molC/d
-       vN = fV*vNhat !molN/molC/d
+       if ( .not. self%fV_opt) then
+         !For the non-acclimative DA variant: downgregulation based on Q
+         vN = fV*vNhat*fQ !molN/molC/d
+       else
+         vN = fV*vNhat !molN/molC/d
+       end if  
      else
        vN = 0.0_rk
      end if
