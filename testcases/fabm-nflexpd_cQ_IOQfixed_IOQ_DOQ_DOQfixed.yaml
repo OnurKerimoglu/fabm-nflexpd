@@ -111,7 +111,7 @@ instances:
       detN: abio/detn                # sink for dead matter (mmolN m-3)
       detC: abio/detc                # sink for dead matter (mmolC m-3)
   phy_DQ:
-    use: true
+    use: false
     long_name: DQ
     model: nflexpd/phy
     parameters:
