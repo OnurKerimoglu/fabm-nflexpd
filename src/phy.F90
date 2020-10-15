@@ -39,7 +39,7 @@
       type (type_horizontal_dependency_id) :: id_FDL
       type (type_diagnostic_variable_id)   :: id_muhatNET,id_ZINT,id_Vhat,id_Ahat,id_KN
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyC,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
-      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_muNET,id_muIhatG,id_vNhat,id_vN,id_respN,id_respChl
+      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_muNET,id_muhatG,id_vNhat,id_vN,id_respN,id_respChl
       type (type_diagnostic_variable_id)   :: id_fQ,id_limfunc_Nmonod,id_fC,id_limfunc_L,id_Tfac
       type(type_diagnostic_variable_id)    :: id_fphydoc,id_fphydon,id_fphydetc,id_fphydetn
       
@@ -179,7 +179,7 @@
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_vN, 'vN','molN/molC/d',    'Specific N uptake rate',           &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_muIhatG, 'muIhatG','/d',    'Gross growth rate within chloroplast',           &
+   call self%register_diagnostic_variable(self%id_muhatG, 'muhatG','/d',    'Gross growth rate within chloroplast',           &
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_muhatNET, 'muhatNET','/d',   'Net growth rate within chloroplast',           &
                                      output=output_time_step_averaged)                                  
@@ -263,7 +263,7 @@
 !
 ! !LOCAL VARIABLES:
    real(rk)                   :: din,phyC,phyN,parW,par,par_dm,Ld
-   real(rk)                   :: ThetaHat,vNhat,muIhatG,RhatChl,muhatNET
+   real(rk)                   :: ThetaHat,vNhat,muhatG,RhatChl,muhatNET
    real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
    real(rk)                   :: vN,Vhat_fNT,RMchl,zetaChl
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
@@ -344,14 +344,14 @@
    ! Light limited growth rate (eq. 6 in Smith et al 2016)
    limfunc_L=SIT(self%aI,self%mu0hat,par_dm,ThetaHat,Tfac)
    !write(*,*)'depth,par_dm,SIT',depth,par_dm,1.0-exp(-self%aI*ThetaHat*par_dm/(Tfac*self%mu0hat))
-   muIhatG = Ld * self%mu0hat * Tfac * limfunc_L
+   muhatG = Ld * self%mu0hat * Tfac * limfunc_L
    
    !'Net' light limited growth rate, muhatNET (= A-cursive in Pahlow etal 2013, Appendix 1)
-   !muhatNET=muIhatG*(1.0-zetaChl*ThetaHat)-Tfac*RMchl*zetaChl*ThetaHat
+   !muhatNET=muhatG*(1.0-zetaChl*ThetaHat)-Tfac*RMchl*zetaChl*ThetaHat
    !Chloroplast-specific respiration rate:
-   RhatChl=muIhatG*zetaChl*ThetaHat + Tfac*RMchl*zetaChl*ThetaHat
+   RhatChl=muhatG*zetaChl*ThetaHat + Tfac*RMchl*zetaChl*ThetaHat
    !Chloroplast-specific net growth rate
-   muhatNET=muIhatG-RhatChl
+   muhatNET=muhatG-RhatChl
    if (.not. self%mimic_Monod .and. self%fV_opt .and. par_dm .gt. I_zero .and. muhatNET .lt. 0.0) then
      write(*,'(A,F10.8,A,F10.8,A,F5.2,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8)')'Ld:',Ld,'  fT:',Tfac,'  depth:',depth,'  I_C:',I_zero*86400,'  Idm:',par_dm*86400,'  WAPR:',WAPR(larg, 0, 0),'  ThetaHat:',ThetaHat,'  SI:',limfunc_L,'  muhatNET:',muhatNET*86400
    end if
@@ -373,7 +373,7 @@
    !Optimization of fV (synthesis vs nut. uptake)
    !Intermediate term  in brackets that appears in Smith et al 2016, eqs. 13 & 14
    ZINT = (self%zetaN + muhatNET/vNhat) * self%Q0 / 2.0
-   !write(*,'(A,4F12.5)')'  (phy) ZINT, muIhatG/vNhat:',ZINT,muIhatG/vNhat
+   !write(*,'(A,4F12.5)')'  (phy) ZINT, muhatG/vNhat:',ZINT,muhatG/vNhat
 
    if (.not. self%dynQN) then
      !!$ ***  Calculating the optimal cell quota, based on the term ZINT, as calculated above
@@ -425,16 +425,16 @@
    !For FS, fV>0 implies constant Chl:C, which necessitates scaling of RhatChl with (1 - fV - self%Q0/(2.0*Q))
    if ( self%mimic_Monod .and. self%fV_fixed .gt. 0.0 ) then
      RChl = RhatChl * ( 1 - fV - self%Q0/(2.0*Q) )
-     !Rchl = (muIhatG + Tfac*RMchl) * ( 1 - fV - self%Q0/(2.0*Q) ) * zetaChl * ThetaHat
+     !Rchl = (muhatG + Tfac*RMchl) * ( 1 - fV - self%Q0/(2.0*Q) ) * zetaChl * ThetaHat
    else
      !Default behavior is to scale with fC
      RChl = RhatChl * fC
-     !Rchl = (muIhatG + Tfac*RMchl) * fC * zetaChl * ThetaHat
+     !Rchl = (muhatG + Tfac*RMchl) * fC * zetaChl * ThetaHat
    end if
    
    !write(*,*)'depth,DIN,fC,fV,Q,Q0/(2.0*Q):',depth,din,fC,fV,Q,self%Q0/(2.0*Q)   
    !muNET =  muhatNET * fC
-   muNET =muIhatG*fC - RChl !(RhatChl*fC)
+   muNET =muhatG*fC - RChl !(RhatChl*fC)
    
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
    if ( self%mimic_Monod .and. self%fV_fixed .gt. 0.0 ) then
@@ -461,7 +461,7 @@
        !Attempt2: solve  respN=zetaN*vN=zetaN*muQ from mu=muhatNET*fC-mu*Q*zetaN; mu=muhatNET*fC/(1+Q*zetaN);
        respN=self%zetaN*muhatNET*fC*Q/(1.0+Q*self%zetaN) ! : This can become negative again for muNET>Rchl
        !Attempt3: take up proportional to light limited gross growth rate
-       !respN=self%zetaN*muIhatG*fC*Q  !where, muIhatG * fC *Q=vN
+       !respN=self%zetaN*muhatG*fC*Q  !where, muhatG * fC *Q=vN
      else
        !like DA: RN based on V = fV*vNhat
        respN=self%zetaN*fV*vNhat !molC/molN *molN/molC/d = /d
@@ -543,7 +543,7 @@
    _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_muNET, muNET * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_vN, vN * secs_pr_day) !*s_p_d such that output is in d-1
-   _SET_DIAGNOSTIC_(self%id_muIhatG, muIhatG * secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_muhatG, muhatG * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_muhatNET, muhatNET * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_vNhat, vNhat * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_respN, respN * secs_pr_day)
