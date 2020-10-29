@@ -11,7 +11,7 @@ import numpy as np
 
 varlims={'abio_PAR_dmean':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf':[-100,0],'wind':[-6,26],
          'abio_detc_sed/abio_detn_sed':[4.0,16.0],'abio_detc/abio_detn':[5.0,30.0],'abio_doc/abio_don':[5.0,30.0],
-         'abio_din': [0, 30],'abio_detc':[0,80],'abio_detn':[0,6], 'abio_doc':[0,80], 'abio_don':[0,6],
+         'abio_din': [1, 26],'abio_detc':[0,80],'abio_detn':[0,6], 'abio_doc':[0,80], 'abio_don':[0,6],
          'Chl':[0,10.],'C':[0,50.0],'N':[0,7.5],'Q':[0.02,0.22],'Chl2C':[0.00,0.05],
          'PPR':[0,20.],'mu':[0,0.4],'vN':[0,0.05],'f_dinphy':[0,0.5],'R_N':[0,0.04],'R_Chl':[0,0.1],
          'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.00,0.05],'fC':[0,0.2],'limfunc_Nmonod':[0,0.2],'limfunc_L':[0.,1]}
@@ -42,7 +42,7 @@ def main(fname, numyears, modname):
       models = [modname]
       varsets={'abio0':['airt', 'wind', 'I_0'],
              'abio1':['abio_PAR_dmean','temp', 'mld_surf'],
-             'abio2':['abio_din','abio_detc/abio_detn','abio_detc_sed/abio_detn_sed'], 
+             'abio2':['abio_din','abio_detc/abio_detn','abio_detc_sed/abio_detn_sed'],
              'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
              'phy-1':['C','N','Q','Chl','Chl2C'],
              'phy-2':['mu','vN','R_N','R_Chl'],
@@ -381,6 +381,7 @@ def plot_singlevar(fname,numyears,groupname,varset,models):
             # cbar.solids.set_edgecolor("face")
             # draw()
             #not really plot, if the variable is marked as 'missing value (-9.9'
+            axgrid=True
             if (np.isnan(datC).all()):
                 ax.text(0.5,0.5,'N/A',transform=ax.transAxes,
                         horizontalalignment='center',verticalalignment='center')
@@ -419,7 +420,7 @@ def get_extendopt(levels, datC,cmap):
     if extendopt in ['max','both']:
         cmap.set_over('lightyellow')
     if extendopt in ['min','both']:
-        cmap.set_under('darkslategray')
+        cmap.set_under('black')
     return (extendopt,cmap)
 
 def get_basic_varname(varn,models):
@@ -550,21 +551,24 @@ if __name__ == "__main__":
     # run the 'main' function
     if len(sys.argv) < 2: #this means no arguments were passed
       #fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_wconst_FS-IA-DA_merged/Highlat-100m_wconst_FS-IA-DA_merged_mean.nc'
-      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_wconst-DA/Highlat-100m_wconst-DA_mean.nc'
+      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/20-10-12/FS_fC_const/Highlat-100m_wconst-FS/Highlat-100m_wconst-FS_mean.nc'
+      #fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/20-10-12/FS_fC_LN/Highlat-100m_wconst-FS_FSfCLN/Highlat-100m_wconst-FS_mean.nc'
+      #fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/20-10-12/FS_fC_const/Highlat-100m_wfile2-FS/Highlat-100m_wfile2-FS_mean.nc'
       print('plotting default file:'+fname)
     else:
       print('plotting file specified:'+sys.argv[1])
       fname=sys.argv[1]
       
     if len(sys.argv)<3: #no third argument was passed
-      numyears=-1 # -1 means plot everything
+      #numyears=-1 # -1 means plot everything
+      numyears=1
     else: 
       numyears=int(sys.argv[2]) #number of years to plot (counting from the last year backwards)
     print('plotting last '+str(numyears)+' year of the simulation')
     
     if len(sys.argv)<4:
       #modname='FS-IA-DA_merged'
-      modname = 'phy_DA'
+      modname = 'phy_FS'
     else:
       modname=sys.argv[3]
     main(fname, numyears, modname)
