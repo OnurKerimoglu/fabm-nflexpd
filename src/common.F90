@@ -37,8 +37,7 @@ module nflexpd_common
 !EOP
 !-----------------------------------------------------------------------
 !BOC
-   !dependence of growth rate on light (eq. 7 in Smith et al 2016)
-   SIT = 1.0 - exp( - aI * ThH * I / (Tfac * mu0hat) )
+   SIT = 1.0 - exp( - aI * ThH * I / (Tfac * mu0hat) ) !Eq.22 in K20
    return
  end function SIT
 !EOC
@@ -70,7 +69,7 @@ module nflexpd_common
 !EOP
 !-----------------------------------------------------------------------
 !BOC
-   ! eq. 20
+   ! eq. 20 in Smith et al 2016
    !Original:
    !vOU = Vpot * Apot * N / ( Vpot + 2*sqrt(Vpot*Apot*n) + Apot*N )
    vOU = Vpot * N / ( Vpot/Apot  + 2*sqrt(Vpot*N/Apot) + N )
@@ -110,7 +109,7 @@ module nflexpd_common
 !-----------------------------------------------------------------------
 !BOC
    ! eq. 16 in Smith et al. 2016
-   vAff = (1-f)*Vpot * f*Apot * N / ( (1-f)*Vpot + f*Apot*N )
+   vAff = (1-f)*Vpot * f*Apot * N / ( (1-f)*Vpot + f*Apot*N ) !Eq.17 in K20
    return
  end function vAff
 !EOC
@@ -143,7 +142,7 @@ module nflexpd_common
 !EOP
 !-----------------------------------------------------------------------
 !BOC
-   FofT = exp( - (Ea/R)*( 1/(273.15+tC) - 1/(273.15+Tr) ) )
+   FofT = exp( - (Ea/R)*( 1/(273.15+tC) - 1/(273.15+Tr) ) ) !Eq.28 in K20
    return
    end function FofT
 !EOC

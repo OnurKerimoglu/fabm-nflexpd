@@ -11,9 +11,11 @@
 !!! 2a) (DA) 'Dynamically Acclimating' N:C, based on flexible fA,fV (&ThetaHat)
 !!! 2b) (DQ) 'Dyamical Quota': variable N:C, based on fixed fV (&fA,ThetaHat)
 !
-!(*): 'Flex' model in  Smith et al., 2016, J. Plankton Res. 38, 977–992
+!(*): 'Flex' model in  Smith et al., 2016, J. Plankton Res. 38, 977–992; FABM implementation described by Kerimoglu O., Anugerahanti, P., Smith, S.L., 2020, GMDD (hereafter K20)
 ! 
-! Original Authors: O. Kerimoglu (v0.1:December 2018; v0.2: May 2020; v1.0: Aug 2020 )
+! Original Author(s): 
+! S. Lan Smith 2014-12-09 (gotm-bio), 
+! O. Kerimoglu 2018-11-27 (first fabm version), 2020-11-19 (version in 'K20')
 !
 ! !INTERFACE:
    module nflexpd_phy
@@ -290,9 +292,9 @@
    if ( self%dynQN ) then
      _GET_(self%id_phyC,phyC)  ! phytoplankton-C
      !Dynamically calculated quota is needed for calculating some rates below
-     Q= phyN/phyC
+     Q= phyN/phyC !Eq.9 in K20
      !relative Quota (used as a down-regulation term in classical droop model)
-     fQ=min(1.0,max(0.0, (self%Qmax-Q)/(self%Qmax-self%Q0/2.0)))
+     fQ=min(1.0,max(0.0, (self%Qmax-Q)/(self%Qmax-self%Q0/2.0))) !not used in K20
    end if
    
    ! Retrieve current environmental conditions.
@@ -319,18 +321,17 @@
    
    ! Primary production
    ! Optimization of ThetaHat (optimal Chl content in the chloroplasts)
-   I_zero = self%zetaChl * self%RMchl * Tfac / (Ld*self%aI)   ! Threshold irradiance
+   I_zero = self%zetaChl * self%RMchl * Tfac / (Ld*self%aI)   ! Eq.27, Threshold irradiance
    zetaChl=self%zetaChl
    RMchl=self%RMchl
    if( self%theta_opt ) then
      if( par_dm .gt. I_zero ) then !in cmo: .and. (mu0>0.0)
        !argument for the Lambert's W function
-       larg = (1.0 + self%RMchl * Tfac/(Ld*self%mu0hat*Tfac)) * exp(1.0 + self%aI*par_dm/(self%mu0hat*Tfac*self%zetaChl))
-       ! eq. 8 in Smith et al 2016
-       ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par_dm)
+       larg = (1.0 + self%RMchl * Tfac/(Ld*self%mu0hat*Tfac)) * exp(1.0 + self%aI*par_dm/(self%mu0hat*Tfac*self%zetaChl)) !Eq.26, term in brackets
+       ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par_dm) !Eq.26
      else
        !write(*,*)'par_dm,I_0',par_dm,I_zero
-       ThetaHat = self%ThetaHat_min  !  a small positive value
+       ThetaHat = self%ThetaHat_min  !Eq.26, if I<=IC (=0 in K20)
        !Setting zetaChl=RMchl=0 was necessary for using non-zero ThetaHat_min. 
        !I think we shouldn't do that anymore, since ThatHat_min is perfectly consistent, and 
        !Relatedly, ThataHat_min should be a constant, and not parameter
@@ -338,83 +339,75 @@
        !RMchl=0.0
      end if
    else
-     ThetaHat = self%TheHat_fixed
+     ThetaHat = self%TheHat_fixed !Used for FS in K20
    end if
    
-   ! Light limited growth rate (eq. 6 in Smith et al 2016)
-   limfunc_L=SIT(self%aI,self%mu0hat,par_dm,ThetaHat,Tfac)
+   ! Light limited growth rate
+   limfunc_L=SIT(self%aI,self%mu0hat,par_dm,ThetaHat,Tfac) !Eq.22 in K20
    !write(*,*)'depth,par_dm,SIT',depth,par_dm,1.0-exp(-self%aI*ThetaHat*par_dm/(Tfac*self%mu0hat))
-   muhatG = Ld * self%mu0hat * Tfac * limfunc_L
+   muhatG = Ld * self%mu0hat * Tfac * limfunc_L !Eq.21 in K20
    
-   !'Net' light limited growth rate, muhatNET (= A-cursive in Pahlow etal 2013, Appendix 1)
+   !'Net' light limited growth rate, muhatNET
    !muhatNET=muhatG*(1.0-zetaChl*ThetaHat)-Tfac*RMchl*zetaChl*ThetaHat
    !Chloroplast-specific respiration rate:
-   RhatChl=muhatG*zetaChl*ThetaHat + Tfac*RMchl*zetaChl*ThetaHat
+   RhatChl=muhatG*zetaChl*ThetaHat + Tfac*RMchl*zetaChl*ThetaHat !Eq.23 in K20
    !Chloroplast-specific net growth rate
-   muhatNET=muhatG-RhatChl
+   muhatNET=muhatG-RhatChl !Eq. 23 in K20 (= A-cursive in Pahlow etal 2013, Appendix 1)
    if (.not. self%mimic_Monod .and. self%fV_opt .and. par_dm .gt. I_zero .and. muhatNET .lt. 0.0) then
      write(*,'(A,F10.8,A,F10.8,A,F5.2,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8)')'Ld:',Ld,'  fT:',Tfac,'  depth:',depth,'  I_C:',I_zero*86400,'  Idm:',par_dm*86400,'  WAPR:',WAPR(larg, 0, 0),'  ThetaHat:',ThetaHat,'  SI:',limfunc_L,'  muhatNET:',muhatNET*86400
    end if
    
    !Optimal allocation for affinity vs max. uptake
    if( self%fA_opt ) then
-     ! eq. 17 in Smith et al 2016) 
-     fA = 1.0 / ( 1.0 + sqrt(self%A0hat * din /(Tfac * self%V0hat)) ) 
+     fA = 1.0 / ( 1.0 + sqrt(self%A0hat * din /(Tfac * self%V0hat)) ) !Eq.18 in K20
    else
-     fA =  self%fA_fixed
+     fA =  self%fA_fixed !Used for FS in K20
    end if
    
-   ! T-dependence only for V0, not for A0
-   vNhat = vAff( din, fA, self%A0hat, self%V0hat * Tfac )
-   
-   ! Equivalent way of calculating vNhat
+   ! Optimal VNhat
+   vNhat = vAff( din, fA, self%A0hat, self%V0hat * Tfac ) !Eq.16,17 in K20
+   ! Equivalent way of calculating optimal vNhat
    !vNhat2=vOU(din,self%A0hat,self%V0hat * Tfac)
-   
-   !Optimization of fV (synthesis vs nut. uptake)
-   !Intermediate term  in brackets that appears in Smith et al 2016, eqs. 13 & 14
-   ZINT = (self%zetaN + muhatNET/vNhat) * self%Q0 / 2.0
-   !write(*,'(A,4F12.5)')'  (phy) ZINT, muhatG/vNhat:',ZINT,muhatG/vNhat
 
    if (.not. self%dynQN) then
-     !!$ ***  Calculating the optimal cell quota, based on the term ZINT, as calculated above
      if ( self%mimic_Monod ) then
        Q = self%Q_fixed !6.67 !Almost Redfield? (106/16=6.625)
        !Nutrient limitation function in Monod-form
        if (self%KN_monod .le. 0.0_rk) then
-          KN_monod = (1.0-self%fA_fixed)*self%V0hat*Tfac/(self%A0hat*self%fA_fixed)
+          KN_monod = (1.0-self%fA_fixed)*self%V0hat*Tfac/(self%A0hat*self%fA_fixed) !Similar to Eq.19, although KN is explicitly provided there.
        else
-          KN_monod =self%KN_monod
+          KN_monod =self%KN_monod !Used for FS in K20
        end if
        limfunc_Nmonod = din / ( KN_monod + din)
        !Nutrient limitation function in affinity form:
        !limfunc_Nmonod = fA*self%A0hat*din / ((1.0-fA)*self%V0hat*Tfac+fA*self%A0hat*din)
      else
        !Optimal Q: 
-       ! fV-independent solution (eq. 23 in Smith et al 2016 = eq. 10 in Pahlow&Oschlies2013, muIhat denoted as muhatNET):
-       Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
+       ZINT = (self%zetaN + muhatNET/vNhat) * self%Q0 / 2.0 !Eq.10, denominator term in sqrt
+       !write(*,'(A,4F12.5)')'  (phy) ZINT, muhatG/vNhat:',ZINT,muhatG/vNhat
+       Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0) !Eq.10 in K20 (=Eq10. in PO13)
      end if
      phyC=phyN/Q
    end if
    
-   ! Solution as a function fV (eq.9) in Pahlow and Oschlies, 2013
    if( self%fV_opt ) then
-     fV=(self%Q0/2.0)/Q - self%zetaN*(Q - self%Q0)
+     fV=(self%Q0/2.0)/Q - self%zetaN*(Q - self%Q0) !Eq.14 in K20 (=Eq.9 in PO13)
      if (fV .lt. 0.0) then
        write(*,*)'nudging negative fV:',fV,' to 0.0'
        fV=0.0
      end if
      !write(*,'(A,F5.2,A,F7.5,A,F7.5,A,F7.5,A,F7.5)')'depth:',depth,'  Q:',Q,'  fV:',fV,'  Q0/2/Q:',(self%Q0/2.0)/Q,'  zN*(Q-Q0):',self%zetaN*(Q - self%Q0)
    else
-     fV = self%fV_fixed
+     fV = self%fV_fixed !Used for FS in K20
    end if
    
    !fC
    !can help avoiding model crashing:
    if (din .gt. self%mindin) then ! 'din detection limit' for phytoplankton
      if ( self%mimic_Monod ) then
-       fC = limfunc_Nmonod
+       fC = limfunc_Nmonod ! used for FS (as implied by Eq.15)
      else
-       fC = 1.0_rk - fV - self%Q0/(2.0*Q) 
+       fC = 1.0_rk - fV - self%Q0/(2.0*Q) !Eq.11 in K20
      end if
    else
      fC = 0.0_rk
@@ -434,15 +427,15 @@
    
    !write(*,*)'depth,DIN,fC,fV,Q,Q0/(2.0*Q):',depth,din,fC,fV,Q,self%Q0/(2.0*Q)   
    !muNET =  muhatNET * fC
-   muNET =muhatG*fC - RChl !(RhatChl*fC)
+   muNET =fC*muhatG - RChl ! Eq.13 in K20; (fC*muhatG=muG, RChl=fC*RhatChl, Eq.25)
    
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
    if ( self%mimic_Monod .and. self%fV_fixed .gt. 0.0 ) then
      !Specification of a positive fV_fixed implies that a constant Chl:C is desired. This can considered to be inconsistent with regard to the calculation of RChl (with fC)
-     Theta= (1 - self%Q0 / 2 / Q - fV) * ThetaHat
+     Theta= (1 - self%Q0 / 2 / Q - fV) * ThetaHat !Used for FS in K20
    else
      !With this, FS becomes more consistent (with regard to the calcualtion of RChl), although it's not a typical classical model constant C:Chl ratio anymore
-     Theta= fC * ThetaHat
+     Theta= fC * ThetaHat !Eq.24 in K20
    end if
    
    !Calculate respN:
@@ -464,7 +457,7 @@
        !respN=self%zetaN*muhatG*fC*Q  !where, muhatG * fC *Q=vN
      else
        !like DA: RN based on V = fV*vNhat
-       respN=self%zetaN*fV*vNhat !molC/molN *molN/molC/d = /d
+       respN=self%zetaN*fV*vNhat ![molC/molN *molN/molC/d = /d]
        !like for the FS: RN calculated based on V = mu*Q.
        !respN=self%zetaN*muhatNET*fC*Q/(1.0+Q*self%zetaN)
        !Problem: as muhatNET=0 in deep layers,RN becomes 0, which makes vN>0, which in turn makes mu>0
@@ -472,8 +465,8 @@
    end if
    
    !Net growth rate
-   mu = muNET - respN !Note that muNET already contains -Rchl
-   !for FS, this becomes:
+   mu = muNET - respN !Eq.7 Note that muNET already contains -Rchl
+   !for FS, this becomes (see Appendix A1 in K20)
    !mu= muNET - zetaN*muNET*Q/(1.0+Q*zetaN)= (muNET (1+QzetaN) - muNET Q ZetaN ) / (1+QzetaN) = muNET/(1+QzetaN)
    !mu+muQzetaN = muNET -> mu=muNET-muQ*zetaN
    
@@ -484,39 +477,39 @@
          !For the non-acclimative DA variant: downgregulation based on Q
          vN = fV*vNhat*fQ !molN/molC/d
        else
-         vN = fV*vNhat !molN/molC/d
+         vN = fV*vNhat    !Eq.12 in K20 [molN/molC/d] 
        end if  
      else
        vN = 0.0_rk
      end if
    else
        !Balanced growth:
-       vN=mu*Q
+       vN=mu*Q            !Eq.6 in K20 [molN/molC/d]
    end if
    
    !Calculate fluxes between pools
-   f_din_phy = vN * phyC
+   f_din_phy = vN * phyC  !Eq.5 in K20
    
    ! Mortality
    mort=self%M0p * Tfac * PhyN**2
-   f_phy_detn =       self%Mpart  * mort 
-   f_phy_don = (1.0 - self%Mpart) * mort
-   f_phy_detc = f_phy_detn/Q
-   f_phy_doc = f_phy_don/Q
+   f_phy_detn =       self%Mpart  * mort  !Table 1
+   f_phy_detc = f_phy_detn/Q              !Table 1
+   f_phy_don = (1.0 - self%Mpart) * mort  !Doesn't appear in K20, since Mpart=1 -> f_phy_don=0 
+   f_phy_doc = f_phy_don/Q                !Doesn't appear in K20, since Mpart=1 -> f_phy_don=0 
    
    ! Set temporal derivatives
+   _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn) !Eq.1a (f_phy_don doesn't appear in K20, since it's=0 (see above))
    if ( self%dynQN ) then
-     _SET_ODE_(self%id_phyC, mu*phyC - f_phy_doc - f_phy_detc)
+     _SET_ODE_(self%id_phyC, mu*phyC - f_phy_doc - f_phy_detc) !Eq.1b, Eq8 (for mu*phyC) (f_phy_doc doesn't appear in K20, since it's=0 (see above))
    end if
-   _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn)
    
    ! If externally maintained dim,dom und det pools are coupled:
-   _SET_ODE_(self%id_din, -f_din_phy)
-   _SET_ODE_(self%id_don,  f_phy_don)
-   _SET_ODE_(self%id_detN, f_phy_detn)
-   _SET_ODE_(self%id_doc,  f_phy_doc)
-   _SET_ODE_(self%id_detC, f_phy_detc)
-
+   _SET_ODE_(self%id_detN, f_phy_detn)  !Eq.2a in K20
+   _SET_ODE_(self%id_detC, f_phy_detc)  !Eq.2b in K20
+   _SET_ODE_(self%id_don,  f_phy_don)   !Doesn't appear in K20 since f_phy_don = 0 (see above)
+   _SET_ODE_(self%id_doc,  f_phy_doc)   !Doesn't appear in K20 since f_phy_doc = 0 (see above)
+   _SET_ODE_(self%id_din, -f_din_phy)   !eq.4 in K20
+   
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_Q, Q)
    if ( self%dynQN ) then
@@ -533,7 +526,9 @@
    end if
    _SET_DIAGNOSTIC_(self%id_Chl, Theta*phyC) 
    _SET_DIAGNOSTIC_(self%id_Chl2C, Theta/12.0) !gChl/molC*1molC/12gC =gChl/gC
-   _SET_DIAGNOSTIC_(self%id_ZINT, ZINT)
+   if (.not. self%dynQN .and. .not. self%mimic_Monod) then
+     _SET_DIAGNOSTIC_(self%id_ZINT, ZINT)
+   end if
    _SET_DIAGNOSTIC_(self%id_fV, fV)
    _SET_DIAGNOSTIC_(self%id_fA, fA)
    _SET_DIAGNOSTIC_(self%id_fC, fC)

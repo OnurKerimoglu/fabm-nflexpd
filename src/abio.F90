@@ -3,7 +3,9 @@
 !BOP
 !
 ! !MODULE: nflexpd_abio - abiotic component
-! Original Author(s): S. Lan Smith 2014-12-09, O. Kerimoglu 2018-11-27
+! Original Author(s): 
+! S. Lan Smith 2014-12-09 (gotm-bio)
+! O. Kerimoglu 2018-11-27 (first fabm version), 2020-11-19 (version in 'K20')
 !
 ! !INTERFACE:
    module nflexpd_abio
@@ -173,7 +175,7 @@
    ! so just restore it with a value obtained with an exp decay function to account for depth
    if ( parW_dm .lt. 0.0_rk ) then
     parW_dm=0.0_rk
-    !parW_dm=self%par0_dt0*exp(-depth*self%kc_dt0) !todo: make the I0_det0&kc0 yaml pars?
+    !parW_dm=self%par0_dt0*exp(-depth*self%kc_dt0)
    end if
    parE = parW * 4.6 * 1e-6 * secs_pr_day
    parE_dm= parW_dm * 4.6 * 1e-6 * secs_pr_day/Ld !division by Ld converts 24h average to daytime average
@@ -185,17 +187,17 @@
    Tfac = FofT(tC)
    
    !Calculate fluxes between pools
-   f_det_don = self%kdet * Tfac * detn
-   f_det_doc = self%kdet * Tfac * detc
-   f_don_din = self%kdon * Tfac * don
-   f_doc_dic = self%kdon * Tfac * doc
+   f_det_don = self%kdet * Tfac * detn !Table 1 in K20
+   f_det_doc = self%kdet * Tfac * detc !Table 1 in K20
+   f_don_din = self%kdon * Tfac * don  !Table 1 in K20
+   f_doc_dic = self%kdon * Tfac * doc  !Table 1 in K20
    
    ! Set temporal derivatives
-   _SET_ODE_(self%id_detn, -f_det_don)
-   _SET_ODE_(self%id_detc, -f_det_doc)
-   _SET_ODE_(self%id_don,   f_det_don - f_don_din)
-   _SET_ODE_(self%id_doc,   f_det_doc - f_doc_dic)
-   _SET_ODE_(self%id_din,   f_don_din)
+   _SET_ODE_(self%id_detn, -f_det_don) !Sink term in Eq.2a
+   _SET_ODE_(self%id_detc, -f_det_doc) !Sink term in Eq.2b
+   _SET_ODE_(self%id_don,   f_det_don - f_don_din)  !Eq.3a
+   _SET_ODE_(self%id_doc,   f_det_doc - f_doc_dic)  !Eq.3b
+   _SET_ODE_(self%id_din,   f_don_din)              !Source term in Eq.4
    
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_dPAR, parE) ! mol/m2/d-1
