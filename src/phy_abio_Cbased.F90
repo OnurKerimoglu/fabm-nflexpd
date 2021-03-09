@@ -353,7 +353,7 @@
    _GET_(self%id_din,din) ! din
    _GET_(self%id_ddoy_dep,doy_prev)  ! day of year at the previous time step
    _GET_GLOBAL_(self%id_doy,doy)  ! day of year
-   write(*,*)' (abio.1) doy_prev(s),doy(s)',doy_prev*secs_pr_day,doy*secs_pr_day
+   !write(*,*)' (abio.1) doy_prev(s),doy(s)',doy_prev*secs_pr_day,doy*secs_pr_day
    !Access the par and din at the previous time step and set the diagnostic only if the time step has really advanced
    if (doy .gt. doy_prev) then
      
@@ -378,8 +378,7 @@
        delta_par=0.0
      end if
      
-!     write(*,'(A,2F12.5,A,2F12.5)')' (abio.2) parE_prev,parE',parE_prev,parE,'  din_prev,din',din_prev,din
-     write(*,*)' (abio.2) pardm_prev,pardm,delta_par',pardm_prev,par_dm,delta_par,'  din_prev,din',din_prev,din
+     !write(*,*)' (abio.2) pardm_prev,pardm,delta_par',pardm_prev,par_dm,delta_par,'  din_prev,din',din_prev,din
      
      !set the diagnostics
      
@@ -437,7 +436,7 @@
    !_GET_(self%id_dep_delta_t,delta_t)
    !_GET_(self%id_dep_delta_din,delta_din)
    !_GET_(self%id_dep_delta_par,delta_par) !mol/m2/s
-   write(*,'(A,F10.1,5F12.5)')'  (phy.1) doy(s),delta_I,delta_N,par,din,phyC:',doy*secs_pr_day,delta_par,delta_din,par_dm,din,phyC
+   !write(*,'(A,F10.1,5F12.5)')'  (phy.1) doy(s),delta_I,delta_N,par,din,phyC:',doy*secs_pr_day,delta_par,delta_din,par_dm,din,phyC
    
    !Calculate intermediate terms:
    !Temperature factor 
@@ -498,7 +497,6 @@
    !Optimization of fV (synthesis vs nut. uptake)
    !Intermediate term  in brackets that appears in Smith et al 2016, eqs. 13 & 14
    ZINT = (self%zetaN + muIhat/vNhat) * self%Q0 / 2.0
-   ! write(*,'(A,4F12.5)')'  (phy.2) ZINT, muIhat/vNhat:',ZINT,muIhat/vNhat
    
    if( self%fV_opt .and.  par_dm .gt. I_zero ) then
      ! eq. 13  in Smith et al 2016
@@ -567,10 +565,10 @@
 !!$ SLS (20181205): factor of 'din' in denominator not found in FlexPFT code, omitting here
    delZ_delI= self%Q0*self%aI*ThetaHat/(2*Vhat_fNT)*(1-valSIT) !delZ/delI, eq.A-4 in S16
 
-   write(*,'(A,4F15.5)')'  (phy.2) delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)',delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)
+   !write(*,'(A,4F15.5)')'  (phy.2) delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)',delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)
    delZ_delN= -self%Q0*muIhat/(2*din*Vhat_fNT)*(1-(Vhat_fNT/self%V0hat)-(Vhat_fNT/sqrt(self%V0hat*self%A0hat*din))) !delZ/delN, eq.A-5 in S16
    delQ_delI=delQ_delZ*delZ_delI !delQ/delI, eq. A-2 in S16
-   write(*,'(A,3F15.5)')'  (phy.3) delQ_delI,delQ_delZ,delZ_delI:',delQ_delI,delQ_delZ,delZ_delI
+   !write(*,'(A,3F15.5)')'  (phy.3) delQ_delI,delQ_delZ,delZ_delI:',delQ_delI,delQ_delZ,delZ_delI
    delQ_delN=delQ_delZ*delZ_delN !delQ/delN, eq. A-3 in S16
    dI_dt = delta_par / delta_t   !dI/dt
    dN_dt = delta_din / delta_t  !dN/dt
@@ -578,9 +576,9 @@
 !!$   dI_dt = 0.0  ! with this, the model runs: very small changes in I, during darkness, cause crashes.
 
    delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt !delQ/delt, eq. A-6 in S16
-   write(*,'(A,5F20.10)')'  (phy.4) delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt:',delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt
+   !write(*,'(A,5F20.10)')'  (phy.4) delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt:',delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt
    vN = mu*Q + delQ_delt !eq. A-6 in S16
-   write(*,'(A,3F15.10)')'  (phy.5) mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt:',mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt
+   !write(*,'(A,3F15.10)')'  (phy.5) mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt:',mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt
    
    
    !Calculate fluxes between pools
@@ -592,7 +590,7 @@
    !write(*,'(A,5F12.5)')'  (phy) dphyC*dt,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q: ', (f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)*12,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q
    ! Set temporal derivatives
    _SET_ODE_(self%id_phyC, mu*phyC - f_phy_don/Q - f_phy_detn/Q)  !  f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
-   write(*,'(A,2F15.10)')'  (phy.6) phyC,delta_phyC',phyC,(mu*phyC - f_phy_don/Q - f_phy_detn/Q)*delta_t
+   !write(*,'(A,2F15.10)')'  (phy.6) phyC,delta_phyC',phyC,(mu*phyC - f_phy_don/Q - f_phy_detn/Q)*delta_t
    
    ! If externally maintained dim,dom und det pools are coupled:
    !dN/dt: based on explicit delQ/delN*deltaN/deltat (eq.44 in OptScale.v2)
@@ -615,7 +613,6 @@
    _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_ThetaHat, ThetaHat) 
    _SET_DIAGNOSTIC_(self%id_PPR, PProd*secs_pr_day) !*s_p_d such that output is in d-1
-   write(*,*)'!'
    ! Leave spatial loops (if any)
    _LOOP_END_
 
