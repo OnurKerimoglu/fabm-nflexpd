@@ -31,8 +31,8 @@
       type (type_global_dependency_id)  :: id_doy
       type (type_diagnostic_variable_id):: id_dPAR,id_dPAR_dmean
       type (type_diagnostic_variable_id):: id_fdetdon,id_fdetdoc,id_fdondin,id_fdocdic
-      type (type_horizontal_diagnostic_variable_id):: id_dFDL
-      type (type_horizontal_diagnostic_variable_id):: id_detn_sed,id_detc_sed
+      type (type_surface_diagnostic_variable_id):: id_dFDL
+      type (type_bottom_diagnostic_variable_id):: id_detn_sed,id_detc_sed
       
 !     Model parameters
       real(rk) :: w_det,kdet,kdon,par0_dt0,kc_dt0
@@ -104,9 +104,9 @@
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_detn)
    
    ! Register diagnostic variables
-   call self%register_horizontal_diagnostic_variable(self%id_dFDL,'FDL','-',       'fractional day length')
-   call self%register_horizontal_diagnostic_variable(self%id_detn_sed,'detn_sed','mmolN/m^2/d','sedimentation rate of detN')
-   call self%register_horizontal_diagnostic_variable(self%id_detc_sed,'detc_sed','mmolC/m^2/d','sedimentation rate of detC')
+   call self%register_surface_diagnostic_variable(self%id_dFDL,'FDL','-',       'fractional day length')
+   call self%register_bottom_diagnostic_variable(self%id_detn_sed,'detn_sed','mmolN/m^2/d','sedimentation rate of detN')
+   call self%register_bottom_diagnostic_variable(self%id_detc_sed,'detc_sed','mmolC/m^2/d','sedimentation rate of detC')
    
    call self%register_diagnostic_variable(self%id_dPAR,'PAR','E/m^2/d',       'photosynthetically active radiation')
    call self%register_diagnostic_variable(self%id_dPAR_dmean, 'PAR_dmean','E/m^2/d','photosynthetically active radiation, daytime average')
@@ -239,7 +239,7 @@
    _GET_HORIZONTAL_(self%id_lat,lat)
    _GET_GLOBAL_(self%id_doy,doy)
    Ld=FDL(lat,doy)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dFDL,Ld) !Fractional day length
+   _SET_SURFACE_DIAGNOSTIC_(self%id_dFDL,Ld) !Fractional day length
    ! Leave spatial loops (if any)
    _HORIZONTAL_LOOP_END_
 
@@ -272,8 +272,8 @@
    _GET_(self%id_detc,detc)
    spsedrate=-1.0_rk*self%w_det
    !write(*,*)'detn,det_sed',detn,detn*spsedrate*secs_pr_day
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_detn_sed,detn*spsedrate*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_detc_sed,detc*spsedrate*secs_pr_day)
+   _SET_BOTTOM_DIAGNOSTIC_(self%id_detn_sed,detn*spsedrate*secs_pr_day)
+   _SET_BOTTOM_DIAGNOSTIC_(self%id_detc_sed,detc*spsedrate*secs_pr_day)
    ! Leave spatial loops (if any)
    _HORIZONTAL_LOOP_END_
 
