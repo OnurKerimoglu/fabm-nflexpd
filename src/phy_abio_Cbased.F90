@@ -447,6 +447,7 @@
    real(rk)                   :: vN,Vhat_fNT,RMchl,zetaChl
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac,depth
+   real(rk)                   :: mu0hat_fT,V0hat_fT,RMchl_fT
    real(rk)                   :: mu,respN,mort,Pprod,muNET,KN_monod
    real(rk)                   :: limfunc_L,fC,limfunc_Nmonod
    real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
@@ -615,16 +616,20 @@
    !Temperature factor 
    Tfac = FofT(tC)
    
+   !scale all parameters that needs to be scaled:
+   mu0hat_fT = self%mu0hat * Tfac
+   V0hat_fT = self%V0hat * Tfac
+   RMchl_fT = self%RMchl * Tfac
+   
    ! Primary production
    ! Optimization of ThetaHat (optimal Chl content in the chloroplasts)
-   I_zero = self%zetaChl * self%RMchl * Tfac / (Ld*self%aI)   ! Threshold irradiance
+   I_zero = self%zetaChl * RMchl_fT / (Ld*self%aI)   ! Threshold irradiance
    zetaChl=self%zetaChl
-   RMchl=self%RMchl
    if( self%theta_opt ) then
       if( parE_dm .gt. I_zero ) then
        !argument for the Lambert's W function
-       larg = (1.0 + self%RMchl * Tfac/(Ld*self%mu0hat*Tfac)) * exp(1.0 + self%aI*parE_dm/(self%mu0hat*Tfac*self%zetaChl)) !Eq.26, term in brackets
-       ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*parE_dm) !Eq.26
+       larg = (1.0 + RMchl_fT/(Ld*mu0hat_fT)) * exp(1.0 + self%aI*parE_dm/(mu0hat_fT*self%zetaChl)) !Eq.26, term in brackets
+       ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * mu0hat_fT/(self%aI*parE_dm) !Eq.26
     else
        !write(*,*)'parE_dm,I_0',parE_dm,I_zero
        ThetaHat = self%ThetaHat_min  !Eq.26, if I<=IC (=0 in K20)
@@ -640,14 +645,14 @@
 
 
    ! Light limited growth rate
-   limfunc_L=SIT(self%aI,self%mu0hat,parE_dm,ThetaHat,Tfac) !Eq.22 in K20
+   limfunc_L=SIT(self%aI,mu0hat_fT,parE_dm,ThetaHat) !Eq.22 in K20
    !write(*,*)'depth,parE_dm,SIT',depth,parE_dm,1.0-exp(-self%aI*ThetaHat*parE_dm/(Tfac*self%mu0hat))
-   muhatG = Ld * self%mu0hat * Tfac * limfunc_L !Eq.21 in K20
+   muhatG = Ld * mu0hat_fT * limfunc_L !Eq.21 in K20
    
    !'Net' light limited growth rate, muhatNET
    !muhatNET=muhatG*(1.0-zetaChl*ThetaHat)-Tfac*RMchl*zetaChl*ThetaHat
    !Chloroplast-specific respiration rate:
-   RhatChl=muhatG*zetaChl*ThetaHat + Tfac*RMchl*zetaChl*ThetaHat !Eq.23 in K20
+   RhatChl=muhatG*zetaChl*ThetaHat + RMchl_fT*zetaChl*ThetaHat !Eq.23 in K20
    !Chloroplast-specific net growth rate
    muhatNET=muhatG-RhatChl !Eq. 23 in K20 (= A-cursive in Pahlow etal 2013, Appendix 1)
    if (.not. self%mimic_Monod .and. self%fV_opt .and. parE_dm .gt. I_zero .and. muhatNET .lt. 0.0) then
@@ -656,13 +661,13 @@
    
    !Optimal allocation for affinity vs max. uptake
    if( self%fA_opt ) then
-     fA = 1.0 / ( 1.0 + sqrt(self%A0hat * din /(Tfac * self%V0hat)) ) !Eq.18 in K20
+     fA = 1.0 / ( 1.0 + sqrt(self%A0hat * din /(V0hat_fT)) ) !Eq.18 in K20
    else
      fA =  self%fA_fixed !Used for FS in K20
    end if
    
    ! Optimal VNhat
-   vNhat = vAff( din, fA, self%A0hat, self%V0hat * Tfac ) !Eq.16,17 in K20
+   vNhat = vAff( din, fA, self%A0hat, V0hat_fT ) !Eq.16,17 in K20
    ! Equivalent way of calculating optimal vNhat
    !vNhat2=vOU(din,self%A0hat,self%V0hat * Tfac)
 
@@ -671,7 +676,7 @@
        Q = self%Q_fixed !6.67 !Almost Redfield? (106/16=6.625)
        !Nutrient limitation function in Monod-form
        if (self%KN_monod .le. 0.0_rk) then
-          KN_monod = (1.0-self%fA_fixed)*self%V0hat*Tfac/(self%A0hat*self%fA_fixed) !Similar to Eq.19, although KN is explicitly provided there.
+          KN_monod = (1.0-self%fA_fixed)*V0hat_fT/(self%A0hat*self%fA_fixed) !Similar to Eq.19, although KN is explicitly provided there.
        else
           KN_monod =self%KN_monod !Used for FS in K20
        end if
@@ -779,13 +784,17 @@
      else
        vN = 0.0_rk
      end if
+     delQ_delt = 0.0_rk
    else
      !Balanced growth:
+     vN=mu*Q            !Eq.6 in K20 [molN/molC/d]
      if ( self%mimic_Monod ) then
-       vN=mu*Q            !Eq.6 in K20 [molN/molC/d]
+       delQ_delt = 0.0_rk
      else
        ! Calculate the balance-flux
-       Vhat_fNT= self%V0hat*din/(self%V0hat/self%A0hat + 2.0 * sqrt((self%V0hat*din/self%A0hat)) + din) !eq.20 in S16
+       !Vhat_fNT= self%V0hat*din/(self%V0hat/self%A0hat + 2.0 * sqrt((self%V0hat*din/self%A0hat)) + din) !eq.20 in S16
+       !Vhat_fNT= V0hat_fT*din/(V0hat_fT/self%A0hat + 2.0 * sqrt((V0hat_fT*din/self%A0hat)) + din) !eq.20 in S16
+       Vhat_fNT=vNhat
        !write(*,'(A,5F12.5)')'  (phy) Vhat_fNT, self%V0hat*din, self%V0hat/self%A0hat, 2.0*sqrt((self%V0hat*din/self%A0hat)), din', Vhat_fNT, self%V0hat*din, self%V0hat/self%A0hat, 2.0*sqrt((self%V0hat*din/self%A0hat)), din
        !N-uptake:
        !through changes in Q (re-location of N)
@@ -796,26 +805,30 @@
 
        !!$   delZ_delI= self%Q0*self%aI*ThetaHat/(2*din*Vhat_fNT)*(1-valSIT) !delZ/delI, eq.A-4 in S16
        !!$ SLS (20181205): factor of 'din' in denominator not found in FlexPFT code, omitting here
-       delZ_delI= self%Q0*self%aI*ThetaHat/(2*Vhat_fNT)*(1-valSIT) !delZ/delI, eq.A-4 in S16
-
+       !old:
+       !delZ_delI= self%Q0*self%aI*ThetaHat/(2*Vhat_fNT)*(1-valSIT) !delZ/delI, eq.A-4 in S16
+       !new:
+       delZ_delI= self%Q0/(2*Vhat_fNT)*(Ld*(1-ThetaHat*zetaChl))*(self%aI*ThetaHat)*(1-valSIT) !delZ/delI, eq.A-4 in S16
        !write(*,'(A,4F15.5)')'  (phy.2) delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)',delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)
-       delZ_delN= -self%Q0*muhatNET/(2*din*Vhat_fNT)*(1-(Vhat_fNT/self%V0hat)-(Vhat_fNT/sqrt(self%V0hat*self%A0hat*din))) !delZ/delN, eq.A-5 in S16
+       !delZ_delN= -self%Q0*muhatNET/(2*din*Vhat_fNT)*(1-(Vhat_fNT/self%V0hat)-(Vhat_fNT/sqrt(self%V0hat*self%A0hat*din))) !delZ/delN, eq.A-5 in S16
+       delZ_delN= -self%Q0*muhatNET/(2*din*Vhat_fNT)*(1-(Vhat_fNT/(V0hat_fT))-(Vhat_fNT/sqrt(V0hat_fT*self%A0hat*din))) 
        delQ_delI=delQ_delZ*delZ_delI !delQ/delI, eq. A-2 in S16
        !write(*,'(A,3F15.5)')'  (phy.3) delQ_delI,delQ_delZ,delZ_delI:',delQ_delI,delQ_delZ,delZ_delI
        delQ_delN=delQ_delZ*delZ_delN !delQ/delN, eq. A-3 in S16
        dI_dt = delta_parE / delta_t   !dI/dt
-       dN_dt = delta_din / delta_t  !dN/dt
-       !!$   dI_dt = 0.0  ! with this, the model runs: very small changes in I, during darkness, cause crashes.
-
-       delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt !delQ/delt, eq. A-6 in S16
+       !Note that in this combined (abio+phy) version, this is only diagnostic
+       dN_dt = delta_din / delta_t  !dN/dt 
+        
+       !Note that in this combined (abio+phy) version,  this is only diagnostic 
+       delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt !delQ/delt, eq. A-6 in S16. 
        !write(*,'(A,5F20.10)')'  (phy.4) delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt:',delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt
-       vN = mu*Q + delQ_delt !eq. A-6 in S16
+       !vN = mu*Q + delQ_delt !eq. A-6 in S16
        !write(*,'(A,3F15.10)')'  (phy.5) mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt:',mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt
      end if  
    end if
    
-   !Calculate fluxes between pools
-   f_din_phy = vN * phyC  !Eq.5 in K20
+   !Calculate fluxes between pools (only diagnostic)
+   f_din_phy = (vN + delQ_delt) * phyC  !Eq.5 in K20
    
    ! Mortality
    mort=self%M0p * Tfac * PhyN**2
@@ -849,9 +862,9 @@
    if ( self%mimic_Monod ) then
      _SET_DIAGNOSTIC_(self%id_limfunc_Nmonod,limfunc_Nmonod)
    else
-     _SET_DIAGNOSTIC_(self%id_Vhat,(1.0-fA)*self%V0hat*Tfac*secs_pr_day)
+     _SET_DIAGNOSTIC_(self%id_Vhat,(1.0-fA)*V0hat_fT*secs_pr_day)
      _SET_DIAGNOSTIC_(self%id_Ahat,fA*self%A0hat*secs_pr_day)
-     _SET_DIAGNOSTIC_(self%id_KN,(1.0-fA)*self%V0hat*Tfac/(fA*self%A0hat)) 
+     _SET_DIAGNOSTIC_(self%id_KN,(1.0-fA)*V0hat_fT/(fA*self%A0hat)) 
    end if
    _SET_DIAGNOSTIC_(self%id_Chl, Theta*phyC) 
    _SET_DIAGNOSTIC_(self%id_Chl2C, Theta/12.0) !gChl/molC*1molC/12gC =gChl/gC
@@ -943,7 +956,7 @@
 ! !IROUTINE: Light limitation for the FlexPFT model 
 !
 ! !INTERFACE:
-   real(rk) function SIT(aI,mu0hat,I,ThH,Tfac)
+   real(rk) function SIT(aI,mu0hat,I,ThH)
 !
 ! !DESCRIPTION:
 ! Here, the light limitation term (Pahlow and Oschlies MEPS 2013) is calculated. 
@@ -953,7 +966,7 @@
    IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
-   real(rk), intent(in)                 :: aI,mu0hat,I, ThH, Tfac 
+   real(rk), intent(in)                 :: aI,mu0hat,I, ThH 
 !
 ! !REVISION HISTORY:
 !  Original author(s): S. Lan Smith, 20141213
@@ -962,7 +975,7 @@
 !-----------------------------------------------------------------------
 !BOC
    !dependence of growth rate on light (eq. 7 in Smith et al 2016)
-   SIT = 1.0 - exp( - aI * ThH * I / (Tfac * mu0hat) )
+   SIT = 1.0 - exp( - aI * ThH * I / (mu0hat) )
    return
  end function SIT
 !-----------------------------------------------------------------------
