@@ -31,6 +31,7 @@
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_depth,id_depFDL
       !type (type_horizontal_dependency_id) :: id_depFDL
       type (type_diagnostic_variable_id)   :: id_muhatNET,id_ZINT,id_Vhat,id_Ahat,id_KN
+      type (type_diagnostic_variable_id)   :: id_delQdelt
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyN,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_muNET,id_muhatG,id_vNhat,id_vN,id_respN,id_respChl
       type (type_diagnostic_variable_id)   :: id_fQ,id_limfunc_Nmonod,id_fC,id_limfunc_L,id_Tfac
@@ -280,12 +281,11 @@
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_respChl, 'R_Chl','/d',    'Respiration cost of Chl uptake',     &
                                      output=output_time_step_averaged)
+                                
                                      
-   call self%register_diagnostic_variable(self%id_ZINT, 'ZINT','-',    'Qs*(muhatNET/vNhat+zetaN)',           &
-                                     output=output_time_step_averaged)                                     
    call self%register_diagnostic_variable(self%id_fV, 'fV','-',    'fV',           &
                                      output=output_time_step_averaged)                                 
-                                     
+                                    
    call self%register_diagnostic_variable(self%id_fA, 'fA','-',    'fA',           &
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_ThetaHat, 'ThetaHat','gChl/gC', 'ThetaHat',           &
@@ -319,7 +319,12 @@
      call self%register_diagnostic_variable(self%id_KN, 'K_N_equivalent','mmolN/m^3',    '(1-fA)*V0hat*fT/(fA*A0hat)',   &
                                      output=output_instantaneous)                                
    end if
-   
+   if (.not. self%dynQN .and. .not. self%mimic_Monod) then
+     call self%register_diagnostic_variable(self%id_ZINT, 'ZINT','-',    'Qs*(muhatNET/vNhat+zetaN)',           &
+                                     output=output_time_step_averaged)
+     call self%register_diagnostic_variable(self%id_delQdelt, 'dQ_dt','mmolN/mmolC/d',    'dQ/dT',           &
+                                     output=output_time_step_averaged)
+   end if                                  
    call self%register_diagnostic_variable(self%id_fphydon, 'f_phy_don','molN/m^3/d',    'bulk phy-N loss to detritus',           &
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_fphydoc, 'f_phy_doc','molC/m^3/d',    'bulk phy-C loss to detritus',           &
@@ -443,7 +448,7 @@
    real(rk)                   :: din,phyC,phyN,parW,parE,parE_dm,Ld
    real(rk)                   :: ThetaHat,vNhat,muhatG,RhatChl,muhatNET
    real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
-   real(rk)                   :: vN,Vhat_fNT,RMchl,zetaChl
+   real(rk)                   :: vN,RMchl,zetaChl
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac,depth
    real(rk)                   :: mu0hat_fT,V0hat_fT,RMchl_fT
@@ -790,43 +795,39 @@
      if ( self%mimic_Monod ) then
        delQ_delt = 0.0_rk
      else
-       ! Calculate the balance-flux
-       !Vhat_fNT= self%V0hat*din/(self%V0hat/self%A0hat + 2.0 * sqrt((self%V0hat*din/self%A0hat)) + din) !eq.20 in S16
-       !Vhat_fNT= V0hat_fT*din/(V0hat_fT/self%A0hat + 2.0 * sqrt((V0hat_fT*din/self%A0hat)) + din) !eq.20 in S16
-       Vhat_fNT=vNhat
-       !write(*,'(A,5F12.5)')'  (phy) Vhat_fNT, self%V0hat*din, self%V0hat/self%A0hat, 2.0*sqrt((self%V0hat*din/self%A0hat)), din', Vhat_fNT, self%V0hat*din, self%V0hat/self%A0hat, 2.0*sqrt((self%V0hat*din/self%A0hat)), din
-       !N-uptake:
-       !through changes in Q (re-location of N)
-       !ZINT=0.01170 obtained in the first time step is too small
-       delQ_delZ= -self%Q0/(4*ZINT*sqrt(ZINT*(1.+ZINT))) !delQ/delZ, eq. A-2&3 (Z=ZINT)
+       ! Calculate the balance-flux through changes in Q (re-location of N)
+       !!delQ/delZ, eq. A-2&3 (Z=ZINT)      
+       delQ_delZ= -self%Q0/(4*ZINT*sqrt(ZINT*(1.+ZINT))) 
        !write(*,'(A,4F12.5)')'  (phy) delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT)):',delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT))
        !(exp(-ai*ThetaHat*parE_dm/(mu0hat*Tfac))=1-valSIT
-
-       !!$   delZ_delI= self%Q0*self%aI*ThetaHat/(2*din*Vhat_fNT)*(1-valSIT) !delZ/delI, eq.A-4 in S16
-       !!$ SLS (20181205): factor of 'din' in denominator not found in FlexPFT code, omitting here
-       !old:
-       !delZ_delI= self%Q0*self%aI*ThetaHat/(2*Vhat_fNT)*(1-valSIT) !delZ/delI, eq.A-4 in S16
-       !new:
-       delZ_delI= self%Q0/(2*Vhat_fNT)*(Ld*(1-ThetaHat*zetaChl))*(self%aI*ThetaHat)*(1-valSIT) !delZ/delI, eq.A-4 in S16
-       !write(*,'(A,4F15.5)')'  (phy.2) delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)',delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)
-       !delZ_delN= -self%Q0*muhatNET/(2*din*Vhat_fNT)*(1-(Vhat_fNT/self%V0hat)-(Vhat_fNT/sqrt(self%V0hat*self%A0hat*din))) !delZ/delN, eq.A-5 in S16
-       delZ_delN= -self%Q0*muhatNET/(2*din*Vhat_fNT)*(1-(Vhat_fNT/(V0hat_fT))-(Vhat_fNT/sqrt(V0hat_fT*self%A0hat*din))) 
-       delQ_delI=delQ_delZ*delZ_delI !delQ/delI, eq. A-2 in S16
+       
+       !delZ/delI, eq.A-4 in S16
+       !old (based on muhatG = previously muhatI):
+       !delZ_delI= self%Q0*self%aI*ThetaHat/(2*vNhat)*(1-valSIT)
+       !new (based on muhat_net):
+       delZ_delI= self%Q0/(2*vNhat)*(Ld*(1-ThetaHat*zetaChl))*(self%aI*ThetaHat)*(1-valSIT) 
+       !write(*,'(A,4F15.5)')'  (phy.2) delZ_delI, ThetaHat, vNhat, (1-valSIT)',delZ_delI, ThetaHat, vNhat, (1-valSIT)
+       !
+       !delZ/delN, eq.A-5 in S16
+       !delZ_delN= -self%Q0*muhatNET/(2*din*vNhat)*(1-(vNhat/self%V0hat)-(vNhat/sqrt(self%V0hat*self%A0hat*din))) 
+       delZ_delN= -self%Q0*muhatNET/(2*din*vNhat)*(1-(vNhat/(V0hat_fT))-(vNhat/sqrt(V0hat_fT*self%A0hat*din))) 
+       !!delQ/delI, eq. A-2 in S16
+       delQ_delI=delQ_delZ*delZ_delI 
        !write(*,'(A,3F15.5)')'  (phy.3) delQ_delI,delQ_delZ,delZ_delI:',delQ_delI,delQ_delZ,delZ_delI
-       delQ_delN=delQ_delZ*delZ_delN !delQ/delN, eq. A-3 in S16
-       dI_dt = delta_parE / delta_t   !dI/dt
-       !Note that in this combined (abio+phy) version, this is only diagnostic
-       dN_dt = delta_din / delta_t  !dN/dt 
-        
-       !Note that in this combined (abio+phy) version,  this is only diagnostic 
-       delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt !delQ/delt, eq. A-6 in S16. 
+       !!delQ/delN, eq. A-3 in S16
+       delQ_delN=delQ_delZ*delZ_delN
+       !dI/dt: discrete approximation
+       dI_dt = delta_parE / delta_t
+       !!dN/dt: discrete approximation (Note that in this combined (abio+phy) version, this is only diagnostic)
+       dN_dt = delta_din / delta_t  
+       ! !delQ/delt, eq. A-6 in S16: (Note that in this combined (abio+phy) version,  this is only diagnostic) 
+       delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt 
        !write(*,'(A,5F20.10)')'  (phy.4) delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt:',delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt
-       !vN = mu*Q + delQ_delt !eq. A-6 in S16
-       !write(*,'(A,3F15.10)')'  (phy.5) mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt:',mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt
+       !write(*,'(A,3F15.10)')'  (phy.5) vN,delQ_delI*dI_dt,delQ_delN*dN_dt:',mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt
      end if  
    end if
    
-   !Calculate fluxes between pools (only diagnostic)
+   !f_din_phy = mu*Q + delQ_delt !eq. A-6 in S16 (only diagnostic)
    f_din_phy = (vN + delQ_delt) * phyC  !Eq.5 in K20
    
    ! Mortality
@@ -865,11 +866,13 @@
      _SET_DIAGNOSTIC_(self%id_Ahat,fA*self%A0hat*secs_pr_day)
      _SET_DIAGNOSTIC_(self%id_KN,(1.0-fA)*V0hat_fT/(fA*self%A0hat)) 
    end if
-   _SET_DIAGNOSTIC_(self%id_Chl, Theta*phyC) 
-   _SET_DIAGNOSTIC_(self%id_Chl2C, Theta/12.0) !gChl/molC*1molC/12gC =gChl/gC
    if (.not. self%dynQN .and. .not. self%mimic_Monod) then
      _SET_DIAGNOSTIC_(self%id_ZINT, ZINT)
+     _SET_DIAGNOSTIC_(self%id_delQdelt,delQ_delt*secs_pr_day)
    end if
+   
+   _SET_DIAGNOSTIC_(self%id_Chl, Theta*phyC) 
+   _SET_DIAGNOSTIC_(self%id_Chl2C, Theta/12.0) !gChl/molC*1molC/12gC =gChl/gC
    _SET_DIAGNOSTIC_(self%id_fV, fV)
    _SET_DIAGNOSTIC_(self%id_fA, fA)
    _SET_DIAGNOSTIC_(self%id_fC, fC)
