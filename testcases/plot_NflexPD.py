@@ -20,7 +20,7 @@ varlims0D={'I_dm':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf'
          'Phy-Chl':[0,20.],'Phy-C':[0,100.0],'Phy-N':[0,7.5],'Phy-Q':[0.02,0.22],'Phy-Chl2C':[0.00,0.1],
          'Phy-PPR':[0,20.],'Phy-mu':[0,0.4],'Phy-vN':[0,0.05],'Phy-f_dinphy':[0,0.5],'Phy-R_N':[0,0.04],'Phy-R_Chl':[0,0.1],
          'Phy-fA':[0.0,1.0], 'Phy-fV':[0.0,0.5], 'Phy-ThetaHat':[0.00,0.05],'Phy-fC':[0,0.2],'Phy-limfunc_L':[0.,1]}
-namelibNbased={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp','totalN':'total_nitrogen_calculator_result',
+namelibNbasedIA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp','totalN':'total_nitrogen_calculator_result',
                'I-dm':'abio_PAR_dmean','I':'abio_PAR',
              'Phy-C':'phy_IA_C','Phy-N':'phy_IA_N','Phy-Q':'phy_IA_Q',
              'Phy-Chl':'phy_IA_Chl','Phy-Chl2C':'phy_IA_Chl2C',
@@ -30,15 +30,35 @@ namelibNbased={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp','totalN':'total_nitroge
              'DIN':'abio_din','DON':'abio_don','DetN':'abio_detn',
              'DOC':'abio_doc','DetC':'abio_detc'
             }
-namelibCbased={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp','totalN':'total_nitrogen_calculator_result',
-               'I-dm':'phyabio_PAR_dmean','I':'phyabio_PAR',
-             'Phy-C':'phyabio_C','Phy-N':'phyabio_N','Phy-Q':'phyabio_Q',
-             'Phy-Chl':'phyabio_Chl','Phy-Chl2C':'phyabio_Chl2C',
-             'mu':'phyabio_mu','vN':'phyabio_vN','R_N':'phyabio_R_N','R_Chl':'phyabio_R_Chl',
-             'fA':'phyabio_fA', 'fV':'phyabio_fV', 'fC':'phyabio_fC',
-             'ThetaHat':'phyabio_ThetaHat', 'limfunc_L':'phyabio_limfunc_L',
-             'DIN':'phyabio_din','DON':'phyabio_don','DetN':'phyabio_detn',
-             'DOC':'phyabio_doc','DetC':'phyabio_detc'
+namelibNbasedDA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp','totalN':'total_nitrogen_calculator_result',
+               'I-dm':'abio_PAR_dmean','I':'abio_PAR',
+             'Phy-C':'phy_DA_C','Phy-N':'phy_DA_N','Phy-Q':'phy_DA_Q',
+             'Phy-Chl':'phy_DA_Chl','Phy-Chl2C':'phy_DA_Chl2C',
+             'mu':'phy_DA_mu','vN':'phy_DA_vN','R_N':'phy_DA_R_N','R_Chl':'phy_DA_R_Chl',
+             'fA':'phy_DA_fA', 'fV':'phy_DA_fV', 'fC':'phy_DA_fC',
+             'ThetaHat':'phy_DA_ThetaHat', 'limfunc_L':'phy_DA_limfunc_L',
+             'DIN':'abio_din','DON':'abio_don','DetN':'abio_detn',
+             'DOC':'abio_doc','DetC':'abio_detc'
+            }
+namelibCbasedIA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp','totalN':'total_nitrogen_calculator_result',
+               'I-dm':'abiophy_IA_PAR_dmean','I':'abiophy_IA_PAR',
+             'Phy-C':'abiophy_IA_C','Phy-N':'abiophy_IA_N','Phy-Q':'abiophy_IA_Q',
+             'Phy-Chl':'abiophy_IA_Chl','Phy-Chl2C':'abiophy_IA_Chl2C',
+             'mu':'abiophy_IA_mu','vN':'abiophy_IA_vN','R_N':'abiophy_IA_R_N','R_Chl':'abiophy_IA_R_Chl',
+             'fA':'abiophy_IA_fA', 'fV':'abiophy_IA_fV', 'fC':'abiophy_IA_fC',
+             'ThetaHat':'abiophy_IA_ThetaHat', 'limfunc_L':'abiophy_IA_limfunc_L',
+             'DIN':'abiophy_IA_din','DON':'abiophy_IA_don','DetN':'abiophy_IA_detn',
+             'DOC':'abiophy_IA_doc','DetC':'abiophy_IA_detc'
+            }
+namelibCbasedDA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp','totalN':'total_nitrogen_calculator_result',
+               'I-dm':'abiophy_DA_PAR_dmean','I':'abiophy_DA_PAR',
+             'Phy-C':'abiophy_DA_C','Phy-N':'abiophy_DA_N','Phy-Q':'abiophy_DA_Q',
+             'Phy-Chl':'abiophy_DA_Chl','Phy-Chl2C':'abiophy_DA_Chl2C',
+             'mu':'abiophy_DA_mu','vN':'abiophy_DA_vN','R_N':'abiophy_DA_R_N','R_Chl':'abiophy_DA_R_Chl',
+             'fA':'abiophy_DA_fA', 'fV':'abiophy_DA_fV', 'fC':'abiophy_DA_fC',
+             'ThetaHat':'abiophy_DA_ThetaHat', 'limfunc_L':'abiophy_DA_limfunc_L',
+             'DIN':'abiophy_DA_din','DON':'abiophy_DA_don','DetN':'abiophy_DA_detn',
+             'DOC':'abiophy_DA_doc','DetC':'abiophy_DA_detc'
             }
 prettyunits={'I_0':'E\ m^{-2}\ d^{-1}','wind':'m\ s^{-1}','T':'^\circ C',
              'I-dm':'E\ m^{-2}\ d^{-1}','I':'E\ m^{-2}\ d^{-1}','totalN':'mmolN\ m^{-3}',
@@ -73,9 +93,9 @@ def main(fnames, sids, numyears, modnames):
       #print ('%s,%s'%(groupname,varset))
       if len(sids)>1:
           plot_multifile(fnames, numyears, groupname, varset, sids,modnames)
-      #if not (len(modnames)==2 and 'OBS' in modnames):
-      #  for sidno in range(0,len(sids)):
-      #      plot_singlefile(fnames[sidno], numyears, groupname, varset, sids[sidno],modnames[sidno])
+      # if not (len(modnames)==2 and 'OBS' in modnames):
+      #     for sidno in range(0,len(sids)):
+      #         plot_singlefile(fnames[sidno], numyears, groupname, varset, sids[sidno],modnames[sidno])
 
 def plot_multifile(fnames, numyears, groupname, varset, sids, modnames):
     cols=['darkblue','orange','green']
@@ -94,7 +114,7 @@ def plot_multifile(fnames, numyears, groupname, varset, sids, modnames):
     if numrow == 1:
         fpar['top']=0.9; fpar['bottom']=0.13
 
-    ncL,ncvL,tL,tiL,fname_sid_str = collect_data(fnames,sids,numyears)
+    ncL,ncvL,tL,tiL,fname_sid_str = collect_data(fnames,modnames,numyears)
 
     f = plt.figure(figsize=figuresize)
     f.subplots_adjust(left=fpar['left'], right=fpar['right'], top=fpar['top'], bottom=fpar['bottom'],
@@ -111,10 +131,16 @@ def plot_multifile(fnames, numyears, groupname, varset, sids, modnames):
         units=''
         for i,sid in enumerate(sids):
             ncv=ncvL[i];t=tL[i];ti=tiL[i]
-            if modnames[i]=='Nbased':
-                namelib=namelibNbased
-            elif modnames[i]=='Cbased':
-                namelib=namelibCbased
+            if modnames[i] == 'Nbased':
+                if sid == 'IA':
+                    namelib = namelibNbasedIA
+                elif sid == 'DA':
+                    namelib = namelibNbasedDA
+            elif modnames[i] == 'Cbased':
+                if sid == 'IA':
+                    namelib = namelibCbasedIA
+                elif sid == 'DA':
+                    namelib = namelibCbasedDA
             if varn in namelib:
                 fvarn=namelib[varn]
             else:
@@ -220,9 +246,15 @@ def plot_singlefile(fname,numyears,groupname,varset,sid,modname):
             continue
 
         if modname == 'Nbased':
-            namelib = namelibNbased
+            if sid=='IA':
+                namelib = namelibNbasedIA
+            elif sid=='DA':
+                namelib = namelibNbasedDA
         elif modname == 'Cbased':
-            namelib = namelibCbased
+            if sid == 'IA':
+                namelib = namelibCbasedIA
+            elif sid == 'DA':
+                namelib = namelibCbasedDA
         if varn in namelib:
             fvarn = namelib[varn]
         else:
@@ -514,8 +546,8 @@ if __name__ == "__main__":
     # if you call this script from the command line (the shell) it will
     # run the 'main' function
     if len(sys.argv) < 2: #this means no arguments were passed
-      fnames = ['/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_Nbased.nc',
-                '/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_Cbased.nc']
+      fnames = ['/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_Nbased_IA.nc',
+                '/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_Cbased_DA.nc']
       print('plotting default file(s):'+'.'.join(fnames))
     else:
       print('plotting file specified:'+sys.argv[1])
@@ -523,7 +555,7 @@ if __name__ == "__main__":
 
     if len(sys.argv)<3:
       #sids = ['dm', '6h']
-      sids = ['Nbased','Cbased']
+      sids = ['IA','DA']
     else:
       sids=sys.argv[2].split(',')
 
@@ -534,7 +566,7 @@ if __name__ == "__main__":
       numyears=int(sys.argv[3]) #number of years to plot (counting from the last year backwards)
 
     if len(sys.argv)<5: #no third argument was passed
-      modnames=['Nbased','Cbased']
+      modnames=['Nbased','Cbased'] #
     else:
       modnames=sys.argv[4].split(',')
 
