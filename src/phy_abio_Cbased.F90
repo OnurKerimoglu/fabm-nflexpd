@@ -630,11 +630,11 @@
    I_zero = self%zetaChl * RMchl_fT / (Ld*self%aI)   ! Threshold irradiance
    zetaChl=self%zetaChl
    if( self%theta_opt ) then
-      if( parE_dm .gt. I_zero ) then
+     if( parE_dm .gt. I_zero ) then
        !argument for the Lambert's W function
        larg = (1.0 + RMchl_fT/(Ld*mu0hat_fT)) * exp(1.0 + self%aI*parE_dm/(mu0hat_fT*self%zetaChl)) !Eq.26, term in brackets
        ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * mu0hat_fT/(self%aI*parE_dm) !Eq.26
-    else
+     else
        !write(*,*)'parE_dm,I_0',parE_dm,I_zero
        ThetaHat = self%ThetaHat_min  !Eq.26, if I<=IC (=0 in K20)
        !Setting zetaChl=RMchl=0 was necessary for using non-zero ThetaHat_min. 
@@ -642,11 +642,10 @@
        !Relatedly, ThataHat_min should be a constant, and not parameter
        !zetaChl=0.0 
        !RMchl=0.0 
-    end if
- else
+     end if
+   else
      ThetaHat = self%TheHat_fixed
-  end if
-
+   end if
 
    ! Light limited growth rate
    limfunc_L=SIT(self%aI,mu0hat_fT,parE_dm,ThetaHat) !Eq.22 in K20
@@ -839,8 +838,11 @@
    
    !write(*,'(A,5F12.5)')'  (phy) dphyC*dt,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q: ', (f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)*12,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q
    ! Set temporal derivatives
-   _SET_ODE_(self%id_phyC, mu*phyC - f_phy_don/Q - f_phy_detn/Q)  !  f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
+   _SET_ODE_(self%id_phyC, mu*phyC - f_phy_doc - f_phy_detc)  !  f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
    !write(*,'(A,2F15.10)')'  (phy.6) phyC,delta_phyC',phyC,(mu*phyC - f_phy_don/Q - f_phy_detn/Q)*delta_t
+   if ( self%dynQN ) then
+     _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn) !Eq.1b, Eq8 (for mu*phyC) (f_phy_doc doesn't appear in K20, since it's=0 (see above))
+   end if
    
    ! If externally maintained dim,dom und det pools are coupled:
    !dN/dt: based on explicit delQ/delN*deltaN/deltat (eq.44 in OptScale.v2)
