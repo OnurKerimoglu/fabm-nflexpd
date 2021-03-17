@@ -502,12 +502,14 @@
    _GET_(self%id_ddoy_dep,doy_prev)  ! day of year at the previous time step
    !write(*,*)' (abio.1) doy_prev(s),doy(s),Ld',doy_prev*secs_pr_day,doy*secs_pr_day,Ld
    !Access the par and din at the previous time step and set the diagnostic only if the time step has really advanced
-   if (doy .gt. doy_prev) then
-     
-     !Access the values at the prev. time step as recorded by the diagnostic variables
+   
+   !Access the values at the prev. time step as recorded by the diagnostic variables
+   if (doy .ne. doy_prev) then !i.e., if it's a real time step (and, e.g., not a 'fake' step of a RK4 ode method)
+      
      _GET_(self%id_ddin_dep,din_prev)
      _GET_(self%id_dPARdm_dep,parEdm_prev) !mol/m2/d
-     
+     !write(*,*)'doy_prev,din_prev,parEdm_prev',doy_prev,din_prev,parEdm_prev 
+
      !in the first time step, strange things may happen, as the diagnostics are not available yet
      if (doy_prev .lt. 0.0) then
        doy_prev = -1.0 ! just an arbitrary finite number, as the delta_din&par will be 0      
@@ -519,11 +521,6 @@
      delta_t=(doy-doy_prev)*secs_pr_day !days to secs
      delta_din=din-din_prev      
      delta_parE= parE_dm-parEdm_prev !mol/m2/d
-     
-     !assume no change in par within the first day
-     if (doy .lt. 1.0+3*delta_t/86400) then
-       delta_parE=0.0
-     end if
      
      !write(*,*)' (abio.2) pardm_prev,pardm,delta_par',parEdm_prev,parE_dm,delta_parE,'  din_prev,din',din_prev,din
      
