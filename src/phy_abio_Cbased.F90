@@ -787,12 +787,22 @@
      else
        vN = 0.0_rk
      end if
+     f_din_phy = vN * phyC  !Eq.5 in K20
      delQ_delt = 0.0_rk
+     delQ_delI = 0.0_rk
+     delQ_delN = 0.0_rk
+     dI_dt = 0.0_rk
+     dN_dt = 0.0_rk
    else
      !Balanced growth:
      vN=mu*Q            !Eq.6 in K20 [molN/molC/d]
      if ( self%mimic_Monod ) then
        delQ_delt = 0.0_rk
+       delQ_delI = 0.0_rk
+       delQ_delN = 0.0_rk
+       dI_dt = 0.0_rk
+       dN_dt = 0.0_rk
+       f_din_phy = vN * phyC  !Eq.5 in K20
      else
        ! Calculate the balance-flux through changes in Q (re-location of N)
        !!delQ/delZ, eq. A-2&3 (Z=ZINT)      
@@ -823,11 +833,11 @@
        delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt 
        !write(*,'(A,5F20.10)')'  (phy.4) delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt:',delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt
        !write(*,'(A,3F15.10)')'  (phy.5) vN,delQ_delI*dI_dt,delQ_delN*dN_dt:',mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt
+       
+       !f_din_phy = (mu*Q + delQ_delt) *phyC
+       f_din_phy = (vN + delQ_delt) * phyC  !eq. A-6 in S16 (only diagnostic)
      end if  
    end if
-   
-   !f_din_phy = mu*Q + delQ_delt !eq. A-6 in S16 (only diagnostic)
-   f_din_phy = (vN + delQ_delt) * phyC  !Eq.5 in K20
    
    ! Mortality
    mort=self%M0p * Tfac * PhyN**2
@@ -844,13 +854,17 @@
      _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn) !Eq.1b, Eq8 (for mu*phyC) (f_phy_doc doesn't appear in K20, since it's=0 (see above))
    end if
    
+   !dN/dt
+   if ( self%dynQN .or. self%mimic_Monod) then
+     _SET_ODE_(self%id_din, f_don_din - f_din_phy)
+   else
+     ! After rearranging and isolating dN/dt
+     _SET_ODE_(self%id_din, (f_don_din - (vN+delQ_delI*dI_dt)*phyC)/(1+phyC*delQ_delN))
+   end if
+   
    ! If externally maintained dim,dom und det pools are coupled:
-   !dN/dt: based on explicit delQ/delN*deltaN/deltat (eq.44 in OptScale.v2)
-   !_SET_ODE_(self%id_din, (f_don_din -f_din_phy))
-   !dN/dt: after rearranging eq. 44 and isolating dN/dt (eq.45)
-   _SET_ODE_(self%id_din, (f_don_din - (mu*Q+delQ_delI*dI_dt)*phyC)/(1+phyC*delQ_delN))
-   _SET_ODE_(self%id_don,  f_phy_don + f_det_don - f_don_din)
-   _SET_ODE_(self%id_doc,   f_phy_doc + f_det_doc - f_doc_dic)  !Eq.3b
+   _SET_ODE_(self%id_don, f_phy_don + f_det_don - f_don_din)
+   _SET_ODE_(self%id_doc,  f_phy_doc + f_det_doc - f_doc_dic)  !Eq.3b
    _SET_ODE_(self%id_detN, f_phy_detn - f_det_don)
    _SET_ODE_(self%id_detc, f_phy_detc-f_det_doc) !Sink term in Eq.2b
 
