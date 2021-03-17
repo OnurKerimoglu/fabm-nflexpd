@@ -540,13 +540,13 @@
      _SET_DIAGNOSTIC_(self%id_fdocdic, f_doc_dic * secs_pr_day)
      
      !Diagnostics required to calculate balance fluxes
-     _SET_DIAGNOSTIC_(self%id_delta_t,delta_t)
+     _SET_DIAGNOSTIC_(self%id_delta_t,delta_t) !secs
      _SET_DIAGNOSTIC_(self%id_delta_din,delta_din)
      _SET_DIAGNOSTIC_(self%id_delta_par,delta_parE) !mol/m2/d
      
    else
      _GET_(self%id_par_dmean,parE_dm) !in molE/m2/d
-     _GET_(self%id_dep_delta_t,delta_t)
+     _GET_(self%id_dep_delta_t,delta_t) !secs
      _GET_(self%id_dep_delta_din,delta_din)
      _GET_(self%id_dep_delta_par,delta_parE) !mol/m2/d
    end if
@@ -855,8 +855,10 @@
    if ( self%dynQN .or. self%mimic_Monod) then
      _SET_ODE_(self%id_din, f_don_din - f_din_phy)
    else
-     ! After rearranging and isolating dN/dt
+     ! 'Implicit': After rearranging and isolating dN/dt
      _SET_ODE_(self%id_din, (f_don_din - (vN+delQ_delI*dI_dt)*phyC)/(1+phyC*delQ_delN))
+     !'Explicit': f_din_phy = (vN + delQ_delt) * phyC (Eq.10) 
+     !_SET_ODE_(self%id_din, f_don_din - f_din_phy)
    end if
    
    ! If externally maintained dim,dom und det pools are coupled:
