@@ -67,7 +67,16 @@ prettyunits={'I_0':'E\ m^{-2}\ d^{-1}','wind':'m\ s^{-1}','T':'^\circ C',
              'DIN':'mmolN\ m^{-3}','DON':'mmolN\ m^{-3}','DetN':'mmolN\ m^{-3}',
              'DOC':'mmolC\ m^{-3}','DetC':'mmolC\ m^{-3}',
               'mu':'d^{-1}', 'vN':'molN\ molC^{-1} d^{-1}', 'R_N':'d^{-1}', 'R_Chl':'d^{-1}',
-             #'ThetaHat', 'fA', 'fV', 'fC', 'limfunc_L'
+             'fA':'-', 'fV':'-', 'fC':'-', 'limfunc_L':'-'
+             }
+prettynames={'I_0':'$I_0$','wind':'wind','T':'T',
+             'I-dm':r'$\bar{I}$','I':'$I$','totalN':'Total N',
+             'Phy-C':r'$Phy_C$','Phy-N':'$Phy_N$','Phy-Q':'$Q$',
+             'Phy-Chl':'$Phy_{Chl}$','Phy-Chl2C':r'$\theta$',
+             'DIN':'DIN','DON':'DON','DetN':'$Det_N$',
+             'DOC':'DOC','DetC':'$Det_C$',
+              'mu':'$\mu$', 'vN':'$V_N$', 'R_N':'$R_N$', 'R_Chl':'$R_{Chl}$',
+             'fA':'$f_A$', 'fV':'$f_V$', 'fC':'$f_C$', 'limfunc_L':'$L_I$'
              }
 numlevels=6
 #depth range to be shown:
@@ -163,7 +172,11 @@ def plot_multifile(fnames, numyears, groupname, varset, variants, modnames):
             prettyunit = units
         if prettyunit=='':
             prettyunit='-'
-        plt.title('%s [$%s$]' % (varn, prettyunit), size=12.0)
+        if varn in prettynames:
+            prettyname = prettynames[varn]
+        else:
+            prettyname = varn
+        plt.title('%s [$%s$]' % (prettyname, prettyunit), size=12.0)
 
         if varn in varlims.keys():
             ax.set_ylim(varlims[varn][0], varlims[varn][1])
@@ -316,7 +329,11 @@ def plot_singlefile(fname,numyears,groupname,varset,variant,modname):
             prettyunit = units
         if prettyunit == '':
             prettyunit = '-'
-        plt.title('%s [$%s$]'%(varn,prettyunit), size=12.0)
+        if varn in prettynames:
+            prettyname = prettynames[varn]
+        else:
+            prettyname = varn
+        plt.title('%s [$%s$]' % (prettyname, prettyunit), size=12.0)
 
         cmap = plt.get_cmap(colmap)
         if valsat == 'plate':
