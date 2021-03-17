@@ -374,9 +374,11 @@ def plot_singlefile(fname,numyears,groupname,varset,sid,modname):
 
 def collect_data(fnames,sids,numyears):
     ncL=[]; ncvL=[]; tL=[]; tiL=[]
-    fname_sid_str=fnames[0].split('.nc')[0]
     for fno in range(0,len(fnames)):
-        fname_sid_str=fname_sid_str+ '_vs_' + sids[fno]
+        if fno==0:
+            fname_sid_str=fnames[fno].split('.nc')[0]
+        else:
+            fname_sid_str=fname_sid_str+ '_vs_' + fnames[fno].split('.nc')[0]
         nc = nc4.Dataset(fnames[fno])
         ncv = nc.variables
 
@@ -546,8 +548,8 @@ if __name__ == "__main__":
     # if you call this script from the command line (the shell) it will
     # run the 'main' function
     if len(sys.argv) < 2: #this means no arguments were passed
-      fnames = ['/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_Nbased_IA.nc',
-                '/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_Cbased_DA.nc']
+      fnames = ['/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_NbasedDA.nc',
+                '/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_CbasedDA.nc']
       print('plotting default file(s):'+'.'.join(fnames))
     else:
       print('plotting file specified:'+sys.argv[1])
@@ -555,20 +557,20 @@ if __name__ == "__main__":
 
     if len(sys.argv)<3:
       #sids = ['dm', '6h']
-      sids = ['IA','DA']
+      sids = ['DA','DA']
     else:
       sids=sys.argv[2].split(',')
 
     if len(sys.argv)<4: #no third argument was passed
-      #numyears=-1 # -1 means plot everything
-      numyears=2
-    else: 
-      numyears=int(sys.argv[3]) #number of years to plot (counting from the last year backwards)
-
-    if len(sys.argv)<5: #no third argument was passed
       modnames=['Nbased','Cbased'] #
     else:
-      modnames=sys.argv[4].split(',')
+      modnames=sys.argv[3].split(',')
+
+    if len(sys.argv)<5: #no third argument was passed
+      #numyears=-1 # -1 means plot everything
+      numyears=2
+    else:
+      numyears=int(sys.argv[4]) #number of years to plot (counting from the last year backwards)
 
     print('plotting last ' + str(numyears) + ' year of the simulation')
 
