@@ -74,7 +74,7 @@ numlevels=6
 prescylim=[0,0] #[0,0] means no ylimits are prescribed, full depth range will be shown'
 #prescylim=[-30,0.0]
 
-def main(fnames, sids, numyears, modnames):
+def main(fnames, numyears, modnames, variants):
 
   varsets={#'abio0':['airt', 'wind', 'I_0'], #I_dm
            #'abio1':['abio_PAR_dmean','temp', 'mld_surf'],
@@ -91,13 +91,13 @@ def main(fnames, sids, numyears, modnames):
          }
   for groupname,varset in varsets.iteritems():
       #print ('%s,%s'%(groupname,varset))
-      if len(sids)>1:
-          plot_multifile(fnames, numyears, groupname, varset, sids,modnames)
+      if len(variants)>1:
+          plot_multifile(fnames, numyears, groupname, varset, variants,modnames)
       # if not (len(modnames)==2 and 'OBS' in modnames):
-      #     for sidno in range(0,len(sids)):
-      #         plot_singlefile(fnames[sidno], numyears, groupname, varset, sids[sidno],modnames[sidno])
+      #     for variantno in range(0,len(variants)):
+      #         plot_singlefile(fnames[variantno], numyears, groupname, varset, variants[variantno],modnames[variantno])
 
-def plot_multifile(fnames, numyears, groupname, varset, sids, modnames):
+def plot_multifile(fnames, numyears, groupname, varset, variants, modnames):
     cols=['darkblue','orange','green']
     linestyles=['-',':','--']
     varlims=varlims0D
@@ -114,7 +114,7 @@ def plot_multifile(fnames, numyears, groupname, varset, sids, modnames):
     if numrow == 1:
         fpar['top']=0.9; fpar['bottom']=0.13
 
-    ncL,ncvL,tL,tiL,fname_sid_str = collect_data(fnames,modnames,numyears)
+    ncL,ncvL,tL,tiL,fname_str = collect_data(fnames,modnames,numyears)
 
     f = plt.figure(figsize=figuresize)
     f.subplots_adjust(left=fpar['left'], right=fpar['right'], top=fpar['top'], bottom=fpar['bottom'],
@@ -129,17 +129,17 @@ def plot_multifile(fnames, numyears, groupname, varset, sids, modnames):
             continue
 
         units=''
-        for i,sid in enumerate(sids):
+        for i,variant in enumerate(variants):
             ncv=ncvL[i];t=tL[i];ti=tiL[i]
             if modnames[i] == 'Nbased':
-                if sid == 'IA':
+                if variant == 'IA':
                     namelib = namelibNbasedIA
-                elif sid == 'DA':
+                elif variant == 'DA':
                     namelib = namelibNbasedDA
             elif modnames[i] == 'Cbased':
-                if sid == 'IA':
+                if variant == 'IA':
                     namelib = namelibCbasedIA
-                elif sid == 'DA':
+                elif variant == 'DA':
                     namelib = namelibCbasedDA
             if varn in namelib:
                 fvarn=namelib[varn]
@@ -152,9 +152,11 @@ def plot_multifile(fnames, numyears, groupname, varset, sids, modnames):
             if varfound:
                 datC = dat[ti[0]]
                 if modnames[i]=='OBS':
-                    ax.plot(t, datC, label=sid, color=cols[i], linestyle='',marker='o', markersize=4)
+                    #ax.plot(t, datC, label=variant, color=cols[i], linestyle='',marker='o', markersize=4)
+                    ax.plot(t, datC, label=modnames[i]+'-'+variant, color=cols[i], linestyle='', marker='o', markersize=4)
                 else:
-                    ax.plot(t, datC, label=sid, color=cols[i],linestyle=linestyles[i])
+                    #ax.plot(t, datC, label=variant, color=cols[i],linestyle=linestyles[i])
+                    ax.plot(t, datC, label=modnames[i]+'-'+variant, color=cols[i], linestyle=linestyles[i])
         if varn in prettyunits:
             prettyunit = prettyunits[varn]
         else:
@@ -183,11 +185,11 @@ def plot_multifile(fnames, numyears, groupname, varset, sids, modnames):
 
     for i in range(0,len(fnames)):
         ncL[i].close()
-    figname = fname_sid_str +'_cont_' + groupname + '_' + str(numyears) + 'y.png'
+    figname = fname_str +'_cont_' + groupname + '_' + str(numyears) + 'y.png'
     plt.savefig(figname)
     print('python line plot saved in: ' + figname)
 
-def plot_singlefile(fname,numyears,groupname,varset,sid,modname):
+def plot_singlefile(fname,numyears,groupname,varset,variant,modname):
     colmap='viridis'
     axgrid=True
     varlims = varlims1D
@@ -246,14 +248,14 @@ def plot_singlefile(fname,numyears,groupname,varset,sid,modname):
             continue
 
         if modname == 'Nbased':
-            if sid=='IA':
+            if variant=='IA':
                 namelib = namelibNbasedIA
-            elif sid=='DA':
+            elif variant=='DA':
                 namelib = namelibNbasedDA
         elif modname == 'Cbased':
-            if sid == 'IA':
+            if variant == 'IA':
                 namelib = namelibCbasedIA
-            elif sid == 'DA':
+            elif variant == 'DA':
                 namelib = namelibCbasedDA
         if varn in namelib:
             fvarn = namelib[varn]
@@ -372,13 +374,13 @@ def plot_singlefile(fname,numyears,groupname,varset,sid,modname):
     plt.savefig(figname)
     print('python contour plot saved in: '+figname)
 
-def collect_data(fnames,sids,numyears):
+def collect_data(fnames,variants,numyears):
     ncL=[]; ncvL=[]; tL=[]; tiL=[]
     for fno in range(0,len(fnames)):
         if fno==0:
-            fname_sid_str=fnames[fno].split('.nc')[0]
+            fname_str=fnames[fno].split('.nc')[0]
         else:
-            fname_sid_str=fname_sid_str+ '_vs_' + fnames[fno].split('.nc')[0]
+            fname_str=fname_str+ '_vs_' + fnames[fno].split('.nc')[0]
         nc = nc4.Dataset(fnames[fno])
         ncv = nc.variables
 
@@ -401,7 +403,7 @@ def collect_data(fnames,sids,numyears):
         ncvL.append(ncv)
         tL.append(t)
         tiL.append(ti)
-    return(ncL, ncvL, tL, tiL, fname_sid_str)
+    return(ncL, ncvL, tL, tiL, fname_str)
 
 def get_varvals(ncv,varn0,avg=False,zint=[-9999,9999]):
 
@@ -556,10 +558,10 @@ if __name__ == "__main__":
       fnames=sys.argv[1].split(',')
 
     if len(sys.argv)<3:
-      #sids = ['dm', '6h']
-      sids = ['DA','DA']
+      #variants = ['dm', '6h']
+      variants = ['DA','DA']
     else:
-      sids=sys.argv[2].split(',')
+      variants=sys.argv[2].split(',')
 
     if len(sys.argv)<4: #no third argument was passed
       modnames=['Nbased','Cbased'] #
@@ -574,4 +576,4 @@ if __name__ == "__main__":
 
     print('plotting last ' + str(numyears) + ' year of the simulation')
 
-    main(fnames, sids, numyears, modnames)
+    main(fnames, numyears, modnames, variants)
