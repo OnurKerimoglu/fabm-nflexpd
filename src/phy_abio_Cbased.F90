@@ -360,8 +360,6 @@
    call self%register_dependency(self%id_dep_delta_din, 'delta_din','mmolN/m^3','diff in DIN betw current and prev time step')
    call self%register_dependency(self%id_dep_delta_par, 'delta_par','E/m^2/d','diff in PAR betw current and prev time step')
    
-   !call self%register_dependency(self%id_dep_ThetaHat, 'ThetaHat','-', 'ThetaHat')
-   
    end subroutine initialize
 !EOC
 
@@ -545,7 +543,6 @@
      _SET_DIAGNOSTIC_(self%id_delta_par,delta_parE) !mol/m2/d
      
    else
-     _GET_(self%id_par_dmean,parE_dm) !in molE/m2/d
      _GET_(self%id_dep_delta_t,delta_t) !secs
      _GET_(self%id_dep_delta_din,delta_din)
      _GET_(self%id_dep_delta_par,delta_parE) !mol/m2/d
@@ -590,7 +587,7 @@
    !_GET_(self%id_parW,parW)             ! local photosynthetically active radiation
    !parE=parW* 4.6 * 1e-6   !molE/m2/s
    ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
-   !_GET_(self%id_par_dmean,parE_dm) !par is assumed to be daytime average PAR, in molE/m2/d 
+   _GET_(self%id_par_dmean,parE_dm) !par is assumed to be daytime average PAR, in molE/m2/d 
    !write(*,*)'P.L275:depth,parE_dm',depth,par_dm
    parE_dm=(parE_dm/secs_pr_day) !in molE/m2/s 
    
@@ -866,7 +863,7 @@
    _SET_ODE_(self%id_doc,  f_phy_doc + f_det_doc - f_doc_dic)  !Eq.3b
    _SET_ODE_(self%id_detN, f_phy_detn - f_det_don)
    _SET_ODE_(self%id_detc, f_phy_detc-f_det_doc) !Sink term in Eq.2b
-
+   
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_Q, Q)
    if ( self%dynQN ) then
