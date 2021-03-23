@@ -13,6 +13,7 @@
 ! !DESCRIPTION:
 !
 ! !USES:
+   use nflexpd_common
    use lambert
    use fabm_types
 
@@ -24,25 +25,30 @@
 ! !PUBLIC DERIVED TYPES:
    type,extends(type_base_model),public :: type_NflexPD_phy_Cbased
 !     Variable identifiers
-      type (type_state_variable_id)        :: id_phyC
-      type (type_state_variable_id)        :: id_din,id_don,id_detn
-      type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_dep_ThetaHat
-      type (type_horizontal_dependency_id) :: id_FDL
-      type (type_diagnostic_variable_id)   :: id_phyN,id_Q,id_Chl2C,id_mu,id_fV,id_fA,id_ThetaHat
-      type (type_diagnostic_variable_id)   :: id_PPR
+      type (type_state_variable_id)        :: id_phyC,id_phyN
+      type (type_state_variable_id)        :: id_din,id_don,id_doc,id_detn,id_detc
+      type (type_diagnostic_variable_id)   :: id_muhatNET,id_ZINT,id_Vhat,id_Ahat,id_KN
+      type (type_diagnostic_variable_id)   :: id_delQdelt
+      type (type_diagnostic_variable_id)   :: id_Q,id_d_phyN,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
+      type (type_diagnostic_variable_id)   :: id_PPR,id_mu,id_muNET,id_muhatG,id_vNhat,id_vN,id_respN,id_respChl
+      type (type_diagnostic_variable_id)   :: id_fQ,id_limfunc_Nmonod,id_fC,id_limfunc_L,id_Tfac
+      type(type_diagnostic_variable_id)    :: id_fphydoc,id_fphydon,id_fphydetc,id_fphydetn
+      type (type_diagnostic_variable_id)   :: id_fdinphy,id_fdinphy_hypot
       type (type_diagnostic_variable_id)   :: id_del_phyn_din
       
-      type (type_global_dependency_id)     :: id_doy
-      type (type_dependency_id)            :: id_delta_t,id_delta_din,id_delta_par
-      type (type_dependency_id)            :: id_total_del_phyn_din
+      type (type_global_dependency_id)  :: id_doy
+      type (type_dependency_id)            :: id_depth,id_temp,id_parW,id_par_dmean,id_depFDL
+      !type (type_horizontal_dependency_id) :: id_depFDL
+      type (type_dependency_id)            :: id_dep_delta_t,id_dep_delta_din,id_dep_delta_parE
+      !type (type_dependency_id)            :: id_dep_del_phyn_din
       
 !     Model parameters
-      real(rk) :: kc,w_phy
-      real(rk) :: zetaN,zetaChl,kexc,M0p,Mpart,RMChl
+      real(rk) :: kc,w_phy,mindin
+      real(rk) :: zetaN,zetaChl,M0p,Mpart,RMChl
       real(rk) :: mu0hat,aI
-      real(rk) :: A0hat,V0hat,Q0
-      real(rk) :: fA_fixed,fV_fixed,TheHat_fixed
-      logical  :: fV_opt,fA_opt,Theta_opt
+      real(rk) :: A0hat,V0hat,Q0,Qmax,KN_monod
+      real(rk) :: fA_fixed,fV_fixed,TheHat_fixed,Q_fixed,ThetaHat_min
+      logical  :: dynQN,fV_opt,fA_opt,Theta_opt,mimic_Monod
       real(rk) :: dic_per_n
 
       contains
@@ -50,8 +56,6 @@
       procedure :: initialize
       procedure :: do
    end type
-   
-   type (type_bulk_standard_variable),parameter :: total_PPR = type_bulk_standard_variable(name='total_PPR',units='mmolC/m^3/d',aggregate_variable=.true.)
    
 !EOP
 !-----------------------------------------------------------------------
@@ -84,77 +88,184 @@
    ! Store parameter values in our own derived type
    ! NB: all rates must be provided in values per day and are converted here to values per second.
    ! General:
-   call self%get_parameter(self%kc,   'kc',   'm2 mmolC-1','specific light extinction',               default=0.03_rk, scale_factor=N2C_RF)
+   call self%get_parameter(self%kc,   'kc',   'm2 mmolN-1','specific light extinction',               default=0.03_rk)
    call self%get_parameter(self%w_phy,       'w_phy',  'm d-1',    'vertical velocity (<0 for sinking)',      default=-1.0_rk, scale_factor=d_per_s)
+   call self%get_parameter(self%mindin,       'min_din',  'mmolN m-3',    'when provided, minimum din concentration that allows growth and uptake',      default=0.0_rk)
+   !general switches
+   call self%get_parameter(self%dynQN, 'dynQN','-', 'whether dynamically resolve QN', default=.true.)
    !optimality switches
    call self%get_parameter(self%Theta_opt, 'Theta_opt','-', 'whether to optimize theta', default=.false.)
    call self%get_parameter(self%fA_opt, 'fA_opt','-', 'whether to optimize fA', default=.false.)
    call self%get_parameter(self%fV_opt, 'fV_opt','-', 'whether to optimize fV', default=.false.)
+   call self%get_parameter(self%mimic_Monod, 'mimic_Monod','-', 'whether to mimic Monod model', default=.false.)
    !light-related
    call self%get_parameter(self%TheHat_fixed, 'TheHat_fixed','gChl molC-1', 'Theta_Hat to use when Theta_opt=false', default=0.6_rk)
+   call self%get_parameter(self%ThetaHat_min, 'ThetaHat_min','gChl molC-1', 'Minimum allowed value, which is also used when par<I_0', default=0.1_rk)
    call self%get_parameter(self%RMchl, 'RMchl','d-1', 'loss rate of chlorophyll', default=0.1_rk,scale_factor=d_per_s)
    call self%get_parameter(self%mu0hat, 'mu0hat','d-1', 'max. potential growth rate', default=5.0_rk,scale_factor=d_per_s)
    call self%get_parameter(self%aI, 'aI','(m^2 E-1 molC gChl-1)', 'Chl-specific slope of the PI curve', default=1.0_rk) ! really /mol or /micromol?
    !nutrient-related
-   call self%get_parameter(self%fA_fixed, 'fA_fixed','-', 'fA to use when fa_opt=false', default=0.5_rk)
-   call self%get_parameter(self%fV_fixed, 'fV_fixed','-', 'fV to use when fv_opt=false', default=0.25_rk)
+   call self%get_parameter(self%fA_fixed, 'fA_fixed','-', 'fA to use when fa_opt=false', default=-9.9_rk)
+   call self%get_parameter(self%fV_fixed, 'fV_fixed','-', 'fV to use when fv_opt=false', default=-9.9_rk)
+   call self%get_parameter(self%Q_fixed, 'Q_fixed','-', 'Q to use when provided, dynQN=false and fV_opt=false', default=-1.0_rk)
+   call self%get_parameter(self%Qmax, 'Qmax','molN molC-1', 'Maximum cell quota', default=0.3_rk)
    call self%get_parameter(self%Q0, 'Q0','molN molC-1', 'Subsistence cell quota', default=0.039_rk)
    call self%get_parameter(self%V0hat, 'V0hat','molN molC-1 d-1', 'Potential maximum uptake rate', default=5.0_rk,scale_factor=d_per_s)
    call self%get_parameter(self%A0hat, 'A0hat','m3 mmolC-1 d-1', 'Potential maximum nutrient affinity', default=0.15_rk,scale_factor=d_per_s)
+   call self%get_parameter(self%KN_monod, 'KN_monod','mmolN m-3', 'Half saturation constant for growth [when Monod model is mimicked]', default=-1.0_rk)
+   
+   !consistency checks
+   if (self%Q_fixed .gt. 0.0 ) then
+     !assume that user wants to mimic Monod model, check if other options are consistent:
+     self%mimic_Monod=.true.
+     if (self%dynQN) then
+       call self%fatal_error('phy.F90/initialize:','for '//trim(self%name)// ' a valid Q_fixed was provided that signals intention to mimic Monod model, but dynQN needs to bet set to .false.')
+     end if
+     if (self%fV_opt) then
+       call self%fatal_error('phy.F90/initialize:','for '//trim(self%name)// ' a valid Q_fixed was provided that signals intention to mimic Monod model, but fV_opt needs to be set to .false.')
+     end if
+   end if
+     
+   if (self%mimic_Monod) then
+     if (self%dynQN) then
+       call self%fatal_error('phy.F90/initialize:','for '//trim(self%name)// ' mimic_Monod and dynQN cannot be simultaneously true')
+     end if
+     if (self%fV_opt) then
+       call self%fatal_error('phy.F90/initialize:','for '//trim(self%name)// ' mimic_Monod and fV_opt cannot be simultaneously true')
+     end if
+     if (self%Q_fixed .lt. 0.0_rk) then
+       call self%fatal_error('phy.F90/initialize:','for '//trim(self%name)// ' for mimicking Monod model, a valid Q_fixed (<1.0) is required')
+     end if
+   end if
+   
    !mortality/loss/respiration
    call self%get_parameter(self%zetaN, 'zetaN','molC molN-1', 'C-cost of N uptake', default=0.6_rk)
    call self%get_parameter(self%zetaChl, 'zetaChl','molC gChl-1', 'C-cost of Chlorophyll synthesis', default=0.8_rk)
-   call self%get_parameter(self%kexc,  'kexc',  '-',    'excreted fraction of primary production',                          default=0.01_rk)
    call self%get_parameter(self%M0p, 'M0p', 'm3 molN-1 d-1', 'sp. quad. mortality rate',              default=0.1_rk, scale_factor=d_per_s)
    call self%get_parameter(self%Mpart, 'Mpart', '-',   'part of the mortality that goes to detritus',default=0.5_rk)
    
-
-   ! Register state variables
-   call self%register_state_variable(self%id_phyC,'C','mmolC/m^3','bound-C concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=self%kc)
-
-   ! Register dependencies on external state variables
+   ! Register dependendcies on external state variables
    call self%register_state_dependency(self%id_din, 'din',   'mmolN/m^3','dissolved inorganic nitrogen')
    call self%register_state_dependency(self%id_don, 'don','mmolN/m^3','dissolved organic nitrogen')
-   call self%register_state_dependency(self%id_detN,'detN','mmolN/m^3','detrital nitrogen')
+   call self%register_state_dependency(self%id_doc, 'doc','mmolC/m^3','dissolved organic carbon')
+   call self%register_state_dependency(self%id_detn,'detN','mmolN/m^3','detrital nitrogen')
+   call self%register_state_dependency(self%id_detc,'detC','mmolC/m^3','detrital carbon')
 
+   ! Register state variables
+   call self%register_state_variable(self%id_phyC,'C','mmolC/m^3','bound-C concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=0.0_rk)
+   if ( self%dynQN ) then
+     call self%register_state_variable(self%id_phyN,'N','mmolN/m^3','bound-N concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=0.0_rk)
+     ! Register contribution of diagnostic to global aggregate variables.
+     call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_phyN)
+   else
+     call self%register_diagnostic_variable(self%id_d_phyN, 'N','mmolN/m^3',    'bound-N concentration (diag)',           &
+                                     output=output_instantaneous)
+     ! Register contribution of diagnostic to global aggregate variables.
+     call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_d_phyN)                                     
+   end if
+   
+   
+   if ( self%dynQN .or. self%mimic_Monod) then
+     call self%register_diagnostic_variable(self%id_fdinphy, 'f_dinphy','molN/m^3/d',    'net N uptake by phytoplankton',           &
+                                     output=output_instantaneous)
+   else
+     call self%register_diagnostic_variable(self%id_ZINT, 'ZINT','-',    'Qs*(muhatNET/vNhat+zetaN)',           &
+                                     output=output_time_step_averaged)
+     call self%register_diagnostic_variable(self%id_delQdelt, 'dQ_dt','mmolN/mmolC/d',    'dQ/dT',           &
+                                     output=output_time_step_averaged)
+     call self%register_diagnostic_variable(self%id_fdinphy_hypot, 'f_dinphy_hypot','molN/m^3/d',    'hypothetical N uptake by phytoplankton',           &
+                                     output=output_instantaneous)
+                                     
+     !export individual phyN/DIN sensitivity
+     call self%register_diagnostic_variable(self%id_del_phyn_din, 'del_phyn_din','-',    'Change in phyto-N per change in DIN',           &
+                                     output=output_instantaneous)
+     !import total phyN/DIN sensitivity                
+     !call self%register_dependency(self%id_dep_total_del_phyn_din,'total_del_phyn_din','molN/molN','Rate of change in total phyto-N per change in DIN')
+     
+   end if
+   
    ! Register diagnostic variables
    call self%register_diagnostic_variable(self%id_Q, 'Q','molN/molC',    'cellular nitrogen Quota',           &
                                      output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_phyN, 'N','mmolN/m^3',    'bound-N concentration (diag)',           &
+   call self%register_diagnostic_variable(self%id_Chl, 'Chl','mgChl/m^3',    'Chlorophyll concentration',           &
                                      output=output_instantaneous)
-   ! Register contribution of diagnostic to global aggregate variables.
-   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_phyN)
-   call self%register_diagnostic_variable(self%id_Chl2C, 'Chl2C','gChl/molC',    'cellular chlorophyll content',           &
-                                     output=output_instantaneous)                                     
+   call self%register_diagnostic_variable(self%id_Chl2C, 'Chl2C','gChl/gC',    'cellular chlorophyll content',           &
+                                     output=output_instantaneous)
+                                     
+   call self%register_diagnostic_variable(self%id_muNET, 'muNET','/d',    'muNET - Rchl',           &
+                                     output=output_time_step_averaged)                                  
    call self%register_diagnostic_variable(self%id_mu, 'mu','/d',    'net sp. growth rate',           &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_fV, 'fV','-',    'fV',           &
+   call self%register_diagnostic_variable(self%id_vN, 'vN','molN/molC/d',    'Specific N uptake rate',           &
                                      output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_muhatG, 'muhatG','/d',    'Gross growth rate within chloroplast',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_muhatNET, 'muhatNET','/d',   'Net growth rate within chloroplast',           &
+                                     output=output_time_step_averaged)                                  
+   call self%register_diagnostic_variable(self%id_vNhat, 'vNhat','molN/molC/d',    'Potential specific N uptake rate',           &
+                                     output=output_time_step_averaged)                                     
+                                     
+                                     
+   call self%register_diagnostic_variable(self%id_respN, 'R_N','/d',    'Respiration cost of N uptake',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_respChl, 'R_Chl','/d',    'Respiration cost of Chl uptake',     &
+                                     output=output_time_step_averaged)
+                                
+                                     
+   call self%register_diagnostic_variable(self%id_fV, 'fV','-',    'fV',           &
+                                     output=output_time_step_averaged)                                 
    call self%register_diagnostic_variable(self%id_fA, 'fA','-',    'fA',           &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_ThetaHat, 'ThetaHat','-', 'ThetaHat',           &
-                                     output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_ThetaHat, 'ThetaHat','gChl/gC', 'ThetaHat',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_fC, 'fC','-',    'fractional allocation to Carbon fixation (=1-fV-Qs/Q)',&
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_limfunc_L, 'limfunc_L','-',    'Light limitation function',&
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_Tfac, 'Tfac','-',    'Temperature factor',&
+                                     output=output_time_step_averaged)
                                      
    call self%register_diagnostic_variable(self%id_PPR, 'PPR','mmolC/m^3/d','Primary production rate',      &
                                      output=output_time_step_averaged)
    call self%add_to_aggregate_variable(total_PPR,self%id_PPR)
+   
+    
+    
+    !optional diagnostics
+   if ( self%dynQN ) then
+     call self%register_diagnostic_variable(self%id_fQ, 'fQ', '-',    'Down-regulation term (only for dynQN)',   &
+                                     output=output_instantaneous) 
+   end if
+   if ( self%mimic_Monod ) then
+     call self%register_diagnostic_variable(self%id_limfunc_Nmonod, 'limfunc_Nmonod','-',    'Monod function of DIN',   &
+                                     output=output_instantaneous)
+   else
+     call self%register_diagnostic_variable(self%id_Vhat, 'Vhat','molN molC-1 d-1',    '(1-fA)*V0hat*fT',   &
+                                     output=output_instantaneous)
+     call self%register_diagnostic_variable(self%id_Ahat, 'Ahat','m3 mmolC-1 d-1',    'fA*A0hat',   &
+                                     output=output_instantaneous)
+     call self%register_diagnostic_variable(self%id_KN, 'K_N_equivalent','mmolN/m^3',    '(1-fA)*V0hat*fT/(fA*A0hat)',   &
+                                     output=output_instantaneous)                                
+   end if
+   call self%register_diagnostic_variable(self%id_fphydon, 'f_phy_don','molN/m^3/d',    'bulk phy-N loss to detritus',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_fphydoc, 'f_phy_doc','molC/m^3/d',    'bulk phy-C loss to detritus',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_fphydetn, 'f_phy_detn','molN/m^3/d',    'bulk phy-N loss to DOM',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_fphydetc, 'f_phy_detc','molN/m^3/d',    'bulk phy-C loss to DOM',           &
+                                     output=output_time_step_averaged)
 
    ! Register environmental dependencies
    call self%register_dependency(self%id_parW, standard_variables%downwelling_photosynthetic_radiative_flux)
    call self%register_dependency(self%id_par_dmean, 'PAR_dmean','E/m^2/s','photosynthetically active radiation, daily averaged')
-   call self%register_horizontal_dependency(self%id_FDL, 'FDL','-',       'fractional day length')
+   call self%register_dependency(self%id_depFDL, 'FDL','-',       'fractional day length')
    call self%register_dependency(self%id_temp,standard_variables%temperature)
    call self%register_global_dependency(self%id_doy,standard_variables%number_of_days_since_start_of_the_year)
    
-   call self%register_dependency(self%id_delta_t, 'delta_t','s','diff betw current and prev time step')
-   call self%register_dependency(self%id_delta_din, 'delta_din','mmolN/m^3','diff in DIN betw current and prev time step')
-   call self%register_dependency(self%id_delta_par, 'delta_par','E/m^2/s','diff in PAR betw current and prev time step')
-   call self%register_dependency(self%id_dep_ThetaHat, 'ThetaHat','-', 'ThetaHat')
-   
-   !export individual phyN/DIN sensitivity, import total phyN/DIN sensitivity
-   call self%register_diagnostic_variable(self%id_del_phyn_din, 'del_phyn_din','molN/molN','Rate of change in current phyto-N per change in DIN',&
-                     output=output_instantaneous)
-   !call self%register_dependency(self%id_total_del_phyn_din,'total_del_phyn_din','molN/molN','Rate of change in total phyto-N per change in DIN')
+   call self%register_dependency(self%id_dep_delta_t, 'delta_t','s','diff betw current and prev time step')
+   call self%register_dependency(self%id_dep_delta_din, 'delta_din','mmolN/m^3','diff in DIN betw current and prev time step')
+   call self%register_dependency(self%id_dep_delta_parE, 'delta_par','E/m^2/s','diff in PAR betw current and prev time step')
    
    end subroutine initialize
 !EOC
@@ -172,367 +283,382 @@
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
-   real(rk)                   :: din,phyC,parW,par,par_dm,Ld
-   real(rk)                   :: ThetaHat,ThetaHat_pr,vNhat,muIhat
-   real(rk)                   :: Q,Theta,fV,fA,Rchl,I_zero,ZINT,valSIT
-   real(rk)                   :: phyN,vN,Vhat_fNT
-   real(rk)                   :: doy!,doy_prev
+   real(rk)                   :: din,phyC,phyN,parW,parE,parE_dm,Ld
+   real(rk)                   :: ThetaHat,vNhat,muhatG,RhatChl,muhatNET
+   real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
+   real(rk)                   :: vN,RMchl,zetaChl
+   real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
+   real(rk)                   :: doy,tC,Tfac,depth
+   real(rk)                   :: mu0hat_fT,V0hat_fT,RMchl_fT
+   real(rk)                   :: mu,respN,mort,Pprod,muNET,KN_monod
+   real(rk)                   :: limfunc_L,fC,limfunc_Nmonod
+   real(rk)                   :: f_din_phy,f_din_phy_hypot,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
    real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN
-   real(rk)                   :: delta_t,delta_din,delta_par
-   real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
-   real(rk)                   :: tC,Tfac
-   real(rk)                   :: mu,exc,mort,Pprod
-   real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn
-   real(rk)                   :: del_phyn_din,total_del_phyn_din
+   real(rk)                   :: delta_t,delta_din,delta_parE,del_phyn_din
+   real(rk)                   :: total_del_phyn_din
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
 !-----------------------------------------------------------------------
 !BOC
    ! Enter spatial loops (if any)
    _LOOP_BEGIN_
-
-   ! Retrieve current (local) state variable values.
+    
+   ! Rertrieve current (local) state variable values     
    _GET_(self%id_phyC,phyC)  ! phytoplankton-C
+   if ( self%dynQN ) then
+     _GET_(self%id_phyN,phyN)  ! phytoplankton-N
+     !Dynamically calculated quota is needed for calculating some rates below
+     Q= phyN/phyC !Eq.9 in K20
+     !relative Quota (used as a down-regulation term in classical droop model)
+     fQ=min(1.0,max(0.0, (self%Qmax-Q)/(self%Qmax-self%Q0/2.0))) !not used in K20
+   end if
+   
+  ! Retrieve current environmental conditions.
+   _GET_(self%id_depth,depth)     ! depth
+   !get Ld (fractional day length)
+   !_GET_HORIZONTAL_(self%id_FDL,Ld)
+   !get Ld (fractional day length)
+   _GET_(self%id_depFDL,Ld)
+   _GET_(self%id_temp,tC) ! temperature in Celcius
    _GET_(self%id_din,din)    ! nutrients
    
-   ! Retrieve current environmental conditions.
    _GET_(self%id_parW,parW)             ! local photosynthetically active radiation
-   par=parW* 4.6 * 1e-6   !molE/m2/s
+   parE=parW* 4.6 * 1e-6   !molE/m2/s
    ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
-   _GET_(self%id_par_dmean,par_dm) !in molE/m2/s
+   _GET_(self%id_par_dmean,parE_dm) !par is assumed to be daytime average PAR, in molE/m2/d 
+   !write(*,*)'P.L275:depth,parE_dm',depth,par_dm
+   parE_dm=(parE_dm/secs_pr_day) !in molE/m2/s 
    
-   !get Ld (fractional day length)
-   _GET_HORIZONTAL_(self%id_FDL,Ld)
+   if ( parE_dm .lt. 0.0 ) then
+     parE_dm=parE
+   end if
    
-   _GET_(self%id_temp,tC) ! temperature in Celcius
+   !when parE_dm=0 (eg., during the first day, where parE_dm is not yet calculated, muhatNET and fV becomes both 0, which makes Q=NaN
+   !so we set it to a very small value
+   if (parE_dm .eq. 0.0 ) then
+     parE_dm=1e-6
+   end if
    
    ! delta_t,delta_par,delta_din
    _GET_GLOBAL_(self%id_doy,doy)  ! day of year
-   !_GET_HORIZONTAL_(self%id_ddoy_dep,doy_prev)  ! day of year at the previous time step
-   _GET_(self%id_delta_t,delta_t)
-   _GET_(self%id_delta_din,delta_din)
-   _GET_(self%id_delta_par,delta_par) !mol/m2/s
-   write(*,'(A,F10.1,5F12.5)')'  (phy.1) doy(s),delta_I,delta_N,par,din,phyC:',doy*secs_pr_day,delta_par,delta_din,par_dm,din,phyC
+   !_GET_(self%id_ddoy_dep,doy_prev) ! day of year at the previous time step
+   _GET_(self%id_dep_delta_t,delta_t)
+   _GET_(self%id_dep_delta_din,delta_din)
+   _GET_(self%id_dep_delta_parE,delta_parE) !mol/m2/d
+   delta_parE=(delta_parE/secs_pr_day) !mol/m2/s
+   !write(*,'(A,F10.1,5F12.5)')'  (phy.1) doy(s),delta_I,delta_N,par,din,phyC:',doy*secs_pr_day,delta_par,delta_din,par_dm,din,phyC
    
    !Calculate intermediate terms:
    !Temperature factor 
    Tfac = FofT(tC)
    
+   !scale all parameters that needs to be scaled:
+   mu0hat_fT = self%mu0hat * Tfac
+   V0hat_fT = self%V0hat * Tfac
+   RMchl_fT = self%RMchl * Tfac
+   
    ! Primary production
    ! Optimization of ThetaHat (optimal Chl content in the chloroplasts)
-   I_zero = self%zetaChl * self%RMchl * Tfac / (Ld*self%aI)   ! Threshold irradiance
-   
-   !why is this at the end in the original code?
+   I_zero = self%zetaChl * RMchl_fT / (Ld*self%aI)   ! Threshold irradiance
+   zetaChl=self%zetaChl
    if( self%theta_opt ) then
-      if( par_dm .gt. I_zero ) then
+     if( parE_dm .gt. I_zero ) then
        !argument for the Lambert's W function
-       larg = (1.0 + self%RMchl * Tfac/(Ld*self%mu0hat*Tfac)) * exp(1.0 + self%aI*par_dm/(self%mu0hat*Tfac*self%zetaChl))
-       ! eq. 8 in Smith et al 2016
-       ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * self%mu0hat*Tfac/(self%aI*par_dm)
-!!$       _GET_(self%id_dep_ThetaHat,ThetaHat_pr)
-       
-!!$       if( ThetaHat .ne. ThetaHat_pr ) then
-!!$          write(*,'(A,3F12.5)')'  (phy) ThetaHat_pr, ThetaHat, fr_TheHat: ',ThetaHat_pr,ThetaHat,(ThetaHat - ThetaHat_pr)/ThetaHat_pr
-!!$       end if
-
-!!$       if( ThetaHat_pr .gt. 10.0 ) then
-!!$          ThetaHat_pr =  self%TheHat_fixed
-!!$       else if( ThetaHat_pr .lt. 0.01 ) then
-!!$          ThetaHat_pr =  self%TheHat_fixed
-!!$       end if
-!!$       if( abs((ThetaHat - ThetaHat_pr)/ThetaHat_pr) .gt. 0.40  ) then
-!!$          ThetaHat = ThetaHat_pr
-!!$       end if
-       ThetaHat=max(0.1,ThetaHat)
-    else
-       ThetaHat = 0.0  
-    end if
- else
+       larg = (1.0 + RMchl_fT/(Ld*mu0hat_fT)) * exp(1.0 + self%aI*parE_dm/(mu0hat_fT*self%zetaChl)) !Eq.26, term in brackets
+       ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * mu0hat_fT/(self%aI*parE_dm) !Eq.26
+     else
+       !write(*,*)'parE_dm,I_0',parE_dm,I_zero
+       ThetaHat = self%ThetaHat_min  !Eq.26, if I<=IC (=0 in K20)
+       !Setting zetaChl=RMchl=0 was necessary for using non-zero ThetaHat_min. 
+       !I think we shouldn't do that anymore, since ThatHat_min is perfectly consistent, and 
+       !Relatedly, ThataHat_min should be a constant, and not parameter
+       !zetaChl=0.0 
+       !RMchl=0.0 
+     end if
+   else
      ThetaHat = self%TheHat_fixed
-  end if
+   end if
 
-
-   ! Light limited growth rate (eq. 6 in Smith et al 2016)
-   valSIT=SIT(self%aI,self%mu0hat,par_dm,ThetaHat,Tfac)
-   muIhat = self%mu0hat * Tfac * valSIT 
+   ! Light limited growth rate
+   limfunc_L=SIT(self%aI,mu0hat_fT,parE_dm,ThetaHat) !Eq.22 in K20
+   !write(*,*)'depth,parE_dm,SIT',depth,parE_dm,1.0-exp(-self%aI*ThetaHat*parE_dm/(Tfac*self%mu0hat))
+   muhatG = Ld * mu0hat_fT * limfunc_L !Eq.21 in K20
+   
+   !'Net' light limited growth rate, muhatNET
+   !muhatNET=muhatG*(1.0-zetaChl*ThetaHat)-Tfac*RMchl*zetaChl*ThetaHat
+   !Chloroplast-specific respiration rate:
+   RhatChl=muhatG*zetaChl*ThetaHat + RMchl_fT*zetaChl*ThetaHat !Eq.23 in K20
+   !Chloroplast-specific net growth rate
+   muhatNET=muhatG-RhatChl !Eq. 23 in K20 (= A-cursive in Pahlow etal 2013, Appendix 1)
+   if (.not. self%mimic_Monod .and. self%fV_opt .and. parE_dm .gt. I_zero .and. muhatNET .lt. 0.0) then
+     write(*,'(A,F10.8,A,F10.8,A,F5.2,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8)')'Ld:',Ld,'  fT:',Tfac,'  depth:',depth,'  I_C:',I_zero*86400,'  Idm:',parE_dm*86400,'  WAPR:',WAPR(larg, 0, 0),'  ThetaHat:',ThetaHat,'  SI:',limfunc_L,'  muhatNET:',muhatNET*86400
+   end if
    
    !Optimal allocation for affinity vs max. uptake
    if( self%fA_opt ) then
-     ! eq. 17 in Smith et al 2016) 
-     fA = 1.0 / ( 1.0 + sqrt(self%A0hat * din /(Tfac * self%V0hat)) ) 
+     fA = 1.0 / ( 1.0 + sqrt(self%A0hat * din /(V0hat_fT)) ) !Eq.18 in K20
    else
-     fA =  self%fA_fixed
+     fA =  self%fA_fixed !Used for FS in K20
    end if
    
-   ! T-dependence only for V0, not for A0 (as suggested by M. Pahlow)
-   vNhat = vAff( din, fA, self%A0hat, self%V0hat * Tfac )
-   
-   ! Alternative way of calculating vNhat
+   ! Optimal VNhat
+   vNhat = vAff( din, fA, self%A0hat, V0hat_fT ) !Eq.16,17 in K20
+   ! Equivalent way of calculating optimal vNhat
    !vNhat2=vOU(din,self%A0hat,self%V0hat * Tfac)
-   
-   !Optimization of fV (synthesis vs nut. uptake)
-   !Intermediate term  in brackets that appears in Smith et al 2016, eqs. 13 & 14
-   ZINT = (self%zetaN + muIhat/vNhat) * self%Q0 / 2.0
-   ! write(*,'(A,4F12.5)')'  (phy.2) ZINT, muIhat/vNhat:',ZINT,muIhat/vNhat
-   
-   if( self%fV_opt .and.  par_dm .gt. I_zero ) then
-     ! eq. 13  in Smith et al 2016
-     fV = (-1.0 + sqrt(1.0 + 1.0 / ZINT) ) * (self%Q0 / 2.0) * muIhat / vNhat
-   else
-     fV = self%fV_fixed 
-   end if
-   
-   !!$ ***  Calculating the optimal cell quota, based on the term ZINT, as calculated above
-   if( self%fV_opt ) then
-     ! eq. 14 in Smith et al 2016
-     Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0)
-   else
-     Q = 1.0/6.67 !Almost Redfield? (106/16=6.625)
-   end if
-!!$ *** To correctly apply the Balanced Growth Assumption with this Non-adaptive model *** 
-!!$ * * * Calculate QN, the N cell quota [mol N / mol C],
-!!$ * * * based on the Balanced Growth Assumption ( V = mu*Q  <=>  Q = V/mu )
-!!$ *** Note:  This does NOT assume optimal resource allocation ***  
-!!$ * * * IF, fA and fV have both been optimized, this should give the same result as the caculation
-!!$ * * * based on the term ZINT. 
-!!$      Q(ci) = ( (Q0/2.0)*muIhat + fV*VNhat ) / ( (1.0-fV)*muIhat - fV*zetaN*VNhat )    
 
-!!$      dQdNbyQ(ci) = 0.0
+   if (.not. self%dynQN) then
+     if ( self%mimic_Monod ) then
+       Q = self%Q_fixed !6.67 !Almost Redfield? (106/16=6.625)
+       !Nutrient limitation function in Monod-form
+       if (self%KN_monod .le. 0.0_rk) then
+          KN_monod = (1.0-self%fA_fixed)*V0hat_fT/(self%A0hat*self%fA_fixed) !Similar to Eq.19, although KN is explicitly provided there.
+       else
+          KN_monod =self%KN_monod !Used for FS in K20
+       end if
+       limfunc_Nmonod = din / ( KN_monod + din)
+       !Nutrient limitation function in affinity form:
+       !limfunc_Nmonod = fA*self%A0hat*din / ((1.0-fA)*self%V0hat*Tfac+fA*self%A0hat*din)
+     else
+       !Optimal Q: 
+       ZINT = (self%zetaN + muhatNET/vNhat) * self%Q0 / 2.0 !Eq.10, denominator term in sqrt
+       !write(*,'(A,4F12.5)')'  (phy) ZINT, muhatG/vNhat:',ZINT,muhatG/vNhat
+       Q = ( 1.0 + sqrt(1.0 + 1.0/ZINT) )*(self%Q0/2.0) !Eq.10 in K20 (=Eq10. in PO13)
+     end if
+     phyN=phyC*Q
+   end if
    
+   if( self%fV_opt ) then
+     fV=(self%Q0/2.0)/Q - self%zetaN*(Q - self%Q0) !Eq.14 in K20 (=Eq.9 in PO13)
+     if (fV .lt. 0.0) then
+       write(*,*)'nudging negative fV:',fV,' to 0.0'
+       fV=0.0
+     end if
+     !write(*,'(A,F5.2,A,F7.5,A,F7.5,A,F7.5,A,F7.5)')'depth:',depth,'  Q:',Q,'  fV:',fV,'  Q0/2/Q:',(self%Q0/2.0)/Q,'  zN*(Q-Q0):',self%zetaN*(Q - self%Q0)
+   else
+     fV = self%fV_fixed !Used for FS in K20
+   end if
    
-   !Calculate a Phy-N based on Q 
-   !To save as a diagnostic and to use in some calculations below
-   PhyN = PhyC * Q
+   !fC
+   !can help avoiding model crashing:
+   if (din .gt. self%mindin) then ! 'din detection limit' for phytoplankton
+     if ( self%mimic_Monod ) then
+       fC = limfunc_Nmonod ! used for FS (as implied by Eq.15)
+     else
+       fC = 1.0_rk - fV - self%Q0/(2.0*Q) !Eq.11 in K20
+     end if
+   else
+     fC = 0.0_rk
+   end if
    
    ! Losses due to Chlorophyll
    ! eq. 26 in Smith et al 2016
-   Rchl = (muIhat + self%RMchl*Tfac) * ( 1 - fV - self%Q0/(2.0*Q) ) * self%zetaChl * ThetaHat
+   !For FS, fV>0 implies constant Chl:C, which necessitates scaling of RhatChl with (1 - fV - self%Q0/(2.0*Q))
+   if ( self%mimic_Monod .and. self%fV_fixed .gt. 0.0 ) then
+     RChl = RhatChl * ( 1 - fV - self%Q0/(2.0*Q) )
+     !Rchl = (muhatG + Tfac*RMchl) * ( 1 - fV - self%Q0/(2.0*Q) ) * zetaChl * ThetaHat
+   else
+     !Default behavior is to scale with fC
+     RChl = RhatChl * fC
+     !Rchl = (muhatG + Tfac*RMchl) * fC * zetaChl * ThetaHat
+   end if
    
-   !  Net specific growth rate, assuming instantantaneous optimal resource allocation. 
-      !  Either equation gives the same result, provided fA, fV and QN have been optimized.  
-      !  The term with ZINT accounts for the cost of N assimilation, but not for chl maintenance. 
-      !  mu = muIhat * ( 1 + 2*( ZINT - sqrt(ZINT*(1 + ZINT)) ) )           - Rchl 
-!!$      mu = muIhat*(1.0 + 2.0*(ZINT - sqrt(ZINT*(1.0+ZINT))) ) - Rchl
-   ! eq. 5 in Pahlow and Oschlies 2013 (-Rchl)
-   mu = muIhat * ( 1 - fV - self%Q0/(2.0*Q) ) - self%zetaN*fV*vNhat - Rchl ![/s]
-   !write(*,'(A,4F15.5)')'  (phy) mu, muIhat * ( 1 - fV - self%Q0/(2.0*Q) ), -self%zetaN*fV*vNhat, -Rchl:',mu*secs_pr_day,muIhat * ( 1 - fV - self%Q0/(2.0*Q) )*secs_pr_day, -self%zetaN*fV*vNhat*secs_pr_day, -Rchl*secs_pr_day
+   !write(*,*)'depth,DIN,fC,fV,Q,Q0/(2.0*Q):',depth,din,fC,fV,Q,self%Q0/(2.0*Q)   
+   !muNET =  muhatNET * fC
+   muNET =fC*muhatG - RChl ! Eq.13 in K20; (fC*muhatG=muG, RChl=fC*RhatChl, Eq.25)
    
-   !Just for the diagnostics:
-   !Primary production rate:
-   PProd = (1.0-self%kexc) * max(0.0, mu*phyC )  ! PP [ mmolC / m3 / s ]
-
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
-   Theta= (1 - self%Q0 / 2 / Q - fV)* ThetaHat 
+   if ( self%mimic_Monod .and. self%fV_fixed .gt. 0.0 ) then
+     !Specification of a positive fV_fixed implies that a constant Chl:C is desired. This can considered to be inconsistent with regard to the calculation of RChl (with fC)
+     Theta= (1 - self%Q0 / 2 / Q - fV) * ThetaHat !Used for FS in K20
+   else
+     !With this, FS becomes more consistent (with regard to the calcualtion of RChl), although it's not a typical classical model constant C:Chl ratio anymore
+     Theta= fC * ThetaHat !Eq.24 in K20
+   end if
    
-   !Excretion:
-   exc = self%kexc * mu * phyN
+   !Calculate respN:
+   if ( self%dynQN ) then !Explicit uptake rate
+     if ( .not. self%fV_opt) then
+       !!For the non-acclimative DA variant: downgregulation based on Q
+       respN=self%zetaN*fV*vNhat*fQ !molC/molN *molN/molC/d = /d
+     else
+       respN=self%zetaN*fV*vNhat !molC/molN *molN/molC/d = /d
+     end if
+   else
+     if ( self%mimic_Monod ) then
+       !Attempt0: just like the others: this gives entirely unrealistic results (too high at the bottom layers):
+       !respN=self%zetaN*fV*vNhat !molC/molN *molN/molC/d = /d
+       !Attempt1: vN=mu*Q; #this is wrong, as it becomes negative for Rtot>mu
+       !Attempt2: solve  respN=zetaN*vN=zetaN*muQ from mu=muhatNET*fC-mu*Q*zetaN; mu=muhatNET*fC/(1+Q*zetaN);
+       respN=self%zetaN*muhatNET*fC*Q/(1.0+Q*self%zetaN) ! : This can become negative again for muNET>Rchl
+       !Attempt3: take up proportional to light limited gross growth rate
+       !respN=self%zetaN*muhatG*fC*Q  !where, muhatG * fC *Q=vN
+     else
+       !like DA: RN based on V = fV*vNhat
+       respN=self%zetaN*fV*vNhat ![molC/molN *molN/molC/d = /d]
+       !like for the FS: RN calculated based on V = mu*Q.
+       !respN=self%zetaN*muhatNET*fC*Q/(1.0+Q*self%zetaN)
+       !Problem: as muhatNET=0 in deep layers,RN becomes 0, which makes vN>0, which in turn makes mu>0
+     end if  
+   end if
+   
+   !Net growth rate
+   mu = muNET - respN !Eq.7 Note that muNET already contains -Rchl
+   !for FS, this becomes (see Appendix A1 in K20)
+   !mu= muNET - zetaN*muNET*Q/(1.0+Q*zetaN)= (muNET (1+QzetaN) - muNET Q ZetaN ) / (1+QzetaN) = muNET/(1+QzetaN)
+   !mu+muQzetaN = muNET -> mu=muNET-muQ*zetaN
+   
+   if ( self%dynQN ) then !Explicit uptake rate
+     !to prevent model crashing:
+     if (din .gt. self%mindin) then !can be interpreted as 'din detection limit' for phytoplankton
+       if ( .not. self%fV_opt) then
+         !For the non-acclimative DA variant: downgregulation based on Q
+         vN = fV*vNhat*fQ !molN/molC/d
+       else
+         vN = fV*vNhat    !Eq.12 in K20 [molN/molC/d] 
+       end if  
+     else
+       vN = 0.0_rk
+     end if
+     f_din_phy = vN * phyC  !Eq.5 in K20
+     delQ_delt = 0.0_rk
+     delQ_delI = 0.0_rk
+     delQ_delN = 0.0_rk
+     dI_dt = 0.0_rk
+     dN_dt = 0.0_rk
+   else
+     !Balanced growth:
+     vN=mu*Q            !Eq.6 in K20 [molN/molC/d]
+     if ( self%mimic_Monod ) then
+       delQ_delt = 0.0_rk
+       delQ_delI = 0.0_rk
+       delQ_delN = 0.0_rk
+       dI_dt = 0.0_rk
+       dN_dt = 0.0_rk
+       f_din_phy = vN * phyC  !Eq.5 in K20
+     else
+       ! Calculate the balance-flux through changes in Q (re-location of N)
+       !!delQ/delZ, eq. A-2&3 (Z=ZINT)      
+       delQ_delZ= -self%Q0/(4*ZINT*sqrt(ZINT*(1.+ZINT))) 
+       !write(*,'(A,4F12.5)')'  (phy) delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT)):',delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT))
+       !(exp(-ai*ThetaHat*parE_dm/(mu0hat*Tfac))=1-valSIT
+       
+       !delZ/delI, eq.A-4 in S16
+       !old (based on muhatG = previously muhatI):
+       !delZ_delI= self%Q0*self%aI*ThetaHat/(2*vNhat)*(1-valSIT)
+       !new (based on muhat_net):
+       delZ_delI= self%Q0/(2*vNhat)*(Ld*(1-ThetaHat*zetaChl))*(self%aI*ThetaHat)*(1-valSIT) 
+       !write(*,'(A,4F15.5)')'  (phy.2) delZ_delI, ThetaHat, vNhat, (1-valSIT)',delZ_delI, ThetaHat, vNhat, (1-valSIT)
+       !
+       !delZ/delN, eq.A-5 in S16
+       !delZ_delN= -self%Q0*muhatNET/(2*din*vNhat)*(1-(vNhat/self%V0hat)-(vNhat/sqrt(self%V0hat*self%A0hat*din))) 
+       delZ_delN= -self%Q0*muhatNET/(2*din*vNhat)*(1-(vNhat/(V0hat_fT))-(vNhat/sqrt(V0hat_fT*self%A0hat*din))) 
+       !!delQ/delI, eq. A-2 in S16
+       delQ_delI=delQ_delZ*delZ_delI 
+       !write(*,'(A,3F15.5)')'  (phy.3) delQ_delI,delQ_delZ,delZ_delI:',delQ_delI,delQ_delZ,delZ_delI
+       !!delQ/delN, eq. A-3 in S16
+       delQ_delN=delQ_delZ*delZ_delN
+       !dI/dt: discrete approximation
+       dI_dt = delta_parE / delta_t
+       !!dN/dt: discrete approximation (Note that in this combined (abio+phy) version, this is only diagnostic)
+       dN_dt = delta_din / delta_t  
+       ! !delQ/delt, eq. A-6 in S16: (Note that in this combined (abio+phy) version,  this is only diagnostic) 
+       delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt 
+       !write(*,'(A,5F20.10)')'  (phy.4) delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt:',delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt
+       !write(*,'(A,3F15.10)')'  (phy.5) vN,delQ_delI*dI_dt,delQ_delN*dN_dt:',mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt
+       
+       !f_din_phy = (mu*Q + delQ_delt) *phyC
+       f_din_phy_hypot = (vN + delQ_delt) * phyC  !eq. A-6 in S16 (hypothetical flux between din-phy, only diagnostic)
+     end if  
+   end if
+   
    ! Mortality
    mort=self%M0p * Tfac * PhyN**2
-   
-   Vhat_fNT= self%V0hat*din/(self%V0hat/self%A0hat + 2.0 * sqrt((self%V0hat*din/self%A0hat)) + din) !eq.20 in S16
-   !write(*,'(A,5F12.5)')'  (phy) Vhat_fNT, self%V0hat*din, self%V0hat/self%A0hat, 2.0*sqrt((self%V0hat*din/self%A0hat)), din', Vhat_fNT, self%V0hat*din, self%V0hat/self%A0hat, 2.0*sqrt((self%V0hat*din/self%A0hat)), din
-   !N-uptake:
-   !through changes in Q (re-location of N)
-   !ZINT=0.01170 obtained in the first time step is too small
-   delQ_delZ= -self%Q0/(4*ZINT*sqrt(ZINT*(1.+ZINT))) !delQ/delZ, eq. A-2&3 (Z=ZINT)
-   !write(*,'(A,4F12.5)')'  (phy) delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT)):',delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT))
-   !(exp(-ai*ThetaHat*par_dm/(mu0hat*Tfac))=1-valSIT
-
-!!$   delZ_delI= self%Q0*self%aI*ThetaHat/(2*din*Vhat_fNT)*(1-valSIT) !delZ/delI, eq.A-4 in S16
-!!$ SLS (20181205): factor of 'din' in denominator not found in FlexPFT code, omitting here
-   delZ_delI= self%Q0*self%aI*ThetaHat/(2*Vhat_fNT)*(1-valSIT) !delZ/delI, eq.A-4 in S16
-
-   write(*,'(A,4F15.5)')'  (phy.2) delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)',delZ_delI, ThetaHat, Vhat_fNT, (1-valSIT)
-   delZ_delN= -self%Q0*muIhat/(2*din*Vhat_fNT)*(1-(Vhat_fNT/self%V0hat)-(Vhat_fNT/sqrt(self%V0hat*self%A0hat*din))) !delZ/delN, eq.A-5 in S16
-   delQ_delI=delQ_delZ*delZ_delI !delQ/delI, eq. A-2 in S16
-   write(*,'(A,3F15.5)')'  (phy.3) delQ_delI,delQ_delZ,delZ_delI:',delQ_delI,delQ_delZ,delZ_delI
-   delQ_delN=delQ_delZ*delZ_delN !delQ/delN, eq. A-3 in S16
-   dI_dt = delta_par / delta_t   !dI/dt
-   dN_dt = delta_din / delta_t  !dN/dt
-
-!!$   dI_dt = 0.0  ! with this, the model runs: very small changes in I, during darkness, cause crashes.
-
-   delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt !delQ/delt, eq. A-6 in S16
-   write(*,'(A,5F20.10)')'  (phy.4) delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt:',delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt
-   vN = mu*Q + delQ_delt !eq. A-6 in S16
-   write(*,'(A,3F15.10)')'  (phy.5) mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt:',mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt
-   
+   f_phy_detn = self%Mpart  * mort
+   f_phy_detc = f_phy_detn/Q              !Table 1
+   f_phy_don = (1.0 - self%Mpart) * mort
+   f_phy_doc = f_phy_don/Q                !Doesn't appear in K20, since Mpart=1 -> f_phy_don=0 
    
    !Calculate fluxes between pools
-   !(probably due to inaccuracies caused by the dN_dt term, that was calculated in the previous time step, and not in the current time step),
-   !this does not satisfy the mass balance:
-   !f_din_phy = vN * phyC
-   !isolation of the dN/dt (eq A-8) is more stable:
-   !write(*,'(A,2F15.10)')'  (phy.6) f_din_phy,(mu*Q+delQ_delI*dI_dt)*phyC/(1+phyC*delQ_delN)',f_din_phy,(mu*Q+delQ_delI*dI_dt)*phyC/(1+phyC*delQ_delN)
-   del_phyn_din=phyC*delQ_delN !this is the term in the denominator for the current species 
-   _SET_DIAGNOSTIC_(self%id_del_phyn_din,del_phyn_din) ! exported to the abio- component, such that it can calculate the sum
-   _GET_(self%id_total_del_phyn_din,total_del_phyn_din) !this is the term for the sum of all species
-   total_del_phyn_din=del_phyn_din !temporary shortcut for 1-species case
-   f_din_phy = (mu*Q+delQ_delI*dI_dt)*phyC/(1.0_rk+total_del_phyn_din)
-   write(*,'(A,2F15.10)')'  (phy.6) vN*phyC, f_din_phy',vN*phyC,f_din_phy
-   !OTHER TERMS NEED TO BE NORMALIZED AS WELL (f_don_din):
-   !_SET_ODE_(self%id_din, (f_don_din - (mu*Q+delQ_delI*dI_dt)*phyC)/(1+phyC*delQ_delN))
-   f_phy_detn =       self%Mpart  * mort 
-   f_phy_don = (1.0 - self%Mpart) * mort + exc
-   
    
    !write(*,'(A,5F12.5)')'  (phy) dphyC*dt,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q: ', (f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)*12,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q
    ! Set temporal derivatives
-   _SET_ODE_(self%id_phyC, mu*phyC - f_phy_don/Q - f_phy_detn/Q)  !  f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
-   write(*,'(A,2F15.10)')'  (phy.7) phyC,delta_phyC',phyC,(mu*phyC - f_phy_don/Q - f_phy_detn/Q)*delta_t
+   _SET_ODE_(self%id_phyC, mu*phyC - f_phy_doc - f_phy_detc)  !  f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
+   !write(*,'(A,2F15.10)')'  (phy.6) phyC,delta_phyC',phyC,(mu*phyC - f_phy_don/Q - f_phy_detn/Q)*delta_t
+   if ( self%dynQN ) then
+     _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn) !Eq.1b, Eq8 (for mu*phyC) (f_phy_doc doesn't appear in K20, since it's=0 (see above))
+   end if
+   
+   !dN/dt
+   if ( self%dynQN .or. self%mimic_Monod) then
+     !Required by the RHScollector module:
+     _SET_DIAGNOSTIC_(self%id_fdinphy, f_din_phy * secs_pr_day) !*s_p_d such that output is in d-1
+     _SET_ODE_(self%id_din, - f_din_phy)
+   else
+     !Just Diagnostics
+     _SET_DIAGNOSTIC_(self%id_fdinphy_hypot,f_din_phy_hypot * secs_pr_day)
+     _SET_DIAGNOSTIC_(self%id_ZINT, ZINT)
+     _SET_DIAGNOSTIC_(self%id_delQdelt,delQ_delt*secs_pr_day)
+     
+     !Required byt he RHScollector module:
+     del_phyn_din=phyC*delQ_delN ![unitless] this is the term in the denominator for the current species 
+     !_GET_(self%id_dep_del_phyn_din,total_del_phyn_din) !this is the term for the sum of all species
+     total_del_phyn_din=del_phyn_din !temporary shortcut for 1-species case
+     ! 'Implicit': After rearranging and isolating dN/dt
+     _SET_ODE_(self%id_din, - (vN+delQ_delI*dI_dt)*phyC/(1+total_del_phyn_din))
+     !'Explicit': f_din_phy = (vN + delQ_delt) * phyC (Eq.10) 
+     !_SET_ODE_(self%id_din, f_don_din - f_din_phy)
+   end if
    
    ! If externally maintained dim,dom und det pools are coupled:
-   _SET_ODE_(self%id_din, -f_din_phy)
-   _SET_ODE_(self%id_don,  f_phy_don)
-   _SET_ODE_(self%id_detN, f_phy_detn)
-
+   _SET_ODE_(self%id_don, f_phy_don)
+   _SET_ODE_(self%id_doc,  f_phy_doc)  !Eq.3b
+   _SET_ODE_(self%id_detn, f_phy_detn)
+   _SET_ODE_(self%id_detc, f_phy_detc) !Sink term in Eq.2b
+   
    ! Export diagnostic variables
-   _SET_DIAGNOSTIC_(self%id_phyN, phyN)
    _SET_DIAGNOSTIC_(self%id_Q, Q)
-   _SET_DIAGNOSTIC_(self%id_Chl2C, Theta)
+   if ( self%dynQN ) then
+     _SET_DIAGNOSTIC_(self%id_fQ, fQ)
+   else
+      _SET_DIAGNOSTIC_(self%id_d_phyN, phyN)
+   end if
+   if ( self%mimic_Monod ) then
+     _SET_DIAGNOSTIC_(self%id_limfunc_Nmonod,limfunc_Nmonod)
+   else
+     _SET_DIAGNOSTIC_(self%id_Vhat,(1.0-fA)*V0hat_fT*secs_pr_day)
+     _SET_DIAGNOSTIC_(self%id_Ahat,fA*self%A0hat*secs_pr_day)
+     _SET_DIAGNOSTIC_(self%id_KN,(1.0-fA)*V0hat_fT/(fA*self%A0hat)) 
+   end if
+   
+   _SET_DIAGNOSTIC_(self%id_Chl, Theta*phyC) 
+   _SET_DIAGNOSTIC_(self%id_Chl2C, Theta/12.0) !gChl/molC*1molC/12gC =gChl/gC
    _SET_DIAGNOSTIC_(self%id_fV, fV)
    _SET_DIAGNOSTIC_(self%id_fA, fA)
+   _SET_DIAGNOSTIC_(self%id_fC, fC)
+   _SET_DIAGNOSTIC_(self%id_limfunc_L, limfunc_L)
+   _SET_DIAGNOSTIC_(self%id_Tfac, Tfac)
+   
    _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day) !*s_p_d such that output is in d-1
-   _SET_DIAGNOSTIC_(self%id_ThetaHat, ThetaHat) 
-   _SET_DIAGNOSTIC_(self%id_PPR, PProd*secs_pr_day) !*s_p_d such that output is in d-1
-   write(*,*)'!'
+   _SET_DIAGNOSTIC_(self%id_muNET, muNET * secs_pr_day) !*s_p_d such that output is in d-1
+   _SET_DIAGNOSTIC_(self%id_vN, vN * secs_pr_day) !*s_p_d such that output is in d-1
+   _SET_DIAGNOSTIC_(self%id_muhatG, muhatG * secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_muhatNET, muhatNET * secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_vNhat, vNhat * secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_respN, respN * secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_respChl, Rchl * secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_ThetaHat, ThetaHat/12.0) !gChl/molC*1molC/12gC =gChl/gC
+   _SET_DIAGNOSTIC_(self%id_PPR, mu*phyC*secs_pr_day) !*s_p_d such that output is in d-1
+   
+   !Export diagnostic bulk fluxes
+   _SET_DIAGNOSTIC_(self%id_fphydoc, f_phy_doc * secs_pr_day) !*s_p_d such that output is in d-1
+   _SET_DIAGNOSTIC_(self%id_fphydon, f_phy_don * secs_pr_day) !*s_p_d such that output is in d-1
+   _SET_DIAGNOSTIC_(self%id_fphydetc, f_phy_detc * secs_pr_day) !*s_p_d such that output is in d-1
+   _SET_DIAGNOSTIC_(self%id_fphydetn, f_phy_detn * secs_pr_day) !*s_p_d such that output is in d-1
    ! Leave spatial loops (if any)
    _LOOP_END_
 
    end subroutine do
-!EOC
-
-
-!-----------------------------------------------------------------------
-!
-! !IROUTINE: Light limitation for the FlexPFT model 
-!
-! !INTERFACE:
-   real(rk) function SIT(aI,mu0hat,I,ThH,Tfac)
-!
-! !DESCRIPTION:
-! Here, the light limitation term (Pahlow and Oschlies MEPS 2013) is calculated. 
-! This term also depends on T, because the growth rate depends on T.  
-!
-! !USES:
-   IMPLICIT NONE
-!
-! !INPUT PARAMETERS:
-   real(rk), intent(in)                 :: aI,mu0hat,I, ThH, Tfac 
-!
-! !REVISION HISTORY:
-!  Original author(s): S. Lan Smith, 20141213
-!
-!EOP
-!-----------------------------------------------------------------------
-!BOC
-   !dependence of growth rate on light (eq. 7 in Smith et al 2016)
-   SIT = 1.0 - exp( - aI * ThH * I / (Tfac * mu0hat) )
-   return
- end function SIT
-!-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
-!
-! !IROUTINE: Nutrient uptake rate based on Optimal Uptake (OU) kinetics 
-!
-! !INTERFACE:
-   real(rk) function vOU(N,Apot,Vpot)
-!
-! !DESCRIPTION:
-!            The nutrient uptake rate calculated by Optimal Uptake (OU) kinetics assuming instantaneous 
-!            physiological acclimation of the allocation of internal resources for nutrient uptake 
-!            (Pahlow. MEPS, 2005; Smith et al. MEPS, 2009). In the FlexP model, based on the model of 
-!            Pahlow and Oschlies (MEPS, 2013), VNhat is the potential maximum rate of nutrient uptake 
-!            at the current ambient concentration, N. 
-!
-! !USES:
-   IMPLICIT NONE
-!
-! !INPUT PARAMETERS:
-   real(rk), intent(in)                :: N, Apot, Vpot
-!
-! !REVISION HISTORY:
-!  Original author(s): S. Lan Smith, 20141213
-!
-!EOP
-!-----------------------------------------------------------------------
-!BOC
-   ! eq. 20
-   !Original:
-   !vOU = Vpot * Apot * N / ( Vpot + 2*sqrt(Vpot*Apot*n) + Apot*N )
-   vOU = Vpot * N / ( Vpot/Apot  + 2*sqrt(Vpot*N/Apot) + N )
-   return
- end function vOU
-!-----------------------------------------------------------------------
-
-
-!-----------------------------------------------------------------------
-!
-! !IROUTINE: Nutrient uptake rate based on Affinity-based kinetics with a trade-off 
-!
-! !INTERFACE:
-   real(rk) function vAff(N,f,Apot,Vpot)
-!
-! !DESCRIPTION:
-!            The nutrient uptake rate calculated by the affinity-based equation including the trade-off
-!            postulated by Pahlow (MEPS, 2005) between affinity (initial slope) and maximum uptake rate. 
-!            This function accepts a value for the allocation factor, f, (f_A as defined by Pahlow), allowing the 
-!            uptake rate to be calculated for any allocation factor, whether it be optimal or not. 
-!            Optimal Uptake (OU) kinetics assuming instantaneous 
-!            In the FlexP model, based on the model of 
-!            Pahlow and Oschlies (MEPS, 2013), VNhat is the potential maximum rate of nutrient uptake 
-!            at the current ambient concentration, N. 
-!
-! !USES:
-   IMPLICIT NONE
-!
-! !INPUT PARAMETERS:
-   real(rk), intent(in)                :: N, f, Apot, Vpot
-!
-! !REVISION HISTORY:
-!  Original author(s): S. Lan Smith, 20141213
-!
-!EOP
-!-----------------------------------------------------------------------
-!BOC
-   ! eq. 16 in Smith et al. 2016
-   vAff = (1-f)*Vpot * f*Apot * N / ( (1-f)*Vpot + f*Apot*N )
-   return
- end function vAff
-!-----------------------------------------------------------------------
-
-
-!-----------------------------------------------------------------------
-!
-! !IROUTINE: Temperature dependence of rates for the FlexPFT model 
-!
-! !INTERFACE:
-   real(rk) function FofT(tC)
-!
-! !DESCRIPTION:
-! Here, Arrhenius type temperature dependence is calcuated, for a reference temperature, Tr, 
-! and activation energy Ea [ J / mol ]. 
-!
-! !USES:
-   IMPLICIT NONE
-!
-! !INPUT PARAMETERS:
-   real(rk), intent(in)                :: tC            ! temperature [ degrees C ]
-   real(rk), parameter                 :: R = 8.31446   ! gas constant [ J /mol /K ]
-   real(rk), parameter                 :: Ea=4.82e4        ! [ J / mol ]
-   real(rk), parameter                 :: Tr=20.0          ! [ degrees C ]
-!
-! !REVISION HISTORY:
-!  Original author(s):  S. Lan Smith, 20141213
-!
-!EOP
-!-----------------------------------------------------------------------
-!BOC
-   FofT = exp( - (Ea/R)*( 1/(273.15+tC) - 1/(273.15+Tr) ) )
-   return
-   end function FofT
 !EOC
 
    end module NflexPD_phy_Cbased
