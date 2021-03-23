@@ -31,16 +31,14 @@
       type (type_diagnostic_variable_id)   :: id_delQdelt
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyN,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR,id_mu,id_muNET,id_muhatG,id_vNhat,id_vN,id_respN,id_respChl
+      type (type_diagnostic_variable_id)   :: id_fdinphy,id_fdinphy_hypot,id_del_phyn_din,id_vN_dQdt_I
       type (type_diagnostic_variable_id)   :: id_fQ,id_limfunc_Nmonod,id_fC,id_limfunc_L,id_Tfac
       type(type_diagnostic_variable_id)    :: id_fphydoc,id_fphydon,id_fphydetc,id_fphydetn
-      type (type_diagnostic_variable_id)   :: id_fdinphy,id_fdinphy_hypot
-      type (type_diagnostic_variable_id)   :: id_del_phyn_din
       
       type (type_global_dependency_id)  :: id_doy
       type (type_dependency_id)            :: id_depth,id_temp,id_parW,id_par_dmean,id_depFDL
       !type (type_horizontal_dependency_id) :: id_depFDL
       type (type_dependency_id)            :: id_dep_delta_t,id_dep_delta_din,id_dep_delta_parE
-      !type (type_dependency_id)            :: id_dep_del_phyn_din
       
 !     Model parameters
       real(rk) :: kc,w_phy,mindin
@@ -175,13 +173,12 @@
                                      output=output_time_step_averaged)
      call self%register_diagnostic_variable(self%id_fdinphy_hypot, 'f_dinphy_hypot','molN/m^3/d',    'hypothetical N uptake by phytoplankton',           &
                                      output=output_instantaneous)
+     call self%register_diagnostic_variable(self%id_vN_dQdt_I, 'vN_dQdt_I','molN/m^3/d',    'phyC*(vN+delQ/delI*dI/dt)',           &
+                                     output=output_instantaneous)
                                      
      !export individual phyN/DIN sensitivity
      call self%register_diagnostic_variable(self%id_del_phyn_din, 'del_phyn_din','-',    'Change in phyto-N per change in DIN',           &
-                                     output=output_instantaneous)
-     !import total phyN/DIN sensitivity                
-     !call self%register_dependency(self%id_dep_total_del_phyn_din,'total_del_phyn_din','molN/molN','Rate of change in total phyto-N per change in DIN')
-     
+                                     output=output_instantaneous)                             
    end if
    
    ! Register diagnostic variables
@@ -568,7 +565,7 @@
        !write(*,'(A,3F15.10)')'  (phy.5) vN,delQ_delI*dI_dt,delQ_delN*dN_dt:',mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt
        
        !f_din_phy = (mu*Q + delQ_delt) *phyC
-       f_din_phy_hypot = (vN + delQ_delt) * phyC  !eq. A-6 in S16 (hypothetical flux between din-phy, only diagnostic)
+       f_din_phy_hypot = (vN + delQ_delt) * phyC  !eq. A-6 in S16 (hypothetical flux between din-phy (only diagnostic)
      end if  
    end if
    
@@ -591,21 +588,19 @@
    
    !dN/dt
    if ( self%dynQN .or. self%mimic_Monod) then
-     !Required by the RHScollector module:
      _SET_DIAGNOSTIC_(self%id_fdinphy, f_din_phy * secs_pr_day) !*s_p_d such that output is in d-1
-     _SET_ODE_(self%id_din, - f_din_phy)
+     !RHS's are set externallly
+     !Explicit:
+     !_SET_ODE_(self%id_din, f_don_din - f_din_phy)
    else
-     !Just Diagnostics
      _SET_DIAGNOSTIC_(self%id_fdinphy_hypot,f_din_phy_hypot * secs_pr_day)
      _SET_DIAGNOSTIC_(self%id_ZINT, ZINT)
      _SET_DIAGNOSTIC_(self%id_delQdelt,delQ_delt*secs_pr_day)
-     
-     !Required byt he RHScollector module:
+     !Terms for the Implicit solution:
      del_phyn_din=phyC*delQ_delN ![unitless] this is the term in the denominator for the current species 
-     !_GET_(self%id_dep_del_phyn_din,total_del_phyn_din) !this is the term for the sum of all species
-     total_del_phyn_din=del_phyn_din !temporary shortcut for 1-species case
-     ! 'Implicit': After rearranging and isolating dN/dt
-     _SET_ODE_(self%id_din, - (vN+delQ_delI*dI_dt)*phyC/(1+total_del_phyn_din))
+     _SET_DIAGNOSTIC_(self%id_del_phyn_din,del_phyn_din) ! [unitless] exported to the abio- component, such that it can calculate the sum
+     _SET_DIAGNOSTIC_(self%id_vN_dQdt_I,(vN+delQ_delI*dI_dt)*phyC*secs_pr_day) !mmolN/m^3/d
+     !RHS's are set externallly
      !'Explicit': f_din_phy = (vN + delQ_delt) * phyC (Eq.10) 
      !_SET_ODE_(self%id_din, f_don_din - f_din_phy)
    end if

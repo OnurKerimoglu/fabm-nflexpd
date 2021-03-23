@@ -4,6 +4,7 @@ module nflexpd_model_library
    
    use nflexpd_phy_Cbased
    use nflexpd_abio_Cbased
+   use nflexpd_RHSext_Cbased
    use nflexpd_phyabio_Cbased
    ! Add new NflexPD modules here
 
@@ -28,6 +29,7 @@ contains
       select case (name)
          case ('phy_Cbased'); allocate(type_nflexpd_phy_Cbased::model)
          case ('abio_Cbased'); allocate(type_nflexpd_abio_Cbased::model)
+         case ('RHSext_Cbased'); allocate(type_nflexpd_RHSext_Cbased::model)
          case ('phyabio_Cbased'); allocate(type_nflexpd_phyabio_Cbased::model)
          ! Add new NflexPD models here
       end select

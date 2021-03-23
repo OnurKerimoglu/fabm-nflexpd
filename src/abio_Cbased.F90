@@ -43,7 +43,7 @@
       !dependencies from the phyto components
       !type (type_diagnostic_variable_id)   :: id_total_del_phyn_din
       !type (type_dependency_id)            :: id_dep_total_del_phyn_din 
-      type (type_dependency_id)            :: id_dep_del_phyn_din 
+      !type (type_dependency_id)            :: id_dep_del_phyn_din 
       
 !     Model parameters
       real(rk) :: w_det,kdet,kdon,par0_dt0,kc_dt0
@@ -140,8 +140,8 @@
    call self%register_dependency(self%id_parW_dmean,temporal_mean(self%id_parW,period=1._rk*86400._rk,resolution=1._rk))
    
    ! import individual phyN/DIN sensitivities, export total phyN/DIN sensitivity
-   call self%register_dependency(self%id_dep_del_phyn_din,'del_phyn_din','molN/molN','Rate of change in phyto1-N per change in DIN')
-   !including the line above results in circular dependency. Maybe an importing module cannot export at the same time?
+   !call self%register_dependency(self%id_dep_del_phyn_din,'del_phyn_din','molN/molN','Rate of change in phyto1-N per change in DIN')
+   !including the line above results in seg fault. Maybe an importing module cannot export at the same time?
    !call self%register_diagnostic_variable(self%id_total_del_phyn_din, 'total_del_phyn_din','molN/molN','Rate of change in total phyto-N per change in DIN')
    !call self%register_dependency(self%id_dep_total_del_phyn_din,'total_del_phyn_din', 'molN/molN','Previous value of the rate of change in total phyto-N per change in DIN')
    
@@ -254,8 +254,8 @@
      !write(*,*)' (abio.2) pardm_prev,pardm,delta_par',parEdm_prev,parE_dm,delta_parE,'  din_prev,din',din_prev,din
      
      !set the diagnostics
-     _GET_(self%id_dep_del_phyn_din,del_phyn_din)
-     total_del_phyn_din=del_phyn_din !temporary shortcut for 1-species case for experimental purposes
+     !_GET_(self%id_dep_del_phyn_din,del_phyn_din)
+     !total_del_phyn_din=del_phyn_din !temporary shortcut for 1-species case for experimental purposes
      !_SET_DIAGNOSTIC_(self%id_total_del_phyn_din,total_del_phyn_din)
      !write(*,*)' (abio.3a) del_phy1n_din, tot_del_phyn_din',del_phyn_din,total_del_phyn_din
      
@@ -274,8 +274,8 @@
      _GET_(self%id_dep_delta_din,delta_din)
      _GET_(self%id_dep_delta_par,delta_parE) !mol/m2/d
      
-     _GET_(self%id_dep_del_phyn_din,del_phyn_din)
-     total_del_phyn_din=del_phyn_din !temporary shortcut for 1-species case for experimental purposes
+     !_GET_(self%id_dep_del_phyn_din,del_phyn_din)
+     !total_del_phyn_din=del_phyn_din !temporary shortcut for 1-species case for experimental purposes
      !write(*,*)' (abio.3b) prev_tot_del_phyn_din',total_del_phyn_din
    end if
    
@@ -297,7 +297,7 @@
    !Standard: i.e., DA or FS approaches:
    !_SET_ODE_(self%id_din,   f_don_din)
    !IA approach:
-   _SET_ODE_(self%id_din,   f_don_din/(1.0+total_del_phyn_din)) ! (eq A-8)
+   !_SET_ODE_(self%id_din,   f_don_din/(1.0+total_del_phyn_din)) ! (eq A-8)
    
    !Export diagnostic bulk fluxes
    _SET_DIAGNOSTIC_(self%id_fdondin, f_don_din * secs_pr_day) !mmolN m-3 d-1
