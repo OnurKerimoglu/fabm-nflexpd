@@ -33,9 +33,10 @@
       type (type_diagnostic_variable_id)   :: id_muhatNET,id_ZINT,id_Vhat,id_Ahat,id_KN
       type (type_diagnostic_variable_id)   :: id_delQdelt
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyN,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
-      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_muNET,id_muhatG,id_vNhat,id_vN,id_respN,id_respChl
+      type (type_diagnostic_variable_id)   :: id_PPR,id_mu,id_muNET,id_muhatG,id_vNhat,id_vN,id_respN,id_respChl
       type (type_diagnostic_variable_id)   :: id_fQ,id_limfunc_Nmonod,id_fC,id_limfunc_L,id_Tfac
       type(type_diagnostic_variable_id)    :: id_fphydoc,id_fphydon,id_fphydetc,id_fphydetn
+      type (type_diagnostic_variable_id)   :: id_fdinphy,id_fdinphy_hypot
       type (type_dependency_id)            :: id_dep_delta_t,id_dep_delta_din,id_dep_delta_par
       
       !abio
@@ -254,6 +255,22 @@
      call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_d_phyN)                                     
    end if
    
+   
+   if ( self%dynQN .or. self%mimic_Monod) then
+     call self%register_diagnostic_variable(self%id_fdinphy, 'f_dinphy','molN/m^3/d',    'net N uptake by phytoplankton',           &
+                                     output=output_instantaneous)
+   else
+     call self%register_diagnostic_variable(self%id_ZINT, 'ZINT','-',    'Qs*(muhatNET/vNhat+zetaN)',           &
+                                     output=output_time_step_averaged)
+     call self%register_diagnostic_variable(self%id_delQdelt, 'dQ_dt','mmolN/mmolC/d',    'dQ/dT',           &
+                                     output=output_time_step_averaged)
+     call self%register_diagnostic_variable(self%id_fdinphy_hypot, 'f_dinphy_hypot','molN/m^3/d',    'hypothetical N uptake by phytoplankton',           &
+                                     output=output_instantaneous)
+
+     !import total phyN/DIN sensitivity                
+     !call self%register_dependency(self%id_dep_total_del_phyn_din,'total_del_phyn_din','molN/molN','Rate of change in total phyto-N per change in DIN')                                
+   end if                
+                                     
    ! Register diagnostic variables
    call self%register_diagnostic_variable(self%id_Q, 'Q','molN/molC',    'cellular nitrogen Quota',           &
                                      output=output_instantaneous)
@@ -275,8 +292,7 @@
    call self%register_diagnostic_variable(self%id_vNhat, 'vNhat','molN/molC/d',    'Potential specific N uptake rate',           &
                                      output=output_time_step_averaged)                                     
                                      
-   call self%register_diagnostic_variable(self%id_fdinphy_sp, 'f_dinphy','molN/molC/d',    'effective net sp. N uptake',           &
-                                     output=output_time_step_averaged)
+
    call self%register_diagnostic_variable(self%id_respN, 'R_N','/d',    'Respiration cost of N uptake',           &
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_respChl, 'R_Chl','/d',    'Respiration cost of Chl uptake',     &
@@ -319,12 +335,6 @@
      call self%register_diagnostic_variable(self%id_KN, 'K_N_equivalent','mmolN/m^3',    '(1-fA)*V0hat*fT/(fA*A0hat)',   &
                                      output=output_instantaneous)                                
    end if
-   if (.not. self%dynQN .and. .not. self%mimic_Monod) then
-     call self%register_diagnostic_variable(self%id_ZINT, 'ZINT','-',    'Qs*(muhatNET/vNhat+zetaN)',           &
-                                     output=output_time_step_averaged)
-     call self%register_diagnostic_variable(self%id_delQdelt, 'dQ_dt','mmolN/mmolC/d',    'dQ/dT',           &
-                                     output=output_time_step_averaged)
-   end if                                  
    call self%register_diagnostic_variable(self%id_fphydon, 'f_phy_don','molN/m^3/d',    'bulk phy-N loss to detritus',           &
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_fphydoc, 'f_phy_doc','molC/m^3/d',    'bulk phy-C loss to detritus',           &
@@ -452,7 +462,7 @@
    real(rk)                   :: mu0hat_fT,V0hat_fT,RMchl_fT
    real(rk)                   :: mu,respN,mort,Pprod,muNET,KN_monod
    real(rk)                   :: limfunc_L,fC,limfunc_Nmonod
-   real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
+   real(rk)                   :: f_din_phy,f_din_phy_hypot,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
    real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
@@ -829,7 +839,7 @@
        !write(*,'(A,3F15.10)')'  (phy.5) vN,delQ_delI*dI_dt,delQ_delN*dN_dt:',mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt
        
        !f_din_phy = (mu*Q + delQ_delt) *phyC
-       f_din_phy = (vN + delQ_delt) * phyC  !eq. A-6 in S16 (only diagnostic)
+       f_din_phy_hypot = (vN + delQ_delt) * phyC  !eq. A-6 in S16 (hypothetical flux between din-phy, only diagnostic)
      end if  
    end if
    
@@ -850,8 +860,12 @@
    
    !dN/dt
    if ( self%dynQN .or. self%mimic_Monod) then
+     _SET_DIAGNOSTIC_(self%id_fdinphy, f_din_phy * secs_pr_day) !*s_p_d such that output is in d-1
      _SET_ODE_(self%id_din, f_don_din - f_din_phy)
    else
+     _SET_DIAGNOSTIC_(self%id_fdinphy_hypot,f_din_phy_hypot * secs_pr_day)
+     _SET_DIAGNOSTIC_(self%id_ZINT, ZINT)
+     _SET_DIAGNOSTIC_(self%id_delQdelt,delQ_delt*secs_pr_day)
      ! 'Implicit': After rearranging and isolating dN/dt
      _SET_ODE_(self%id_din, (f_don_din - (vN+delQ_delI*dI_dt)*phyC)/(1+phyC*delQ_delN))
      !'Explicit': f_din_phy = (vN + delQ_delt) * phyC (Eq.10) 
@@ -878,11 +892,7 @@
      _SET_DIAGNOSTIC_(self%id_Ahat,fA*self%A0hat*secs_pr_day)
      _SET_DIAGNOSTIC_(self%id_KN,(1.0-fA)*V0hat_fT/(fA*self%A0hat)) 
    end if
-   if (.not. self%dynQN .and. .not. self%mimic_Monod) then
-     _SET_DIAGNOSTIC_(self%id_ZINT, ZINT)
-     _SET_DIAGNOSTIC_(self%id_delQdelt,delQ_delt*secs_pr_day)
-   end if
-   
+      
    _SET_DIAGNOSTIC_(self%id_Chl, Theta*phyC) 
    _SET_DIAGNOSTIC_(self%id_Chl2C, Theta/12.0) !gChl/molC*1molC/12gC =gChl/gC
    _SET_DIAGNOSTIC_(self%id_fV, fV)
@@ -890,7 +900,6 @@
    _SET_DIAGNOSTIC_(self%id_fC, fC)
    _SET_DIAGNOSTIC_(self%id_limfunc_L, limfunc_L)
    _SET_DIAGNOSTIC_(self%id_Tfac, Tfac)
-   _SET_DIAGNOSTIC_(self%id_fdinphy_sp, f_din_phy/phyC * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_muNET, muNET * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_vN, vN * secs_pr_day) !*s_p_d such that output is in d-1
