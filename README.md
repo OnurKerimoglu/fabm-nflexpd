@@ -1,4 +1,4 @@
-NflexPD is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation (https://www.gnu.org/licenses/gpl.html), either version 3 of the License, or (at your option) any later version.
+FABM-NflexPD is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation (https://www.gnu.org/licenses/gpl.html), either version 3 of the License, or (at your option) any later version.
 It is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 A copy of the license is provided in COPYING.
 
@@ -6,13 +6,12 @@ Copyright 2018 Onur Kerimoglu (kerimoglu.o@gmail.com)
 
 # A few words on NflexPD, the Nutrient- flexible Phytoplankton - Detritus model
 
-This is the (flexPFT) model published in the journal of Plankton Research, by Smith et al. 2016.
-
+This is the 'Carbon-based' version of the model described by Kerimoglu et al., GMDD (2021) (https://doi.org/10.5194/gmd-2020-396), specific equation numbers in which are referred to in the model code. A previous, non-FABM version was originally introduced by Smith et al. 2016, Journal of Plankton Research 38, 977–992 (https://doi.org/10.1093/plankt/fbv038).
 
 # Obtaining the code and building 
 Obtain the FABM-NflexPD code:
-    git clone git@bitbucket.org:OnurKerimoglu/nflexpd.git <NFLEXPDDIR>
-(Replace `<NFLEXPDDIR>` with the directory with the NFLEXPD code, e.g., ~/nflexpd-git.)
+    git clone https://github.com/OnurKerimoglu/fabm-nflexpd.git <NFLEXPDDIR>
+(Checkout the 'Cbased' branch; and replace `<NFLEXPDDIR>` with the directory with the NFLEXPD code, e.g., ~/nflexpd-git.)
 
 Now download FABM. FABM is a submodule in GOTM, so first download GOTM: 
     git clone https://github.com/gotm-model/code.git <GOTMDIR>
