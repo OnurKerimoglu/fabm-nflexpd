@@ -6,7 +6,7 @@ Copyright 2018 Onur Kerimoglu (kerimoglu.o@gmail.com)
 
 # A few words on NflexPD, the Nutrient- flexible Phytoplankton - Detritus model
 
-This is the model described by Kerimoglu et al., in GMDD, 2020, specific equation numbers in which are referred to in the model code. A previous, non-FABM version was originally published by Smith et al. 2016, Journal of Plankton Research 38, 977–992.
+This is the model described by Kerimoglu et al., GMDD (2021) (https://doi.org/10.5194/gmd-2020-396), specific equation numbers in which are referred to in the model code. A previous, non-FABM version was originally introduced by Smith et al. 2016, Journal of Plankton Research 38, 977–992 (https://doi.org/10.1093/plankt/fbv038).
 
 # Obtaining the code and building 
 Obtain the FABM-NflexPD code:
