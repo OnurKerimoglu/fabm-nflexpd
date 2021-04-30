@@ -22,13 +22,6 @@ Now download FABM. FABM is a submodule in GOTM, so first download GOTM:
 Check the 'COMPATIBILITY_NOTES' to find out the successfully tested FABM/GOTM versions 
 It is advisable to checkout among those compatible before proceeding. 
 
-For letting FABM know about NFLEXPD, edit <GOTMDIR>/extern/fabm/src/CMakeLists.txt and append 
-'nflexpd       # Nutrient - flexible Phytoplankton - Detritus' at the end of the DEFAULT_INSTITUTES list. 
-Once the model is successfully tested, it is advisable to create a FABM-branch and commit this change. E.g.,
-    cd <GOTMDIR>/extern/fabm
-    git checkout -b 1.0rc1-nflexpd
-    git add src/CMakeLists.txt
-    git commit -m 'included nflexpd in CMakeLists'
 
 FABM and NFLEXPD use object-oriented Fortran and therefore require a recent Fortran compiler (gfortran, ifort, etc). Moreover, a platform-independent build system based on [cmake](http://www.cmake.org) is used. Check whether you have that installed: execute `cmake --version` on the command line.
 
@@ -37,7 +30,7 @@ FABM and NFLEXPD use object-oriented Fortran and therefore require a recent Fort
 To build GOTM with FABM support, create a build directory, call cmake to generate makefiles, and make to compile and install. For instance:
 
     mkdir -p ~/build/gotm && cd ~/build/gotm
-    cmake <GOTMDIR>/src -DFABM_BASE=<FABMDIR> -DFABM_NFLEXPD_BASE=<NFLEXPDDIR>
+    cmake <GOTMDIR>/src -DFABM_BASE=<FABMDIR> -DFABM_INSTITUTES="nflexpd" -DFABM_NFLEXPD_BASE=<NFLEXPDDIR>
     make install
 
 In the above, replace `<GOTMDIR>` with the directory with the GOTM source code, e.g., $HOME/opt/gotm-git if you executed `git clone` in you home directory. Also, replace `<FABMDIR>` with the directory with the FABM code, e.g., <GOTMDIR>/extern/fabm and `<NFLEXPDDIR>` with the directory with the NFLEXPD code, e.g., $HOME/opt/nflexpd-git.
@@ -55,7 +48,7 @@ The 0d driver allows you to run FABM models in a "well-mixed box", under arbitra
 To build the 0d driver, you need to create a directory to build the code in, call `cmake` to generate makefiles, and call `make` to compile and install the FABM library. Usually, the following suffices for this:
 
     mkdir -p ~/build/fabm-0d && cd ~/build/fabm-0d
-    cmake <FABMDIR>/src/drivers/0d -DGOTM_BASE=<GOTMDIR> -DFABM_NFLEXPD_BASE=<NFLEXPDDIR>
+    cmake <FABMDIR>/src/drivers/0d -DGOTM_BASE=<GOTMDIR> -DFABM_INSTITUTES="nflexpd" -DFABM_NFLEXPD_BASE=<NFLEXPDDIR>
     make install
 
 In the above, replace `<NFLEXPDDIR>` with the path to directory with the NFLEXPD source code (e.g., $HOME/opt/nflexpd-git), `<FABMDIR>` with the path to directory with the FABM source code (e.g., ~/fabm-git), and `<GOTMDIR>` with the path to directory with the GOTM source code (e.g., ~/gotm-git). The latter is needed because the 0d driver uses GOTM routines for input, output, time integration, etc.
