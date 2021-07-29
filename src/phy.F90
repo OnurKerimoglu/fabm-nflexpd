@@ -41,7 +41,8 @@
       type (type_horizontal_dependency_id) :: id_FDL
       type (type_diagnostic_variable_id)   :: id_muhatNET,id_ZINT,id_Vhat,id_Ahat,id_KN
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyC,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
-      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_muNET,id_muhatG,id_vNhat,id_vN,id_respN,id_respChl
+      type (type_diagnostic_variable_id)   :: id_PPR,id_fdinphy_sp,id_mu,id_muNET,id_muG,id_vN,id_respN,id_respChl
+      type (type_diagnostic_variable_id)   :: id_muhatG,id_vNhat,id_respHatChl
       type (type_diagnostic_variable_id)   :: id_fQ,id_limfunc_Nmonod,id_fC,id_limfunc_L,id_Tfac
       type(type_diagnostic_variable_id)    :: id_fphydoc,id_fphydon,id_fphydetc,id_fphydetn
       
@@ -175,8 +176,10 @@
    call self%register_diagnostic_variable(self%id_Chl2C, 'Chl2C','gChl/gC',    'cellular chlorophyll content',           &
                                      output=output_instantaneous)
                                      
-   call self%register_diagnostic_variable(self%id_muNET, 'muNET','/d',    'muNET - Rchl',           &
+   call self%register_diagnostic_variable(self%id_muNET, 'muNET','/d',    'net cell-specific growth rate before respN',           &
                                      output=output_time_step_averaged)                                  
+   call self%register_diagnostic_variable(self%id_muG, 'muG','/d',    'gross cell-specific growth rate ',           &
+                                     output=output_time_step_averaged) 
    call self%register_diagnostic_variable(self%id_mu, 'mu','/d',    'net sp. growth rate',           &
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_vN, 'vN','molN/molC/d',    'Specific N uptake rate',           &
@@ -192,8 +195,10 @@
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_respN, 'R_N','/d',    'Respiration cost of N uptake',           &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_respChl, 'R_Chl','/d',    'Respiration cost of Chl uptake',     &
+   call self%register_diagnostic_variable(self%id_respChl, 'R_Chl','/d',    'Cell-specific respiration cost of Chl uptake',     &
                                      output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_respHatChl, 'Rhat_Chl','/d',    'Chloroplast-specific respiration cost of Chl uptake',     &
+                                     output=output_time_step_averaged)                                     
                                      
    call self%register_diagnostic_variable(self%id_ZINT, 'ZINT','-',    'Qs*(muhatNET/vNhat+zetaN)',           &
                                      output=output_time_step_averaged)                                     
@@ -211,7 +216,7 @@
    call self%register_diagnostic_variable(self%id_Tfac, 'Tfac','-',    'Temperature factor',&
                                      output=output_time_step_averaged)
                                      
-   call self%register_diagnostic_variable(self%id_PPR, 'PPR','mmolC/m^3/d','Primary production rate',      &
+   call self%register_diagnostic_variable(self%id_PPR, 'PPR','mmolC/m^3/d','Net primary production rate',      &
                                      output=output_time_step_averaged)
    call self%add_to_aggregate_variable(total_PPR,self%id_PPR)
    
@@ -270,7 +275,7 @@
    real(rk)                   :: vN,Vhat_fNT,RMchl,zetaChl
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac,depth
-   real(rk)                   :: mu,respN,mort,Pprod,muNET,KN_monod
+   real(rk)                   :: mu,respN,mort,Pprod,muNET,muG,KN_monod
    real(rk)                   :: limfunc_L,fC,limfunc_Nmonod
    real(rk)                   :: f_din_phy,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
@@ -402,41 +407,41 @@
    end if
    
    !fC
+   fC = 1.0_rk - fV - self%Q0/(2.0*Q) !Eq.11 in K20
+   
+   !For FS (mimic_Monod):s pecification of a positive fV_fixed implies that a constant Chl:C is desired. For this case, we use fC as calculated by constant fV and Q, and use this to scale RhatChl and ThetaHat
+   if ( self%mimic_Monod .and. self%fV_fixed .le. 0.0) then
+     !If however no fV is provided,  FS becomes more consistent (with regard to the calcualtion of RChl), although it's not a typical classical model constant C:Chl ratio anymore
+     fC = limfunc_Nmonod
+   end if 
+   
    !can help avoiding model crashing:
-   if (din .gt. self%mindin) then ! 'din detection limit' for phytoplankton
+   if (din .lt. self%mindin) then ! 'din detection limit' for phytoplankton
      if ( self%mimic_Monod ) then
-       fC = limfunc_Nmonod ! used for FS (as implied by Eq.15)
+       limfunc_Nmonod=0.0_rk ! used for FS (as implied by Eq.15)
      else
-       fC = 1.0_rk - fV - self%Q0/(2.0*Q) !Eq.11 in K20
+       fC = 0.0_rk
      end if
-   else
-     fC = 0.0_rk
    end if
    
    ! Losses due to Chlorophyll
    ! eq. 26 in Smith et al 2016
    !For FS, fV>0 implies constant Chl:C, which necessitates scaling of RhatChl with (1 - fV - self%Q0/(2.0*Q))
-   if ( self%mimic_Monod .and. self%fV_fixed .gt. 0.0 ) then
-     RChl = RhatChl * ( 1 - fV - self%Q0/(2.0*Q) )
-     !Rchl = (muhatG + Tfac*RMchl) * ( 1 - fV - self%Q0/(2.0*Q) ) * zetaChl * ThetaHat
+   if ( self%mimic_Monod) then
+     muG = muhatG * limfunc_Nmonod
    else
      !Default behavior is to scale with fC
-     RChl = RhatChl * fC
+     muG = muhatG * fC
      !Rchl = (muhatG + Tfac*RMchl) * fC * zetaChl * ThetaHat
    end if
    
-   !write(*,*)'depth,DIN,fC,fV,Q,Q0/(2.0*Q):',depth,din,fC,fV,Q,self%Q0/(2.0*Q)   
-   !muNET =  muhatNET * fC
-   muNET =fC*muhatG - RChl ! Eq.13 in K20; (fC*muhatG=muG, RChl=fC*RhatChl, Eq.25)
+   RChl = RhatChl * fC
+   
+   !Cellular light-limited growth potential
+   muNET = muG - RChl ! Eq.13 in K20; (fC*muhatG=muG, RChl=fC*RhatChl, Eq.25)
    
    !Total Chl content per C in Cell (eq. 10 in Smith et al 2016)
-   if ( self%mimic_Monod .and. self%fV_fixed .gt. 0.0 ) then
-     !Specification of a positive fV_fixed implies that a constant Chl:C is desired. This can considered to be inconsistent with regard to the calculation of RChl (with fC)
-     Theta= (1 - self%Q0 / 2 / Q - fV) * ThetaHat !Used for FS in K20
-   else
-     !With this, FS becomes more consistent (with regard to the calcualtion of RChl), although it's not a typical classical model constant C:Chl ratio anymore
-     Theta= fC * ThetaHat !Eq.24 in K20
-   end if
+   Theta= fC * ThetaHat
    
    !Calculate respN:
    if ( self%dynQN ) then !Explicit uptake rate
@@ -448,19 +453,15 @@
      end if
    else
      if ( self%mimic_Monod ) then
-       !Attempt0: just like the others: this gives entirely unrealistic results (too high at the bottom layers):
-       !respN=self%zetaN*fV*vNhat !molC/molN *molN/molC/d = /d
-       !Attempt1: vN=mu*Q; #this is wrong, as it becomes negative for Rtot>mu
-       !Attempt2: solve  respN=zetaN*vN=zetaN*muQ from mu=muhatNET*fC-mu*Q*zetaN; mu=muhatNET*fC/(1+Q*zetaN);
-       respN=self%zetaN*muhatNET*fC*Q/(1.0+Q*self%zetaN) ! : This can become negative again for muNET>Rchl
-       !Attempt3: take up proportional to light limited gross growth rate
-       !respN=self%zetaN*muhatG*fC*Q  !where, muhatG * fC *Q=vN
+       !solve  respN=zetaN*vN=zetaN*muQ from mu=muhatNET*fC-mu*Q*zetaN; mu=muhatNET*fC/(1+Q*zetaN)
+       if (self%fV_fixed .gt. 0.0) then
+         respN=self%zetaN*muhatNET*limfunc_Nmonod*Q/(1.0+Q*self%zetaN) ! : This can become negative again for muNET>Rchl
+       else
+         respN=self%zetaN*muhatNET*fC*Q/(1.0+Q*self%zetaN) ! : This can become negative again for muNET>Rchl
+       end if
      else
        !like DA: RN based on V = fV*vNhat
        respN=self%zetaN*fV*vNhat ![molC/molN *molN/molC/d = /d]
-       !like for the FS: RN calculated based on V = mu*Q.
-       !respN=self%zetaN*muhatNET*fC*Q/(1.0+Q*self%zetaN)
-       !Problem: as muhatNET=0 in deep layers,RN becomes 0, which makes vN>0, which in turn makes mu>0
      end if  
    end if
    
@@ -469,6 +470,8 @@
    !for FS, this becomes (see Appendix A1 in K20)
    !mu= muNET - zetaN*muNET*Q/(1.0+Q*zetaN)= (muNET (1+QzetaN) - muNET Q ZetaN ) / (1+QzetaN) = muNET/(1+QzetaN)
    !mu+muQzetaN = muNET -> mu=muNET-muQ*zetaN
+   
+   !if (depth .lt. 1.0) write(*,'(A,6F5.2)')'Ld,mu,muNET,respN,muG,RChl',Ld,mu*secs_pr_day,muNET*secs_pr_day,respN*secs_pr_day,muG*secs_pr_day,RChl*secs_pr_day
    
    if ( self%dynQN ) then !Explicit uptake rate
      !to prevent model crashing:
@@ -537,12 +540,14 @@
    _SET_DIAGNOSTIC_(self%id_fdinphy_sp, f_din_phy/phyC * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_muNET, muNET * secs_pr_day) !*s_p_d such that output is in d-1
+   _SET_DIAGNOSTIC_(self%id_muG, muG * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_vN, vN * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_muhatG, muhatG * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_muhatNET, muhatNET * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_vNhat, vNhat * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_respN, respN * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_respChl, Rchl * secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_respHatChl, RhatChl * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_ThetaHat, ThetaHat/12.0) !gChl/molC*1molC/12gC =gChl/gC
    _SET_DIAGNOSTIC_(self%id_PPR, mu*phyC*secs_pr_day) !*s_p_d such that output is in d-1
    
