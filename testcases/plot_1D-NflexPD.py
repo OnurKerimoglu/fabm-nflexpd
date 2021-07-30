@@ -10,10 +10,11 @@ import matplotlib.dates as mpldates
 import sys
 import numpy as np
 
-varlims_vert={'abio_din': [0, 30],'abio_detc':[0,80],'abio_detn':[0,6],'abio_detc/abio_detn':[5.0,30.0],
-         'Chl':[0,10.],'C':[0,60.0],'N':[0,7.5],'Q':[0.02,0.22],'Chl2C':[0.00,0.05],
-         'PPR':[0,20.],'mu':[0,0.4],'vN':[0,0.05],'f_dinphy':[0,0.5],'R_N':[0,0.04],'R_Chl':[0,0.25],
-         'fA':[0.0,1.0], 'fV':[0.0,0.5], 'ThetaHat':[0.00,0.05],'fC':[0,1.0],'limfunc_Nmonod':[1,0],'limfunc_L':[0.,1]}
+varlims_vert={'abio_PAR_dmean':[-1.5,30],'abio_din': [-1.5, 30],'abio_detc':[0,80],'abio_detn':[0,6],'abio_detc/abio_detn':[5.0,30.0],
+         'Chl':[-1.1,22.],'C':[-3.0,60.0],'N':[-0.375,7.5],'Q':[0.02,0.22],'Chl2C':[-0.005,0.08],
+         'PPR':[0,20.],'mu':[-0.02,0.4],'vN':[-0.0025,0.05],'f_dinphy':[0,0.5],'R_N':[-0.002,0.04],'R_Chl':[-0.0125,0.25],
+         'fA':[0.0,1.0], 'fV':[-0.025,0.5], 'ThetaHat':[-0.004,0.08],'fC':[-0.05,1.0],'limfunc_Nmonod':[0,1],'limfunc_L':[-0.05,1],
+         'muNET':[-0.02,0.4], 'muG':[-0.02,0.4], 'muhatNET':[-0.125, 2.5], 'muhatG':[-0.125, 2.5],'Rhat_Chl':[-0.03,0.6],}
 varlims={'abio_PAR_dmean':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf':[-100,0],'wind':[-6,26],
          'abio_detc_sed/abio_detn_sed':[4.0,16.0],'abio_detc/abio_detn':[5.0,30.0],'abio_doc/abio_don':[5.0,30.0],
          'abio_din': [1, 26],'abio_detc':[0,80],'abio_detn':[0,6], 'abio_doc':[0,80], 'abio_don':[0,6],
@@ -25,15 +26,16 @@ prettyunits={'abio_PAR_dmean':'E\ m^{-2}\ d^{-1}','I_0':'E\ m^{-2}\ d^{-1}','win
              'abio_din':'mmolN\ m^{-3}','C':'mmolC\ m^{-3}', 'N':'mmolN\ m^{-3}',#'abio_din':'\mu M\ N','C':'\mu M\ C', 'N':'\mu M\ N',
              'Q':'molN\ molC^{-1}','abio_detc/abio_detn':'molC\ molN^{-1}', 'abio_detc_sed/abio_detn_sed':'molC\ molN^{-1}',
              'abio_detc':'mmolC\ m^{-3}','abio_doc':'mmolC\ m^{-3}','abio_detn':'mmolN\ m^{-3}','abio_don':'mmolN\ m^{-3}',
-             'Chl':'mgChl\ m^{-3}','Chl2C':'gChl\ gC^{-3}','ThetaHat':'gChl\ gC^{-3}',
-             'mu':'d^{-1}','R_N':'d^{-1}','R_Chl':'d^{-1}','vN':'molN\ molC^{-1}\ d^{-1}'}
+             'Chl':'mgChl\ m^{-3}','Chl2C':'gChl\ gC^{-3}','ThetaHat':'gChl\ gC^{-3}','fC':'-', 'fV':'-',
+             'mu':'d^{-1}','muG':'d^{-1}','muNET':'d^{-1}','vN':'molN\ molC^{-1}\ d^{-1}','R_N':'d^{-1}','R_Chl':'d^{-1}',
+             'muhatNET':'d^{-1}','muhatG':'d^{-1}','Rhat_Chl':'d^{-1}','vNhat':'molN\ molC^{-1}\ d^{-1}'}
 prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{MLD}',
              'airt': 'T_{air}','temp': 'T','u10':'\mathrm{Wind \ Speed \ (-u)}','wind':'\mathrm{Wind \ Speed}',
              'abio_din':'DIN','abio_detc_sed/abio_detn_sed':'\mathrm{C:N \ of \ Det_{bot}}','abio_detc/abio_detn':'Det_C:Det_N','abio_doc/abio_don':'DOC:DON',
              'abio_detc':'det_C','abio_detn':'det_N','abio_doc':'DOC','abio_don':'DON',
-             'Chl':'Phy_{Chl}','C':'Phy_C','N':'Phy_N',
-             'f_dinphy':'f_{DIN-Phy}',
-             'Q':'Q','vN':'v_N','mu':'\mu',
+             'Chl':'Phy_{Chl}','C':'Phy_C','N':'Phy_N','f_dinphy':'f_{DIN-Phy}',
+             'Q':'Q','vN':'V_N','vNhat':'\hat{V}_N','mu':'\mu','muNET':'\mu_{net}','muG':'\mu_{g}',
+             'muhatNET':'\hat{\mu}_{net}','muhatG':'\hat{\mu}_{g}','Rhat_Chl':'\hat{R}_{Chl}',
              'R_N':'R_N','R_Chl':'R_{Chl}','fC':'f_C','limfunc_Nmonod':'L_N','limfunc_L':'L_I',
              'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}','Chl2C':'\Theta'}
 numlevels=6
@@ -49,13 +51,14 @@ def main(fname, numyears, modname):
              'abio1':['abio_PAR_dmean','temp', 'mld_surf'],
              'abio2':['abio_din','abio_detc/abio_detn','abio_detc_sed/abio_detn_sed'],
              'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
+             'abio4':['abio_detc_sed', 'abio_detn_sed','abio_detc_sed/abio_detn_sed'],
              'phy-1':['C','N','Q','Chl','Chl2C'],
              'phy-2':['mu','vN','R_N','R_Chl'],
              'phy-3':['ThetaHat', 'fA','fV','fC','limfunc_L'],
              'phy-3b':['ThetaHat','fA','fV','limfunc_Nmonod','limfunc_L'],
              'phy-avg1': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50'],
              'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
-                          'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
+                          'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100'],
              }
     elif modname=='FS-IA-DA': #i.e., competition experiment
       #models = ['phy_IOQ', 'phy_DOQ']
@@ -76,23 +79,24 @@ def main(fname, numyears, modname):
                           'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100']
              }
     elif modname=='FS-IA-DA_merged': #i.e., merged single experiments
-      #models = ['phy_IOQ', 'phy_DOQ']
-      #models = ['phy_cQ','phy_IOQf', 'phy_IOQ', 'phy_DOQ', 'phy_DOQf']
       models = ['phy_FS','phy_IA', 'phy_DA']
-      varsets={
-             'abio-avg1SB':['din_avg0-50', 'detc/detn_avg0-50', 'detc_sed/detn_sed',
-                            'din_avg50-100', 'detc/detn_avg50-100', 'detc_sed/detn_sed'],
-             'abio-avg1':['din_avg0-100', 'detc/detn_avg0-100', 'detc_sed/detn_sed'],
-             'abio-vp1': ['din_vp0-100', 'detc_vp0-100','detn_vp0-100', 'detc/detn_vp0-100'],
-             'phy-avg1SB': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50', 'N_avg0-50',
-                           'Q_avg50-100', 'fC_avg50-100', 'C_avg50-100', 'N_avg50-100'],
-             'phy-avg1': ['Q_avg0-100', 'fC_avg0-100', 'C_avg0-100', 'N_avg0-100'],
-             'phy-vp1': ['Q_vp0-100', 'fC_vp0-100', 'C_vp0-100', 'N_vp0-100'],
-             'phy-avg2SB': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
-                          'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100'],
-             'phy-avg2': ['mu_avg0-100', 'vN_avg0-100', 'R_N_avg0-100', 'R_Chl_avg0-100'],
-             'phy-vp2': ['mu_vp0-100', 'vN_vp0-100', 'R_N_vp0-100', 'R_Chl_vp0-100'],
-             }
+      varsets = {
+                'abio-avg1SB': ['din_avg0-50', 'PAR_dmean_avg0-50', 'detc/detn_avg0-50', 'detc_sed/detn_sed',
+                                 'din_avg50-100', 'PAR_dmean_avg50-100', 'detc/detn_avg50-100', 'detc_sed/detn_sed'],
+                'abio-avg1': ['din_avg0-100', 'PAR_dmean_avg0-100', 'detc/detn_avg0-100', 'detc_sed/detn_sed'],
+                'phy-avg1SB': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50', 'N_avg0-50',
+                               'Q_avg50-100', 'fC_avg50-100', 'C_avg50-100', 'N_avg50-100'],
+                'phy-avg1': ['Q_avg0-100', 'fC_avg0-100', 'C_avg0-100', 'N_avg0-100'],
+                'phy-avg2SB': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
+                               'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100'],
+                'phy-avg2': ['mu_avg0-100', 'vN_avg0-100', 'R_N_avg0-100', 'R_Chl_avg0-100'],
+                'abio-vp1': ['din_vp0-100', 'PAR_dmean_vp0-100', 'detn_vp0-100', 'detc/detn_vp0-100'],
+                'phy-vp1': ['Q_vp0-100', 'Chl_vp0-100', 'C_vp0-100', 'N_vp0-100'],
+                'phy-vp2': ['mu_vp0-100', 'vN_vp0-100', 'R_N_vp0-100', 'R_Chl_vp0-100'],
+                'phy-vp3': ['muhatNET_vp0-100', 'muhatG_vp0-100', 'Rhat_Chl_vp0-100', 'limfunc_L_vp0-100'],
+                'phy-vp4': ['muNET_vp0-100', 'muG_vp0-100', 'R_Chl_vp0-100', 'limfunc_Nmonod_vp0-100'],
+                'phy-vp5': ['fC_vp0-100', 'fV_vp0-100', 'ThetaHat_vp0-100', 'Chl2C_vp0-100'],
+                 }
       
     for groupname,varset in varsets.iteritems():
         #print ('%s,%s'%(groupname,varset))
@@ -107,13 +111,18 @@ def main(fname, numyears, modname):
 def plot_multivar_vertprof(fname, numyears, groupname, varset, models):
     cols = ['green', 'darkblue', 'orange']
     linestyles = ['--', ':', '-']
+    linews=[2,2,2]
 
     dates2plot = [mpldates.datetime.datetime(2008,1,1),mpldates.datetime.datetime(2008,3,1),
                   mpldates.datetime.datetime(2008,8,1),mpldates.datetime.datetime(2008,11,1),]
     numrow = len(dates2plot)
     numcol = len(varset)
-    figuresize = (1 + 1.5 * numcol, 1. + 2.5 * numrow)
-    fpar = {'left': 0.12, 'right': 0.97, 'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.35}
+    #with var names and units for each row
+    figuresize = (1.5 + 1.5 * numcol, 1. + 2.5 * numrow)
+    fpar = {'left': 0.12, 'right': 0.85, 'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.35}
+    # with var names only at first row, units only at last
+    #figuresize = (1.5 + 1.5 * numcol, 1. + 2.2 * numrow)
+    #fpar = {'left': 0.12, 'right': 0.85, 'top': 0.95, 'bottom': 0.05, 'hspace': 0.2, 'wspace': 0.35}
 
     nc = nc4.Dataset(fname)
     ncv = nc.variables
@@ -144,49 +153,63 @@ def plot_multivar_vertprof(fname, numyears, groupname, varset, models):
                 else:
                     varn = '%s_%s' % (models[i], varn_basic)
 
+                if 'vp' in varn_basic:
+                    varn_basic_root = varn_basic.split('_vp')[0]
+                    depthintstr = varn_basic.split('_vp')[1]  # .split.('_')[0]
+                else:
+                    varn_basic_root = varn_basic
+                    depthintstr=''
+                if 'abio' in groupname:
+                    if '/' in varn_basic:
+                        varn_basic0 = 'abio_%s' % (varn_basic.split('/')[0])
+                        varn_basic1 = 'abio_%s' % (varn_basic.split('/')[1].split('_vp')[0])
+                        varn_basic_root = '%s/%s' % (varn_basic0, varn_basic1)
+                    else:
+                        # if models[i]=='FS' and varn_basic=='fC':
+                        #    varn_basic='limfunc_Nmonod'
+                        varn_basic_root = 'abio_%s' % varn_basic_root
+
                 varfound, dat, depths, valsat, longname, units = get_varvals(ncv, varn)
 
-                if valsat == 'plate':
-                    raise (Exception('Resulting valus have no depth dimension'))
-                # crop the data for the date and depth interval
-                ti=np.where(tvec==date2plot)
-                zfull = depths[ti,:]
-                zlimstr = varn.split('_vp')[1]
-                zint=[np.float(zlimstr.split('-')[0]),np.float(zlimstr.split('-')[1])]
-                zi=(zfull>=zint[0]) * (zfull<=zint[1])
-                z=zfull[zi]
-                datC = dat[ti,:][zi]
+                if varfound:
+                    if valsat == 'plate':
+                        raise (Exception('Resulting valus have no depth dimension'))
+                    # crop the data for the date and depth interval
+                    ti=np.where(tvec==date2plot)
+                    zfull = depths[ti,:]
+                    zlimstr = varn.split('_vp')[1]
+                    zint=[np.float(zlimstr.split('-')[0]),np.float(zlimstr.split('-')[1])]
+                    zi=(zfull>=zint[0]) * (zfull<=zint[1])
+                    z=zfull[zi]
+                    datC = dat[ti,:][zi]
 
-                ax.plot(datC, z, label=model.split('phy_')[1], color=cols[i], linestyle=linestyles[i])
+                    ax.plot(datC, z, label=model.split('phy_')[1], color=cols[i], linestyle=linestyles[i],lw=linews[i])
 
-            #ax.invert_yaxis()
+                if models[i]=='phy_FS' and varn_basic_root=='fC':
+                    varn_basic2='limfunc_Nmonod_vp'+depthintstr
+                    varn2 = '%s_%s' % (models[i], varn_basic2)
 
-            if varn_basic in prettyunits:
-                units = prettyunits[varn_basic]
-            if 'vp' in varn_basic:
-                varn_basic_root = varn_basic.split('_vp')[0]
-                #datestr=' '.join(date2plot.day,mpldates.(date2plot.month))
-                datestr=date2plot.strftime('%d %b')
-            else:
-                varn_basic_root = varn_basic
-                datestr = ''
-            if 'abio' in groupname:
-                if '/' in varn_basic:
-                    varn_basic0 = 'abio_%s' % (varn_basic.split('/')[0])
-                    varn_basic1 = 'abio_%s' % (varn_basic.split('/')[1].split('_vp')[0])
-                    varn_basic_root = '%s/%s' % (varn_basic0, varn_basic1)
-                else:
-                    varn_basic_root = 'abio_%s' % varn_basic_root
-            if varn_basic_root in prettyunits:
-                units = prettyunits[varn_basic_root]
-            if 'vp' in varn_basic:
-                plt.title('$%s$' % (prettynames[varn_basic_root]), size=12.0)
-                #plt.title('$%s$ [$%s$]' % (prettynames[varn_basic_root], units), size=12.0)
+                    varfound2, dat2, depths2, valsat2, longname2, units2 = get_varvals(ncv, varn2)
 
+                    if varfound2:
+                        if valsat2 == 'plate':
+                            raise (Exception('Resulting valus have no depth dimension'))
+                        # crop the data for the date and depth interval
+                        ti = np.where(tvec == date2plot)
+                        datC2 = dat2[ti, :][zi]
+
+                        ax.plot(datC2, z, label=model.split('phy_')[1], color=cols[i], linestyle=linestyles[i],lw=linews[i],alpha=0.5) #lw=0.5) #
+
+            if True: #k==0:
+                if 'vp' in varn_basic:
+                    plt.title('$%s$' % (prettynames[varn_basic_root]), size=12.0)
+
+            # ax.invert_yaxis()
             ax.set_ylim(zint[0],zint[1])
             ax.set_ylim(ax.get_ylim()[::-1]) #revert the y axis
 
             if j==0:
+                datestr = date2plot.strftime('%d %b')
                 plt.ylabel('%s\ndepth [$m^{-1}$]'%datestr)
                 #pheight=(fpar['top']-fpar['bottom'])/float(numrow)
                 #y_datestr=fpar['bottom']+(pheight*(1.05))*(numrow-k-1)+pheight/2.
@@ -194,19 +217,19 @@ def plot_multivar_vertprof(fname, numyears, groupname, varset, models):
             else:
                 ax.yaxis.set_ticklabels([])
             if (k==0) and (j == numcol-1):  # (j+1)%numcol==1
-                if varn_basic_root=='R_Chl':
-                    ax.legend(loc='center left', bbox_to_anchor=(0.2, 0.3), fontsize=12)
-                else:
-                    ax.legend(loc='center left', bbox_to_anchor=(0.2, 0.7), fontsize=12)
+                ax.legend(loc='center left', bbox_to_anchor=(1.05, 0.7), fontsize=12)
                 # for the rates plot, place legend inside to avoid avorlap y axis labs
                 # ax.legend(loc='center left', bbox_to_anchor=(0.4, 0.7),fontsize=12)
 
             ax.grid(b=True, axis='y', which='major', color='0.5', linestyle='-')
             # x-axis
-            if varn_basic_root in varlims.keys():
+            if varn_basic_root in varlims_vert.keys():
                 ax.set_xlim(varlims_vert[varn_basic_root][0], varlims_vert[varn_basic_root][1])
-            #format_date_axis(ax, [t[0], t[-1]])
-            plt.xlabel('[$%s$]'%units, size=12.0)
+
+            if True: #k+1==numrow:
+                if varn_basic_root in prettyunits:
+                    units = prettyunits[varn_basic_root]
+                    plt.xlabel('[$%s$]'%units, size=12.0)
 
     nc.close()
     figname = fname.split('.nc')[0] + '_vertprof_' + groupname + '_' + str(numyears) + 'y.png'
@@ -216,6 +239,7 @@ def plot_multivar_vertprof(fname, numyears, groupname, varset, models):
 def plot_multivar_ts(fname, numyears, groupname, varset, models):
     cols=['green','darkblue','orange']
     linestyles=['--',':','-']
+    linews=[2,2,2]
 
     if len(varset) > 3:
         if len(varset) in [3, 6, 9]:
@@ -225,8 +249,8 @@ def plot_multivar_ts(fname, numyears, groupname, varset, models):
     else:
         numcol = len(varset)
     numrow = np.ceil(len(varset) / numcol)
-    figuresize = (1 + 4*numcol, 1. + 1.5*numrow)
-    fpar = {'left': 0.05, 'right': 0.99, 'top': 0.93, 'bottom': 0.07, 'hspace': 0.5, 'wspace': 0.2}
+    figuresize = (1 + 3.5*numcol, 1. + 1.5*numrow)
+    fpar = {'left': 0.04, 'right': 0.92, 'top': 0.93, 'bottom': 0.07, 'hspace': 0.5, 'wspace': 0.3}
     if numrow == 1:
         fpar['top']=0.9; fpar['bottom']=0.1
 
@@ -263,33 +287,48 @@ def plot_multivar_ts(fname, numyears, groupname, varset, models):
                 else:
                     varn = 'abio_%s_%s' % (modelpref, varn_basic)
             else:
+                #if models[i]=='FS' and varn_basic=='fC':
+                #    varn_basic='limfunc_Nmonod'
                 varn = '%s_%s'%(models[i], varn_basic)
+            if varn_basic in prettyunits:
+                units = prettyunits[varn_basic]
+            if 'avg' in varn_basic:
+                varn_basic_root = varn_basic.split('_avg')[0]
+                depthintstr = varn_basic.split('_avg')[1]  # .split.('_')[0]
+            else:
+                varn_basic_root = varn_basic
+                depthintstr = ''
+            if 'abio' in groupname:
+                if '/' in varn_basic:
+                    varn_basic0 = 'abio_%s' % (varn_basic.split('/')[0])
+                    varn_basic1 = 'abio_%s' % (varn_basic.split('/')[1].split('_avg')[0])
+                    varn_basic_root = '%s/%s' % (varn_basic0, varn_basic1)
+                else:
+                    varn_basic_root = 'abio_%s' % varn_basic_root
 
             varfound, dat, depths, valsat, longname, units = get_varvals(ncv, varn)
 
             if valsat == 'plate':
-                depth = np.array([0])
                 # crop the data for the time period requested
                 datC = dat[yeari[0]]
             else:
                 raise(Exception('Resulting valus are not 1-dimensional'))
-            ax.plot(t, datC, label=model.split('phy_')[1], color=cols[i],linestyle=linestyles[i])
+            ax.plot(t, datC, label=model.split('phy_')[1], color=cols[i],linestyle=linestyles[i], lw=linews[i])
 
-        if varn_basic in prettyunits:
-            units = prettyunits[varn_basic]
-        if 'avg' in varn_basic:
-            varn_basic_root = varn_basic.split('_avg')[0]
-            depthintstr=varn_basic.split('_avg')[1] #.split.('_')[0]
-        else:
-            varn_basic_root = varn_basic
-            depthintstr =''
-        if 'abio' in groupname:
-            if '/' in varn_basic:
-                varn_basic0 = 'abio_%s' % (varn_basic.split('/')[0])
-                varn_basic1 = 'abio_%s' % (varn_basic.split('/')[1].split('_avg')[0])
-                varn_basic_root = '%s/%s' % (varn_basic0, varn_basic1)
-            else:
-                varn_basic_root = 'abio_%s' % varn_basic_root
+            if models[i] == 'phy_FS' and varn_basic_root == 'fC':
+                varn_basic2 = 'limfunc_Nmonod_avg'+depthintstr
+                varn2 = '%s_%s' % (models[i], varn_basic2)
+
+                varfound2, dat2, depths2, valsat2, longname2, units2 = get_varvals(ncv, varn2)
+
+                if varfound2:
+                    if valsat == 'plate':
+                        # crop the data for the time period requested
+                        datC2 = dat2[yeari[0]]
+                    else:
+                        raise (Exception('Resulting valus are not 1-dimensional'))
+                    ax.plot(t, datC2, label=model.split('phy_')[1], color=cols[i], linestyle=linestyles[i], lw=linews[i], alpha=0.5)  # lw=0.5) #
+
         if varn_basic_root in prettyunits:
             units = prettyunits[varn_basic_root]
         if 'avg' in varn_basic:
@@ -298,13 +337,13 @@ def plot_multivar_ts(fname, numyears, groupname, varset, models):
             plt.title('$%s$ [$%s$]' % (prettynames[varn_basic_root], units), size=12.0)
 
         # shrink the axes width by 20% to fit that of the contour plots, and put the legend in that space
-        box = ax.get_position()
-        ax.set_position([box.x0, box.y0, (box.x1 - box.x0) * 0.8, box.y1 - box.y0])
+        #box = ax.get_position()
+        #ax.set_position([box.x0, box.y0, (box.x1 - box.x0) * 0.8, box.y1 - box.y0])
         if varn_basic in varlims.keys():
             ax.set_ylim(varlims[varn][0], varlims[varn][1])
 
-        if j==0: #(j+1)%numcol==1 
-            ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.8),fontsize=12)
+        if j+1==numcol: #(j+1)%numcol==1
+            ax.legend(loc='center left', bbox_to_anchor=(1.02, 0.8),fontsize=12)
             #for the rates plot, place legend inside to avoid avorlap y axis labs
             #ax.legend(loc='center left', bbox_to_anchor=(0.4, 0.7),fontsize=12)
 
@@ -568,20 +607,24 @@ def get_varvals(ncv,varn0):
         varfound,varvals,depths,longname,units=get_varvals_op(ncv,varn0)
     else:
         if not (varn0 in ncv):
-            return (False,0,0,'','')
+            return (False,0,0,'','','')
         else:
             varn=varn0
             varvals=np.squeeze(ncv[varn][:])
             depths=np.squeeze(ncv['z'][:])*-1
             longname = ncv[varn].long_name
             units=ncv[varn].units
-    if len(varvals.shape)==1: #if 1-dimensional variable (e.g., airt)
-        valsat='plate'
-    elif varn0 in ['nuh', 'nus']:
-        valsat='int'
+            varfound=True
+    if varfound:
+        if len(varvals.shape)==1: #if 1-dimensional variable (e.g., airt)
+            valsat='plate'
+        elif varn0 in ['nuh', 'nus']:
+            valsat='int'
+        else:
+            valsat='center'
     else:
-        valsat='center'
-    return (True,varvals,depths,valsat,longname,units)
+        valsat='NA'
+    return (varfound,varvals,depths,valsat,longname,units)
 
 def get_varvals_vp(ncv,varn0):
     varn=varn0.split('_vp')[0]
@@ -593,7 +636,7 @@ def get_varvals_vp(ncv,varn0):
     #varvals=varvals[:,]
     #depths=depths[zi]
 
-    return (True,varvals,depths,longname,units)
+    return (varfound,varvals,depths,longname,units)
 
 def get_varvals_avg(ncv,varn0):
     zintstr = varn0.split('_avg')[1]
@@ -610,7 +653,7 @@ def get_varvals_avg(ncv,varn0):
     #longname=ncv[varn].long_name
     #units=ncv[varn].units
 
-    return (True,varvals,depths,longname,units)
+    return (varfound,varvals,depths,longname,units)
 
 def get_varvals_op(ncv,varn0):
     if '+' in varn0:
@@ -646,7 +689,7 @@ def get_varvals_op(ncv,varn0):
             units='molC/molN'
     depths = np.squeeze(ncv['z'][:, :]) * -1
     return (True,varvals,depths,longname,units)
-        
+
 def format_date_axis(ax,tspan,axgrid=True):
     ax.set_xlim(tspan[0], tspan[1])
     if np.diff(tspan)[0].days<63:
@@ -687,11 +730,8 @@ if __name__ == "__main__":
     # if you call this script from the command line (the shell) it will
     # run the 'main' function
     if len(sys.argv) < 2: #this means no arguments were passed
-      #fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/Highlat-100m_wconst_FS-IA-DA_merged/Highlat-100m_wconst_FS-IA-DA_merged_mean.nc'
-      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat-MS/21-07-25/Highlat-100m_wconst_FS-IA-DA_merged/Highlat-100m_wconst_FS-IA-DA_merged_mean.nc'
-      #fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/20-10-12/FS_fC_const/Highlat-100m_wconst-FS/Highlat-100m_wconst-FS_mean.nc'
-      #fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/20-10-12/FS_fC_LN/Highlat-100m_wconst-FS_FSfCLN/Highlat-100m_wconst-FS_mean.nc'
-      #fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat/20-10-12/FS_fC_const/Highlat-100m_wfile2-FS/Highlat-100m_wfile2-FS_mean.nc'
+      #fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat-MS/21-07/Highlat-100m_wconst-FS2Q/Highlat-100m_wconst-FS2Q_mean.nc'
+      fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat-MS/21-07-29/Highlat-100m_wconst_FS-IA-DA_merged/Highlat-100m_wconst_FS-IA-DA_merged_mean.nc'
       print('plotting default file:'+fname)
     else:
       print('plotting file specified:'+sys.argv[1])
