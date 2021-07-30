@@ -26,18 +26,22 @@ prettyunits={'abio_PAR_dmean':'E\ m^{-2}\ d^{-1}','I_0':'E\ m^{-2}\ d^{-1}','win
              'abio_din':'mmolN\ m^{-3}','C':'mmolC\ m^{-3}', 'N':'mmolN\ m^{-3}',#'abio_din':'\mu M\ N','C':'\mu M\ C', 'N':'\mu M\ N',
              'Q':'molN\ molC^{-1}','abio_detc/abio_detn':'molC\ molN^{-1}', 'abio_detc_sed/abio_detn_sed':'molC\ molN^{-1}',
              'abio_detc':'mmolC\ m^{-3}','abio_doc':'mmolC\ m^{-3}','abio_detn':'mmolN\ m^{-3}','abio_don':'mmolN\ m^{-3}',
+             'abio_detc_sed':'mmolC\ m^{-2}\ d^{-1}','abio_detn_sed':'mmolN\ m^{-2}\ d^{-1}',
              'Chl':'mgChl\ m^{-3}','Chl2C':'gChl\ gC^{-3}','ThetaHat':'gChl\ gC^{-3}','fC':'-', 'fV':'-',
              'mu':'d^{-1}','muG':'d^{-1}','muNET':'d^{-1}','vN':'molN\ molC^{-1}\ d^{-1}','R_N':'d^{-1}','R_Chl':'d^{-1}',
-             'muhatNET':'d^{-1}','muhatG':'d^{-1}','Rhat_Chl':'d^{-1}','vNhat':'molN\ molC^{-1}\ d^{-1}'}
+             'muhatNET':'d^{-1}','muhatG':'d^{-1}','Rhat_Chl':'d^{-1}','vNhat':'molN\ molC^{-1}\ d^{-1}',
+             'PPR':'mmolC\ m^{-2}\ d^{-1}', 'f_phy_detc':'mmolC\ m^{-2}\ d^{-1}', 'f_phy_detn':'mmolN\ m^{-2}\ d^{-1}'}
 prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{MLD}',
              'airt': 'T_{air}','temp': 'T','u10':'\mathrm{Wind \ Speed \ (-u)}','wind':'\mathrm{Wind \ Speed}',
              'abio_din':'DIN','abio_detc_sed/abio_detn_sed':'\mathrm{C:N \ of \ Det_{bot}}','abio_detc/abio_detn':'Det_C:Det_N','abio_doc/abio_don':'DOC:DON',
              'abio_detc':'det_C','abio_detn':'det_N','abio_doc':'DOC','abio_don':'DON',
+             'abio_detc_sed':'\mathrm{C\ export\ rate}','abio_detn_sed':'\mathrm{N\ export\ rate}',
              'Chl':'Phy_{Chl}','C':'Phy_C','N':'Phy_N','f_dinphy':'f_{DIN-Phy}',
              'Q':'Q','vN':'V_N','vNhat':'\hat{V}_N','mu':'\mu','muNET':'\mu_{net}','muG':'\mu_{g}',
              'muhatNET':'\hat{\mu}_{net}','muhatG':'\hat{\mu}_{g}','Rhat_Chl':'\hat{R}_{Chl}',
              'R_N':'R_N','R_Chl':'R_{Chl}','fC':'f_C','limfunc_Nmonod':'L_N','limfunc_L':'L_I',
-             'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}','Chl2C':'\Theta'}
+             'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}','Chl2C':'\Theta',
+             'PPR':'\mathrm{NPP\ rate}', 'f_phy_detc':'F_{PhyC-DetC}', 'f_phy_detn':'F_{PhyN-DetN}'}
 numlevels=6
 #depth range to be shown:
 prescylim=[0,0] #[0,0] means no ylimits are prescribed, full depth range will be shown'
@@ -47,7 +51,8 @@ def main(fname, numyears, modname):
     
     if not '-' in modname: #i.e., single model runs
       models = [modname]
-      varsets={'abio0':['airt', 'wind', 'I_0'],
+      varsets={
+             'abio0':['airt', 'wind', 'I_0'],
              'abio1':['abio_PAR_dmean','temp', 'mld_surf'],
              'abio2':['abio_din','abio_detc/abio_detn','abio_detc_sed/abio_detn_sed'],
              'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
@@ -59,6 +64,7 @@ def main(fname, numyears, modname):
              'phy-avg1': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50'],
              'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
                           'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100'],
+             'phy_int1':['PPR_int0-100', 'f_phy_detc_int0-100', 'f_phy_detn_int0-100']
              }
     elif modname=='FS-IA-DA': #i.e., competition experiment
       #models = ['phy_IOQ', 'phy_DOQ']
@@ -84,29 +90,31 @@ def main(fname, numyears, modname):
                 'abio-avg1SB': ['din_avg0-50', 'PAR_dmean_avg0-50', 'detc/detn_avg0-50', 'detc_sed/detn_sed',
                                  'din_avg50-100', 'PAR_dmean_avg50-100', 'detc/detn_avg50-100', 'detc_sed/detn_sed'],
                 'abio-avg1': ['din_avg0-100', 'PAR_dmean_avg0-100', 'detc/detn_avg0-100', 'detc_sed/detn_sed'],
+                'abio-int1': ['detc_sed', 'detn_sed', 'detc_sed/detn_sed'],
                 'phy-avg1SB': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50', 'N_avg0-50',
                                'Q_avg50-100', 'fC_avg50-100', 'C_avg50-100', 'N_avg50-100'],
                 'phy-avg1': ['Q_avg0-100', 'fC_avg0-100', 'C_avg0-100', 'N_avg0-100'],
                 'phy-avg2SB': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
                                'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100'],
                 'phy-avg2': ['mu_avg0-100', 'vN_avg0-100', 'R_N_avg0-100', 'R_Chl_avg0-100'],
+                'phy-int1': ['PPR_int0-100', 'C_int0-100', 'N_int0-100'],
                 'abio-vp1': ['din_vp0-100', 'PAR_dmean_vp0-100', 'detn_vp0-100', 'detc/detn_vp0-100'],
                 'phy-vp1': ['Q_vp0-100', 'Chl_vp0-100', 'C_vp0-100', 'N_vp0-100'],
                 'phy-vp2': ['mu_vp0-100', 'vN_vp0-100', 'R_N_vp0-100', 'R_Chl_vp0-100'],
                 'phy-vp3': ['muhatNET_vp0-100', 'muhatG_vp0-100', 'Rhat_Chl_vp0-100', 'limfunc_L_vp0-100'],
                 'phy-vp4': ['muNET_vp0-100', 'muG_vp0-100', 'R_Chl_vp0-100', 'limfunc_Nmonod_vp0-100'],
                 'phy-vp5': ['fC_vp0-100', 'fV_vp0-100', 'ThetaHat_vp0-100', 'Chl2C_vp0-100'],
+
                  }
       
     for groupname,varset in varsets.iteritems():
         #print ('%s,%s'%(groupname,varset))
-        if 'avg' in groupname:
+        if ('avg' in groupname) or ('int' in groupname):
             plot_multivar_ts(fname, numyears, groupname, varset, models)
         elif 'vp' in groupname:
             plot_multivar_vertprof(fname, numyears, groupname, varset, models)
         else:
             plot_singlevar(fname, numyears, groupname, varset, models)
-
 
 def plot_multivar_vertprof(fname, numyears, groupname, varset, models):
     cols = ['green', 'darkblue', 'orange']
@@ -294,14 +302,22 @@ def plot_multivar_ts(fname, numyears, groupname, varset, models):
                 units = prettyunits[varn_basic]
             if 'avg' in varn_basic:
                 varn_basic_root = varn_basic.split('_avg')[0]
-                depthintstr = varn_basic.split('_avg')[1]  # .split.('_')[0]
+                depthintstr = varn_basic.split('_avg')[1]
+            if 'int' in varn_basic:
+                varn_basic_root = varn_basic.split('_int')[0]
+                depthintstr = varn_basic.split('_int')[1]
             else:
                 varn_basic_root = varn_basic
                 depthintstr = ''
             if 'abio' in groupname:
                 if '/' in varn_basic:
                     varn_basic0 = 'abio_%s' % (varn_basic.split('/')[0])
-                    varn_basic1 = 'abio_%s' % (varn_basic.split('/')[1].split('_avg')[0])
+                    if 'avg' in varn_basic:
+                        varn_basic1 = 'abio_%s' % (varn_basic.split('/')[1].split('_avg')[0])
+                    elif 'int' in varn_basic:
+                        varn_basic1 = 'abio_%s' % (varn_basic.split('/')[1].split('_int')[0])
+                    else:
+                        varn_basic1='abio_%s' % (varn_basic.split('/')[1])
                     varn_basic_root = '%s/%s' % (varn_basic0, varn_basic1)
                 else:
                     varn_basic_root = 'abio_%s' % varn_basic_root
@@ -333,6 +349,8 @@ def plot_multivar_ts(fname, numyears, groupname, varset, models):
             units = prettyunits[varn_basic_root]
         if 'avg' in varn_basic:
             plt.title('%sm mean $%s$ [$%s$]' % (depthintstr, prettynames[varn_basic_root], units), size=12.0)
+        elif 'int' in varn_basic:
+            plt.title('%sm int. $%s$ [$%s$]' % (depthintstr, prettynames[varn_basic_root], units), size=12.0)
         else:
             plt.title('$%s$ [$%s$]' % (prettynames[varn_basic_root], units), size=12.0)
 
@@ -600,7 +618,9 @@ def get_basic_varname(varn,models):
 
 def get_varvals(ncv,varn0):
     if 'avg' in varn0:
-        varfound, varvals,depths, longname, units = get_varvals_avg(ncv, varn0)
+        varfound, varvals,depths, longname, units = get_varvals_avg(ncv, varn0,'avg')
+    elif 'int' in varn0:
+        varfound, varvals,depths, longname, units = get_varvals_avg(ncv, varn0,'int')
     elif 'vp' in varn0:
         varfound, varvals,depths,longname, units = get_varvals_vp(ncv, varn0)
     elif '+' in varn0  or '-' in varn0 or '*' in varn0 or '/' in varn0:
@@ -638,21 +658,31 @@ def get_varvals_vp(ncv,varn0):
 
     return (varfound,varvals,depths,longname,units)
 
-def get_varvals_avg(ncv,varn0):
-    zintstr = varn0.split('_avg')[1]
-    varn=varn0.split('_avg')[0]
+def get_varvals_avg(ncv,varn0,mode):
+    if mode=='avg':
+        zintstr = varn0.split('_avg')[1]
+        varn = varn0.split('_avg')[0]
+    elif mode=='int':
+        zintstr = varn0.split('_int')[1]
+        varn = varn0.split('_int')[0]
+    else:
+        raise(Exception('Unknown mode:%s'%mode))
     varfound, varvals, depths, valsat,longname, units = get_varvals(ncv, varn)
     #assume that zintstr=0-X means below 0, and above Xm depth
     zint=[np.float(zintstr.split('-')[0]),np.float(zintstr.split('-')[1])]
     zi=(depths>=zint[0]) * (depths<=zint[1])
     #vals=np.squeeze(ncv[varn])
     valsM=np.ma.array(varvals,mask=np.invert(zi))
-    varvals = np.mean(valsM,axis=1)
-    depthsM=np.ma.array(depths,mask=np.invert(zi))
-    depths = np.mean(depthsM,axis=1)
-    #longname=ncv[varn].long_name
-    #units=ncv[varn].units
-
+    depthsM = np.ma.array(depths, mask=np.invert(zi))
+    if mode=='avg':
+        varvals = np.mean(valsM,axis=1)
+    elif mode=='int':
+        heights=np.squeeze(ncv['h'][:, :]) #i.e., layer thicknesses
+        heightsM=np.ma.array(heights, mask=np.invert(zi))
+        vals_massM=valsM*heightsM #X/m3*m=X/m2
+        varvals = np.sum(vals_massM, axis=1)
+        units=units.replace('m^3','m^2')
+    depths = np.mean(depthsM, axis=1)
     return (varfound,varvals,depths,longname,units)
 
 def get_varvals_op(ncv,varn0):
@@ -730,7 +760,7 @@ if __name__ == "__main__":
     # if you call this script from the command line (the shell) it will
     # run the 'main' function
     if len(sys.argv) < 2: #this means no arguments were passed
-      #fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat-MS/21-07/Highlat-100m_wconst-FS2Q/Highlat-100m_wconst-FS2Q_mean.nc'
+      #fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat-MS/21-07-29/Highlat-100m_wconst-FS/Highlat-100m_wconst-FS_mean.nc'
       fname = '/home/onur/setups/test-BGCmodels/nflexpd/1D-ideal-highlat-MS/21-07-29/Highlat-100m_wconst_FS-IA-DA_merged/Highlat-100m_wconst_FS-IA-DA_merged_mean.nc'
       print('plotting default file:'+fname)
     else:
