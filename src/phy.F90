@@ -237,13 +237,13 @@
                                      output=output_instantaneous)                                
    end if
    
-   call self%register_diagnostic_variable(self%id_fphydon, 'f_phy_don','molN/m^3/d',    'bulk phy-N loss to detritus',           &
+   call self%register_diagnostic_variable(self%id_fphydon, 'f_phy_don','mmolN/m^3/d',    'bulk phy-N loss to detritus',           &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_fphydoc, 'f_phy_doc','molC/m^3/d',    'bulk phy-C loss to detritus',           &
+   call self%register_diagnostic_variable(self%id_fphydoc, 'f_phy_doc','mmolC/m^3/d',    'bulk phy-C loss to detritus',           &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_fphydetn, 'f_phy_detn','molN/m^3/d',    'bulk phy-N loss to DOM',           &
+   call self%register_diagnostic_variable(self%id_fphydetn, 'f_phy_detn','mmolN/m^3/d',    'bulk phy-N loss to DOM',           &
                                      output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_fphydetc, 'f_phy_detc','molN/m^3/d',    'bulk phy-C loss to DOM',           &
+   call self%register_diagnostic_variable(self%id_fphydetc, 'f_phy_detc','mmolN/m^3/d',    'bulk phy-C loss to DOM',           &
                                      output=output_time_step_averaged)
                                      
    ! Register environmental dependencies
