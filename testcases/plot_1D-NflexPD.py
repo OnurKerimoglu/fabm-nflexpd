@@ -12,7 +12,7 @@ import numpy as np
 
 varlims_vert={'abio_PAR_dmean':[-1.5,30],'abio_din': [-1.5, 30],'abio_detc':[0,80],'abio_detn':[0,6],'abio_detc/abio_detn':[5.0,30.0],
          'Chl':[-1.1,22.],'C':[-3.0,60.0],'N':[-0.375,7.5],'Q':[0.02,0.22],'Chl2C':[-0.005,0.08],
-         'PPR':[0,20.],'mu':[-0.02,0.4],'vN':[-0.0025,0.05],'f_dinphy':[0,0.5],'R_N':[-0.002,0.04],'R_Chl':[-0.0125,0.25],
+         'PPR':[-1.1,20.],'mu':[-0.02,0.4],'vN':[-0.0025,0.05],'f_dinphy':[0,0.5],'R_N':[-0.002,0.04],'R_Chl':[-0.0125,0.25],
          'fA':[0.0,1.0], 'fV':[-0.025,0.5], 'ThetaHat':[-0.004,0.08],'fC':[-0.05,1.0],'limfunc_Nmonod':[0,1],'limfunc_L':[-0.05,1],
          'muNET':[-0.02,0.4], 'muG':[-0.02,0.4], 'muhatNET':[-0.125, 2.5], 'muhatG':[-0.125, 2.5],'Rhat_Chl':[-0.03,0.6],}
 varlims={'abio_PAR_dmean':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf':[-100,0],'wind':[-6,26],
@@ -30,7 +30,7 @@ prettyunits={'abio_PAR_dmean':'E\ m^{-2}\ d^{-1}','I_0':'E\ m^{-2}\ d^{-1}','win
              'Chl':'mgChl\ m^{-3}','Chl2C':'gChl\ gC^{-3}','ThetaHat':'gChl\ gC^{-3}','fC':'-', 'fV':'-',
              'mu':'d^{-1}','muG':'d^{-1}','muNET':'d^{-1}','vN':'molN\ molC^{-1}\ d^{-1}','R_N':'d^{-1}','R_Chl':'d^{-1}',
              'muhatNET':'d^{-1}','muhatG':'d^{-1}','Rhat_Chl':'d^{-1}','vNhat':'molN\ molC^{-1}\ d^{-1}',
-             'PPR':'mmolC\ m^{-2}\ d^{-1}', 'f_phy_detc':'mmolC\ m^{-2}\ d^{-1}', 'f_phy_detn':'mmolN\ m^{-2}\ d^{-1}'}
+             'PPR':'mmolC\ m^{-3}\ d^{-1}', 'NDDR':'mmolN\ m^{-3}\ d^{-1}','f_phy_detc':'mmolC\ m^{-3}\ d^{-1}', 'f_phy_detn':'mmolN\ m^{-3}\ d^{-1}'}
 prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{MLD}',
              'airt': 'T_{air}','temp': 'T','u10':'\mathrm{Wind \ Speed \ (-u)}','wind':'\mathrm{Wind \ Speed}',
              'abio_din':'DIN','abio_detc_sed/abio_detn_sed':'\mathrm{C:N \ of \ Det_{bot}}','abio_detc/abio_detn':'Det_C:Det_N','abio_doc/abio_don':'DOC:DON',
@@ -41,7 +41,7 @@ prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{M
              'muhatNET':'\hat{\mu}_{net}','muhatG':'\hat{\mu}_{g}','Rhat_Chl':'\hat{R}_{Chl}',
              'R_N':'R_N','R_Chl':'R_{Chl}','fC':'f_C','limfunc_Nmonod':'L_N','limfunc_L':'L_I',
              'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}','Chl2C':'\Theta',
-             'PPR':'\mathrm{NPP\ rate}', 'f_phy_detc':'F_{PhyC-DetC}', 'f_phy_detn':'F_{PhyN-DetN}'}
+             'PPR':'\mathrm{NPP\ rate}', 'NDDR':'\mathrm{NDD\ rate}', 'f_phy_detc':'F_{PhyC-DetC}', 'f_phy_detn':'F_{PhyN-DetN}'}
 numlevels=6
 #depth range to be shown:
 prescylim=[0,0] #[0,0] means no ylimits are prescribed, full depth range will be shown'
@@ -97,14 +97,14 @@ def main(fname, numyears, modname):
                 'phy-avg2SB': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
                                'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100'],
                 'phy-avg2': ['mu_avg0-100', 'vN_avg0-100', 'R_N_avg0-100', 'R_Chl_avg0-100'],
-                'phy-int1': ['PPR_int0-100', 'C_int0-100', 'N_int0-100'],
+                'phy-int1': ['PPR_int0-100', 'NDDR_int0-100', 'C_int0-100'], #, 'N_int0-100'
                 'abio-vp1': ['din_vp0-100', 'PAR_dmean_vp0-100', 'detn_vp0-100', 'detc/detn_vp0-100'],
                 'phy-vp1': ['Q_vp0-100', 'Chl_vp0-100', 'C_vp0-100', 'N_vp0-100'],
                 'phy-vp2': ['mu_vp0-100', 'vN_vp0-100', 'R_N_vp0-100', 'R_Chl_vp0-100'],
                 'phy-vp3': ['muhatNET_vp0-100', 'muhatG_vp0-100', 'Rhat_Chl_vp0-100', 'limfunc_L_vp0-100'],
                 'phy-vp4': ['muNET_vp0-100', 'muG_vp0-100', 'R_Chl_vp0-100', 'limfunc_Nmonod_vp0-100'],
                 'phy-vp5': ['fC_vp0-100', 'fV_vp0-100', 'ThetaHat_vp0-100', 'Chl2C_vp0-100'],
-
+                'phy-vp6': ['mu_vp0-100', 'NDDR_vp0-100', 'PPR_vp0-100', 'f_phy_detc_vp0-100', 'f_phy_detn_vp0-100']
                  }
       
     for groupname,varset in varsets.iteritems():
@@ -116,21 +116,21 @@ def main(fname, numyears, modname):
         else:
             plot_singlevar(fname, numyears, groupname, varset, models)
 
-def plot_multivar_vertprof(fname, numyears, groupname, varset, models):
+def plot_multivar_vertprof(fname, numyears, groupname, varset, models,plotcumsum=False):
     cols = ['green', 'darkblue', 'orange']
     linestyles = ['--', ':', '-']
     linews=[2,2,2]
 
-    dates2plot = [mpldates.datetime.datetime(2008,1,1),mpldates.datetime.datetime(2008,3,1),
-                  mpldates.datetime.datetime(2008,8,1),mpldates.datetime.datetime(2008,11,1),]
+    dates2plot = [mpldates.datetime.datetime(2008,2,1),mpldates.datetime.datetime(2008,3,1), mpldates.datetime.datetime(2008,4,1),
+                  mpldates.datetime.datetime(2008,7,1),mpldates.datetime.datetime(2008,11,1)] #,mpldates.datetime.datetime(2008,8,1)
     numrow = len(dates2plot)
     numcol = len(varset)
     #with var names and units for each row
-    figuresize = (1.5 + 1.5 * numcol, 1. + 2.5 * numrow)
-    fpar = {'left': 0.12, 'right': 0.85, 'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.35}
+    #figuresize = (1.5 + 1.5 * numcol, 1. + 2.5 * numrow)
+    #fpar = {'left': 0.12, 'right': 0.85, 'top': 0.95, 'bottom': 0.05, 'hspace': 0.5, 'wspace': 0.35}
     # with var names only at first row, units only at last
-    #figuresize = (1.5 + 1.5 * numcol, 1. + 2.2 * numrow)
-    #fpar = {'left': 0.12, 'right': 0.85, 'top': 0.95, 'bottom': 0.05, 'hspace': 0.2, 'wspace': 0.35}
+    figuresize = (1.5 + 1.5 * numcol, 1. + 2.1 * numrow)
+    fpar = {'left': 0.12, 'right': 0.85, 'top': 0.95, 'bottom': 0.05, 'hspace': 0.2, 'wspace': 0.35}
 
     nc = nc4.Dataset(fname)
     ncv = nc.variables
@@ -191,7 +191,11 @@ def plot_multivar_vertprof(fname, numyears, groupname, varset, models):
                     z=zfull[zi]
                     datC = dat[ti,:][zi]
 
-                    ax.plot(datC, z, label=model.split('phy_')[1], color=cols[i], linestyle=linestyles[i],lw=linews[i])
+                    if plotcumsum:
+                        datCcum = np.cumsum(dat[ti, :][zi])
+                        ax.plot(datCcum, z, label=model.split('phy_')[1], color=cols[i], linestyle=linestyles[i], lw=linews[i])
+                    else:
+                        ax.plot(datC, z, label=model.split('phy_')[1], color=cols[i], linestyle=linestyles[i], lw=linews[i])
 
                 if models[i]=='phy_FS' and varn_basic_root=='fC':
                     varn_basic2='limfunc_Nmonod_vp'+depthintstr
@@ -208,9 +212,12 @@ def plot_multivar_vertprof(fname, numyears, groupname, varset, models):
 
                         ax.plot(datC2, z, label=model.split('phy_')[1], color=cols[i], linestyle=linestyles[i],lw=linews[i],alpha=0.5) #lw=0.5) #
 
-            if True: #k==0:
+            if k==0:
                 if 'vp' in varn_basic:
-                    plt.title('$%s$' % (prettynames[varn_basic_root]), size=12.0)
+                    if plotcumsum:
+                        plt.title('$\Sigma\ %s$' % (prettynames[varn_basic_root]), size=12.0)
+                    else:
+                        plt.title('$%s$' % (prettynames[varn_basic_root]), size=12.0)
 
             # ax.invert_yaxis()
             ax.set_ylim(zint[0],zint[1])
@@ -231,16 +238,19 @@ def plot_multivar_vertprof(fname, numyears, groupname, varset, models):
 
             ax.grid(b=True, axis='y', which='major', color='0.5', linestyle='-')
             # x-axis
-            if varn_basic_root in varlims_vert.keys():
+            if varn_basic_root in varlims_vert.keys() and not plotcumsum:
                 ax.set_xlim(varlims_vert[varn_basic_root][0], varlims_vert[varn_basic_root][1])
 
-            if True: #k+1==numrow:
+            if k+1==numrow:
                 if varn_basic_root in prettyunits:
                     units = prettyunits[varn_basic_root]
                     plt.xlabel('[$%s$]'%units, size=12.0)
 
     nc.close()
-    figname = fname.split('.nc')[0] + '_vertprof_' + groupname + '_' + str(numyears) + 'y.png'
+    if plotcumsum:
+        figname = fname.split('.nc')[0] + '_vertprof_' + groupname + '_' + str(numyears) + 'y_cumsum.png'
+    else:
+        figname = fname.split('.nc')[0] + '_vertprof_' + groupname + '_' + str(numyears) + 'y.png'
     plt.savefig(figname)
     print('python vertical profile plot saved in: ' + figname)
 
