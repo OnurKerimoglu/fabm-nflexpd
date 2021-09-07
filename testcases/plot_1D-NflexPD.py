@@ -11,7 +11,7 @@ import sys
 import numpy as np
 
 varlims_vert={'abio_PAR_dmean':[-1.5,30],'abio_din': [-1.5, 30],'abio_detc':[0,80],'abio_detn':[0,6],'abio_detc/abio_detn':[5.0,30.0],
-         'Chl':[-1.1,22.],'C':[-3.0,60.0],'N':[-0.375,7.5],'Q':[0.02,0.22],'Chl2C':[-0.005,0.08],
+         'Chl':[-1.1,22.],'C':[-3.0,100.0],'N':[-0.375,7.5],'Q':[0.02,0.22],'Chl2C':[-0.005,0.08],
          'PPR':[-1.1,20.],'mu':[-0.02,0.4],'vN':[-0.0025,0.05],'f_dinphy':[0,0.5],'R_N':[-0.002,0.04],'R_Chl':[-0.0125,0.25],
          'fA':[0.0,1.0], 'fV':[-0.025,0.5], 'ThetaHat':[-0.004,0.08],'fC':[-0.05,1.0],'limfunc_Nmonod':[0,1],'limfunc_L':[-0.05,1],
          'muNET':[-0.02,0.4], 'muG':[-0.02,0.4], 'muhatNET':[-0.125, 2.5], 'muhatG':[-0.125, 2.5],'Rhat_Chl':[-0.03,0.6],}
@@ -37,7 +37,7 @@ prettynames={'abio_PAR_dmean':'\overline{I}','I_0':'I_{0}','mld_surf':'\mathrm{M
              'abio_detc':'det_C','abio_detn':'det_N','abio_doc':'DOC','abio_don':'DON',
              'abio_detc_sed':'\mathrm{C\ export\ rate}','abio_detn_sed':'\mathrm{N\ export\ rate}',
              'Chl':'Phy_{Chl}','C':'Phy_C','N':'Phy_N','f_dinphy':'f_{DIN-Phy}',
-             'Q':'Q','vN':'V_N','vNhat':'\hat{V}_N','mu':'\mu','muNET':'\mu_{net}','muG':'\mu_{g}',
+             'Q':'Q','vN':'V','vNhat':'\hat{V}','mu':'\mu','muNET':'\mu_{net}','muG':'\mu_{g}',
              'muhatNET':'\hat{\mu}_{net}','muhatG':'\hat{\mu}_{g}','Rhat_Chl':'\hat{R}_{Chl}',
              'R_N':'R_N','R_Chl':'R_{Chl}','fC':'f_C','limfunc_Nmonod':'L_N','limfunc_L':'L_I',
              'fA':'f_A','fV':'f_V','ThetaHat':'\hat{\Theta}','Chl2C':'\Theta',
@@ -59,9 +59,9 @@ def main(fname, numyears, modname):
              'abio4':['abio_detc_sed', 'abio_detn_sed','abio_detc_sed/abio_detn_sed'],
              'phy-1':['C','N','Q','Chl','Chl2C'],
              'phy-2':['mu','vN','R_N','R_Chl'],
-             'phy-3':['ThetaHat', 'fA','fV','fC','limfunc_L'],
+              'phy-3':['ThetaHat', 'fA','fV','fC','limfunc_L'],
              'phy-3b':['ThetaHat','fA','fV','limfunc_Nmonod','limfunc_L'],
-             'phy-avg1': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50'],
+              'phy-avg1': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50'],
              'phy-avg2': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
                           'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100'],
              'phy_int1':['PPR_int0-100', 'f_phy_detc_int0-100', 'f_phy_detn_int0-100']
@@ -87,24 +87,25 @@ def main(fname, numyears, modname):
     elif modname=='FS-IA-DA_merged': #i.e., merged single experiments
       models = ['phy_FS','phy_IA', 'phy_DA']
       varsets = {
-                'abio-avg1SB': ['din_avg0-50', 'PAR_dmean_avg0-50', 'detc/detn_avg0-50', 'detc_sed/detn_sed',
-                                 'din_avg50-100', 'PAR_dmean_avg50-100', 'detc/detn_avg50-100', 'detc_sed/detn_sed'],
-                'abio-avg1': ['din_avg0-100', 'PAR_dmean_avg0-100', 'detc/detn_avg0-100', 'detc_sed/detn_sed'],
-                'abio-int1': ['detc_sed', 'detn_sed', 'detc_sed/detn_sed'],
-                'phy-avg1SB': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50', 'N_avg0-50',
-                               'Q_avg50-100', 'fC_avg50-100', 'C_avg50-100', 'N_avg50-100'],
-                'phy-avg1': ['Q_avg0-100', 'fC_avg0-100', 'C_avg0-100', 'N_avg0-100'],
+                #'abio-avg1SB': ['din_avg0-50', 'PAR_dmean_avg0-50', 'detc/detn_avg0-50', 'detc_sed/detn_sed',
+                #                 'din_avg50-100', 'PAR_dmean_avg50-100', 'detc/detn_avg50-100', 'detc_sed/detn_sed'],
+                #'abio-avg1': ['din_avg0-100', 'PAR_dmean_avg0-100', 'detc/detn_avg0-100', 'detc_sed/detn_sed'],
+                #'abio-int1': ['detc_sed', 'detn_sed', 'detc_sed/detn_sed'],
+                #'phy-avg1SB': ['Q_avg0-50', 'fC_avg0-50', 'C_avg0-50', 'N_avg0-50',
+                #               'Q_avg50-100', 'fC_avg50-100', 'C_avg50-100', 'N_avg50-100'],
+                #'phy-avg1': ['Q_avg0-100', 'fC_avg0-100', 'C_avg0-100', 'N_avg0-100'],
                 'phy-avg2SB': ['mu_avg0-50', 'vN_avg0-50', 'R_N_avg0-50', 'R_Chl_avg0-50',
                                'mu_avg50-100', 'vN_avg50-100', 'R_N_avg50-100', 'R_Chl_avg50-100'],
                 'phy-avg2': ['mu_avg0-100', 'vN_avg0-100', 'R_N_avg0-100', 'R_Chl_avg0-100'],
-                'phy-int1': ['PPR_int0-100', 'NDDR_int0-100', 'C_int0-100'], #, 'N_int0-100'
-                'abio-vp1': ['din_vp0-100', 'PAR_dmean_vp0-100', 'detn_vp0-100', 'detc/detn_vp0-100'],
-                'phy-vp1': ['Q_vp0-100', 'Chl_vp0-100', 'C_vp0-100', 'N_vp0-100'],
+                #'phy-int1': ['PPR_int0-100', 'NDDR_int0-100', 'C_int0-100'], #, 'N_int0-100'
+                #'abio-vp1': ['din_vp0-100', 'PAR_dmean_vp0-100', 'detn_vp0-100', 'detc/detn_vp0-100'],
+                #'phy-vp1': ['Q_vp0-100', 'Chl_vp0-100', 'C_vp0-100', 'N_vp0-100'],
                 'phy-vp2': ['mu_vp0-100', 'vN_vp0-100', 'R_N_vp0-100', 'R_Chl_vp0-100'],
-                'phy-vp3': ['muhatNET_vp0-100', 'muhatG_vp0-100', 'Rhat_Chl_vp0-100', 'limfunc_L_vp0-100'],
-                'phy-vp4': ['muNET_vp0-100', 'muG_vp0-100', 'R_Chl_vp0-100', 'limfunc_Nmonod_vp0-100'],
-                'phy-vp5': ['fC_vp0-100', 'fV_vp0-100', 'ThetaHat_vp0-100', 'Chl2C_vp0-100'],
-                'phy-vp6': ['mu_vp0-100', 'NDDR_vp0-100', 'PPR_vp0-100', 'f_phy_detc_vp0-100', 'f_phy_detn_vp0-100']
+                #'phy-vp3': ['muhatNET_vp0-100', 'muhatG_vp0-100', 'Rhat_Chl_vp0-100', 'limfunc_L_vp0-100'],
+                #'phy-vp4': ['muNET_vp0-100', 'muG_vp0-100', 'R_Chl_vp0-100', 'limfunc_Nmonod_vp0-100'],
+                #'phy-vp5': ['fC_vp0-100', 'fV_vp0-100', 'ThetaHat_vp0-100', 'Chl2C_vp0-100'],
+                #'phy-vp6': ['mu_vp0-100', 'C_vp0-100', 'PPR_vp0-100', 'f_phy_detc_vp0-100'],
+                'phy-vp7': ['vN_vp0-100', 'C_vp0-100', 'NDDR_vp0-100', 'f_phy_detn_vp0-100']
                  }
       
     for groupname,varset in varsets.iteritems():
@@ -116,13 +117,13 @@ def main(fname, numyears, modname):
         else:
             plot_singlevar(fname, numyears, groupname, varset, models)
 
-def plot_multivar_vertprof(fname, numyears, groupname, varset, models,plotcumsum=False):
+def plot_multivar_vertprof(fname, numyears, groupname, varset, models,plotcumsum=True):
     cols = ['green', 'darkblue', 'orange']
     linestyles = ['--', ':', '-']
     linews=[2,2,2]
 
     dates2plot = [mpldates.datetime.datetime(2008,2,1),mpldates.datetime.datetime(2008,3,1), mpldates.datetime.datetime(2008,4,1),
-                  mpldates.datetime.datetime(2008,7,1),mpldates.datetime.datetime(2008,11,1)] #,mpldates.datetime.datetime(2008,8,1)
+                  mpldates.datetime.datetime(2008,7,1),mpldates.datetime.datetime(2008,10,15),mpldates.datetime.datetime(2008,11,15)]
     numrow = len(dates2plot)
     numcol = len(varset)
     #with var names and units for each row
@@ -313,7 +314,7 @@ def plot_multivar_ts(fname, numyears, groupname, varset, models):
             if 'avg' in varn_basic:
                 varn_basic_root = varn_basic.split('_avg')[0]
                 depthintstr = varn_basic.split('_avg')[1]
-            if 'int' in varn_basic:
+            elif 'int' in varn_basic:
                 varn_basic_root = varn_basic.split('_int')[0]
                 depthintstr = varn_basic.split('_int')[1]
             else:
@@ -684,14 +685,16 @@ def get_varvals_avg(ncv,varn0,mode):
     #vals=np.squeeze(ncv[varn])
     valsM=np.ma.array(varvals,mask=np.invert(zi))
     depthsM = np.ma.array(depths, mask=np.invert(zi))
-    if mode=='avg':
-        varvals = np.mean(valsM,axis=1)
-    elif mode=='int':
-        heights=np.squeeze(ncv['h'][:, :]) #i.e., layer thicknesses
-        heightsM=np.ma.array(heights, mask=np.invert(zi))
-        vals_massM=valsM*heightsM #X/m3*m=X/m2
-        varvals = np.sum(vals_massM, axis=1)
-        units=units.replace('m^3','m^2')
+    if mode in ['avg','int']:
+        heights = np.squeeze(ncv['h'][:, :])  # i.e., layer thicknesses
+        heightsM = np.ma.array(heights, mask=np.invert(zi))
+        vals_massM = valsM * heightsM  # X/m3*m=X/m2
+        vals_massM_sum = np.sum(vals_massM, axis=1)
+        if mode =='avg':
+            varvals = vals_massM_sum/np.sum(heightsM,axis=1) #X/m2/m = X/m3
+        else:
+            varvals=vals_massM_sum
+            units = units.replace('m^3', 'm^2')
     depths = np.mean(depthsM, axis=1)
     return (varfound,varvals,depths,longname,units)
 
