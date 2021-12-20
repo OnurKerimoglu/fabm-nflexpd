@@ -1,6 +1,6 @@
 instances:
   phyC_Cbased_IA:
-    use: .false.
+    use: .true.
     long_name: Phytoplankton-Cbased-IA
     model: nflexpd/phy_Cbased
     parameters:
@@ -11,6 +11,7 @@ instances:
       Theta_opt : .true.             # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
       fV_opt : .true.                # whether to optimize fV (true/false)
+      PARintern: .false.             # whether use internally calculated PAR
       TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
       ThetaHat_min: 0.00             # Minimum allowed value, which is also used when par<I_0
       RMchl: 0.1                     # loss rate of chlorophyll (d-1)
@@ -39,7 +40,7 @@ instances:
       FDL: abio_Cbased/FDL        # Fractional Day Length (-)
       PAR_dmean: abio_Cbased/PAR_dmean  # PAR, daily mean (mol/m2/d)
   RHSext_Cbased_IA:
-    use: .false.
+    use: .true.
     long_name: RHSext_IA
     model: nflexpd/RHSext_Cbased
     parameters:
@@ -51,7 +52,7 @@ instances:
       vN_dQdt_I: phyC_Cbased_IA/vN_dQdt_I       #[molN/m^3/d] (diagnostic) phyC*(vN+delQ/delI*dI/dt)
       del_phyn_din: phyC_Cbased_IA/del_phyn_din #[-] (diagnostic) Change in phyto-N per change in DIN
   phyC_Cbased_DA:
-    use: .true.
+    use: .false.
     long_name: Phytoplankton-Cbased-IA
     model: nflexpd/phy_Cbased
     parameters:
@@ -62,6 +63,7 @@ instances:
       Theta_opt : .true.             # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
       fV_opt : .true.                # whether to optimize fV (true/false)
+      PARintern: .false.             # whether use internally calculated PAR
       TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
       ThetaHat_min: 0.00           # Minimum allowed value, which is also used when par<I_0
       RMchl: 0.1                   # loss rate of chlorophyll (d-1)
@@ -93,7 +95,7 @@ instances:
       PAR_dmean: abio_Cbased/PAR_dmean  # PAR, daily mean (mol/m2/d)
       #total_del_phyn_din: abio_Cbased/total_del_phyn_din !total denominator
   RHSext_Cbased_DA:
-    use: .true.
+    use: .false.
     long_name: RHSext
     model: nflexpd/RHSext_Cbased
     parameters:
