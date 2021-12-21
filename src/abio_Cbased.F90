@@ -120,7 +120,7 @@
    !call self%register_diagnostic_variable(self%id_dFDL,'FDL','-',       'fractional day length',source=source_do_surface) !,domain=domain_surface)
    call self%register_diagnostic_variable(self%id_dFDL,'FDL','-',       'fractional day length')
    call self%register_diagnostic_variable(self%id_dPAR,'PAR','E/m^2/d',       'photosynthetically active radiation')
-   call self%register_diagnostic_variable(self%id_dPAR_dmean, 'PAR_dmean','E/m^2/s','photosynthetically active radiation, daily averaged')
+   call self%register_diagnostic_variable(self%id_dPAR_dmean, 'PAR_dmean','E/m^2/d','photosynthetically active radiation averaged during day light')
    
    call self%register_diagnostic_variable(self%id_fdetdon, 'f_det_don','mmolN/m^3/d',    'bulk N flux from detritus to DOM',           &
                                      output=output_instantaneous)
@@ -163,7 +163,7 @@
                      output=output_instantaneous)
    call self%register_dependency(self%id_dep_delta_din, 'delta_din','mmolN/m^3','prev. val of diff in DIN betw current and prev time step')
    
-   call self%register_dependency(self%id_dpardm_dep,'PAR_dmean','E/m^2/s',       'prev. val of photosynthetically active radiation, daily averaged')
+   call self%register_dependency(self%id_dpardm_dep,'PAR_dmean','E/m^2/d',       'prev. val of photosynthetically active radiation, daily averaged')
    call self%register_diagnostic_variable(self%id_delta_par,'delta_par','E/m^2/s','diff betw current and prev time step',&
                      output=output_instantaneous)
    call self%register_dependency(self%id_dep_delta_par, 'delta_par','E/m^2/s','prev. val of diff in PAR betw current and prev time step')
@@ -217,11 +217,14 @@
    _GET_(self%id_parW,parW) ! local photosynthetically active radiation (PAR)
    _GET_(self%id_parW_dmean,parW_dm) !current daily average PAR
    if ( parW_dm .lt. 0.0 ) then
-     parW_dm=parW
+     parW_dm=parW !W/m2
    end if
    parE = parW * 4.6 * 1e-6* secs_pr_day ![mol/m2/d]
-   parE_dm= parW_dm * 4.6 * 1e-6* secs_pr_day/Ld  ![mol/m2/d]
+   parE_dm= parW_dm * 4.6 * 1e-6* secs_pr_day ![mol/m2/d]
    ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
+   
+   !Convert average irradiance throughout the day to average irradiance during day light, as needed by the phy module
+   parE_dm=parE_dm/Ld ![mol/m2/d] 
    
    !For providing the delta_t,delta_din and delta_par between the current and previous time step
    
@@ -235,7 +238,7 @@
      !Access the values at the prev. time step as recorded by the diagnostic variables
      _GET_(self%id_din,din) ! din
      _GET_(self%id_ddin_dep,din_prev)
-     _GET_(self%id_dPARdm_dep,parEdm_prev) !mol/m2/s
+     _GET_(self%id_dPARdm_dep,parEdm_prev) !mol/m2/d
      
      !write(*,*)'doy_prev,din_prev,parEdm_prev',doy_prev,din_prev,parEdm_prev 
 
@@ -263,8 +266,8 @@
      _SET_DIAGNOSTIC_(self%id_dFDL,Ld) !Fractional day length
      _SET_DIAGNOSTIC_(self%id_ddoy,doy)
      _SET_DIAGNOSTIC_(self%id_ddin, din)
-     _SET_DIAGNOSTIC_(self%id_dPAR, parE) ! mol/m2/s
-     _SET_DIAGNOSTIC_(self%id_dPAR_dmean, parE_dm) !mol/m2/s
+     _SET_DIAGNOSTIC_(self%id_dPAR, parE) ! mol/m2/d
+     _SET_DIAGNOSTIC_(self%id_dPAR_dmean, parE_dm) !mol/m2/d
      
      _SET_DIAGNOSTIC_(self%id_delta_t,delta_t)
      _SET_DIAGNOSTIC_(self%id_delta_din,delta_din)
