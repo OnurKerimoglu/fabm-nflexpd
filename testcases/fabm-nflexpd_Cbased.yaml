@@ -110,6 +110,7 @@ instances:
     long_name: Abiotic
     model: nflexpd/abio_Cbased
     parameters:
+      PAR_dmean_FDL: .false.         # PAR as day time average (PAR_dm/FDL, FDL: fractional day length)
       w_det: -2.0                    # vertical velocity (<0 for sinking) (m d-1)
       kc: 0.03                       # specific light extinction (m2 mmol-1)
       kdet: 0.1                      # Degredation rate of Detritus (d-1)

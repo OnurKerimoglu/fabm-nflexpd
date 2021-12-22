@@ -46,6 +46,7 @@
       !type (type_dependency_id)            :: id_dep_del_phyn_din 
       
 !     Model parameters
+      logical :: PAR_dmean_FDL
       real(rk) :: w_det,kdet,kdon,par0_dt0,kc_dt0
 
       contains
@@ -86,6 +87,7 @@
 !BOC
    ! Store parameter values in our own derived type
    ! NB: all rates must be provided in values per day and are converted here to values per second.
+   call self%get_parameter(self%PAR_dmean_FDL, 'PAR_dmean_FDL','-', 'PAR as day time average (PAR_dm/FDL, FDL: fractional day length)', default=.true.)
    call self%get_parameter(self%w_det,     'w_det','m d-1',    'vertical velocity (<0 for sinking)',default=-5.0_rk,scale_factor=d_per_s)
    call self%get_parameter(kc,      'kc', 'm2 mmol-1','specific light extinction',         default=0.03_rk)
    call self%get_parameter(self%kdet,'kdet','d-1',      'sp. rate for f_det_don',             default=0.003_rk,scale_factor=d_per_s)
@@ -213,7 +215,7 @@
    _GET_HORIZONTAL_(self%id_lat,lat)
    _GET_GLOBAL_(self%id_doy,doy)
    Ld=FDL(lat,doy)
-   
+    
    _GET_(self%id_parW,parW) ! local photosynthetically active radiation (PAR)
    _GET_(self%id_parW_dmean,parW_dm) !current daily average PAR
    if ( parW_dm .lt. 0.0 ) then
@@ -223,11 +225,12 @@
    parE_dm= parW_dm * 4.6 * 1e-6* secs_pr_day ![mol/m2/d]
    ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
    
-   !Convert average irradiance throughout the day to average irradiance during day light, as needed by the phy module
-   parE_dm=parE_dm/Ld ![mol/m2/d] 
+   if (self%PAR_dmean_FDL) then
+    !Convert average irradiance throughout the day to average irradiance during day light, as needed by the phy module
+    parE_dm=parE_dm/Ld ![mol/m2/d] 
+   end if
    
    !For providing the delta_t,delta_din and delta_par between the current and previous time step
-   
    _GET_(self%id_ddoy_dep,doy_prev)  ! day of year at the previous time step
    !write(*,*)' (abio.1) doy_prev(s),doy(s),Ld',doy_prev*secs_pr_day,doy*secs_pr_day,Ld
    !Access the par and din at the previous time step and set the diagnostic only if the time step has really advanced
