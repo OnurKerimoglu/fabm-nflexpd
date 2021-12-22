@@ -46,7 +46,7 @@
       !type (type_dependency_id)            :: id_dep_del_phyn_din 
       
 !     Model parameters
-      logical :: PAR_dmean_FDL
+      logical :: PAR_dmean_FDL,PAR_ext_inE
       real(rk) :: w_det,kdet,kdon,par0_dt0,kc_dt0
 
       contains
@@ -87,6 +87,7 @@
 !BOC
    ! Store parameter values in our own derived type
    ! NB: all rates must be provided in values per day and are converted here to values per second.
+   call self%get_parameter(self%PAR_ext_inE, 'PAR_ext_inE','-', 'PAR provided externally are in Einsten/Quanta [mol/m2/d]', default=.false.)
    call self%get_parameter(self%PAR_dmean_FDL, 'PAR_dmean_FDL','-', 'PAR as day time average (PAR_dm/FDL, FDL: fractional day length)', default=.true.)
    call self%get_parameter(self%w_det,     'w_det','m d-1',    'vertical velocity (<0 for sinking)',default=-5.0_rk,scale_factor=d_per_s)
    call self%get_parameter(kc,      'kc', 'm2 mmol-1','specific light extinction',         default=0.03_rk)
@@ -219,11 +220,16 @@
    _GET_(self%id_parW,parW) ! local photosynthetically active radiation (PAR)
    _GET_(self%id_parW_dmean,parW_dm) !current daily average PAR
    if ( parW_dm .lt. 0.0 ) then
-     parW_dm=parW !W/m2
+     parW_dm=parW
    end if
-   parE = parW * 4.6 * 1e-6* secs_pr_day ![mol/m2/d]
-   parE_dm= parW_dm * 4.6 * 1e-6* secs_pr_day ![mol/m2/d]
-   ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
+   if (self%PAR_ext_inE) then ![mol/m2/d]
+     parE = parW ![mol/m2/d]
+     parE_dm = parW_dm ![mol/m2/d]
+   else !assume to be in !W/m2
+     parE = parW * 4.6 * 1e-6* secs_pr_day ![mol/m2/d]
+     parE_dm= parW_dm * 4.6 * 1e-6* secs_pr_day ![mol/m2/d]
+     ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
+   end if
    
    if (self%PAR_dmean_FDL) then
     !Convert average irradiance throughout the day to average irradiance during day light, as needed by the phy module
