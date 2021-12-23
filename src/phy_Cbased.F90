@@ -27,7 +27,7 @@
 !     Variable identifiers
       type (type_state_variable_id)        :: id_phyC,id_phyN
       type (type_state_variable_id)        :: id_dic,id_din,id_don,id_doc,id_detn,id_detc
-      type (type_diagnostic_variable_id)   :: id_muhatNET,id_ZINT,id_Vhat,id_Ahat,id_KN
+      type (type_diagnostic_variable_id)   :: id_dI_dt,id_muhatNET,id_ZINT,id_Vhat,id_Ahat,id_KN
       type (type_diagnostic_variable_id)   :: id_delQdelt
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyN,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR,id_mu,id_muNET,id_muhatG,id_vNhat,id_vN,id_respN,id_respChl
@@ -170,6 +170,8 @@
      call self%register_diagnostic_variable(self%id_fdinphy, 'f_dinphy','molN/m^3/d',    'net N uptake by phytoplankton',           &
                                      output=output_instantaneous)
    else
+     call self%register_diagnostic_variable(self%id_dI_dt, 'dI_dt','E/m^2/d^2',    'dI/dt',           &
+                                     output=output_time_step_averaged)
      call self%register_diagnostic_variable(self%id_ZINT, 'ZINT','-',    'Qs*(muhatNET/vNhat+zetaN)',           &
                                      output=output_time_step_averaged)
      call self%register_diagnostic_variable(self%id_delQdelt, 'dQ_dt','mmolN/mmolC/d',    'dQ/dT',           &
@@ -618,6 +620,7 @@
      !Explicit:
      !_SET_ODE_(self%id_din, f_don_din - f_din_phy)
    else
+     _SET_DIAGNOSTIC_(self%id_dI_dt, dI_dt*secs_pr_day*secs_pr_day)
      _SET_DIAGNOSTIC_(self%id_fdinphy_hypot,f_din_phy_hypot * secs_pr_day)
      _SET_DIAGNOSTIC_(self%id_ZINT, ZINT)
      _SET_DIAGNOSTIC_(self%id_delQdelt,delQ_delt*secs_pr_day)

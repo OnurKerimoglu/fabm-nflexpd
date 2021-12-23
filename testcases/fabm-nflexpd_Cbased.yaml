@@ -11,7 +11,7 @@ instances:
       Theta_opt : .true.             # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
       fV_opt : .true.                # whether to optimize fV (true/false)
-      PARintern: .true.             # whether use internally calculated PAR
+      PARintern: .false.             # whether use internally calculated PAR
       TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
       ThetaHat_min: 0.00             # Minimum allowed value, which is also used when par<I_0
       RMchl: 0.1                     # loss rate of chlorophyll (d-1)

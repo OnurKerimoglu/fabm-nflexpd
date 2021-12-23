@@ -44,7 +44,7 @@ namelibCbasedIA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
              'totalC':'total_carbon_calculator_result',
              'totalN':'total_nitrogen_calculator_result',
              #'totalN':'abio_Cbased_din+abio_Cbased_don+abio_Cbased_detn+phy_Cbased_IA_N',
-             'I-dm':'abio_Cbased_PAR_dmean','I':'abio_Cbased_PAR',
+             'I-dm':'abio_Cbased_PAR_dmean','I':'abio_Cbased_PAR', 'dI_dt':'phy_Cbased_IA_dI_dt',
              'Phy-C':'phy_Cbased_IA_C','Phy-N':'phy_Cbased_IA_N','Phy-Q':'phy_Cbased_IA_Q',
              'Phy-Chl':'phy_Cbased_IA_Chl','Phy-Chl2C':'phy_Cbased_IA_Chl2C',
              'mu':'phy_Cbased_IA_mu','vN':'phy_Cbased_IA_vN','R_N':'phy_Cbased_IA_R_N','R_Chl':'phy_Cbased_IA_R_Chl',
@@ -67,7 +67,7 @@ namelibCbasedDA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
              'DOC':'abio_Cbased_doc','DetC':'abio_Cbased_detc'
             }
 prettyunits={'I_0':'E\ m^{-2}\ d^{-1}','wind':'m\ s^{-1}','T':'^\circ C',
-             'I-dm':'E\ m^{-2}\ d^{-1}','I':'E\ m^{-2}\ d^{-1}',
+             'I-dm':'E\ m^{-2}\ d^{-1}','I':'E\ m^{-2}\ d^{-1}','dI_dt':'E\ m^{-2}\ d^{-2}',
              'Phy-C':'mmolC\ m^{-3}','Phy-N':'mmolN\ m^{-3}','Phy-Q':'molN\ molC^{-1}',
              'Phy-Chl':'mg m^{-3}','Phy-Chl2C':'gChl\ gC^{-3}',
              'DIN':'mmolN\ m^{-3}','DON':'mmolN\ m^{-3}','DetN':'mmolN\ m^{-3}', 'totalN':'mmolN\ m^{-3}',
@@ -76,7 +76,8 @@ prettyunits={'I_0':'E\ m^{-2}\ d^{-1}','wind':'m\ s^{-1}','T':'^\circ C',
              'fA':'-', 'fV':'-', 'fC':'-', 'limfunc_L':'-'
              }
 prettynames={'I_0':'$I_0$','wind':'wind','T':'T',
-             'I-dm':r'$\bar{I}$','I':'$I$','totalN':'Total N','totalC':'Total C',
+             'I-dm':r'$\bar{I}$','I':'$I$','dI_dt':r'd$\bar{I}$/d$t$',
+             'totalN':'Total N','totalC':'Total C',
              'Phy-C':r'$Phy_C$','Phy-N':'$Phy_N$','Phy-Q':'$Q$',
              'Phy-Chl':'$Phy_{Chl}$','Phy-Chl2C':r'$\theta$',
              'DIN':'DIN','DON':'DON','DetN':'$Det_N$',
@@ -95,7 +96,7 @@ def main(fnames, numyears, modnames, variants, ids):
            #'abio1':['abio_PAR_dmean','temp', 'mld_surf'],
            #'abio2':['abio_din','abio_detc/abio_detn','abio_detc_sed/abio_detn_sed'],
            #'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
-            'abio0':['I-dm', 'temp'],
+            'abio0':['I-dm', 'dI_dt'],
             'abio1':['totalC','totalN',
                      'Phy-C', 'Phy-N',
                      'DIC','DIN',
@@ -581,7 +582,7 @@ if __name__ == "__main__":
       #fnames = ['/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_NbasedDA.nc',
                # '/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_CbasedDA.nc']
       fnames = ['/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lext_CbasedIA_dm.nc',
-                '/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lext_CbasedDA_dm.nc']
+                '/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lint_CbasedIA_dm.nc']
       print('plotting default file(s):'+'; '.join(fnames))
     else:
       print('plotting file specified:'+sys.argv[1])
@@ -589,8 +590,8 @@ if __name__ == "__main__":
 
     if len(sys.argv)<3:
       #variants = ['dm', '6h']
-      variants = ['IA','DA']
-      #variants = ['IA', 'IA']
+      #variants = ['IA','DA']
+      variants = ['IA', 'IA']
     else:
       variants=sys.argv[2].split(',')
 
@@ -602,8 +603,8 @@ if __name__ == "__main__":
 
     if len(sys.argv)<5: #no third argument was passed
       #ids=['Nbased','Cbased']
-      ids = ['IA', 'DA']
-      #ids=['PAR:N','PAR:A']#
+      #ids = ['IA', 'DA']
+      ids=['PAR:N','PAR:A']#
     else:
       ids=sys.argv[4].split(',')
 
