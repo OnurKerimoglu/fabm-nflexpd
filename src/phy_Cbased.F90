@@ -26,7 +26,7 @@
    type,extends(type_base_model),public :: type_NflexPD_phy_Cbased
 !     Variable identifiers
       type (type_state_variable_id)        :: id_phyC,id_phyN
-      type (type_state_variable_id)        :: id_din,id_don,id_doc,id_detn,id_detc
+      type (type_state_variable_id)        :: id_dic,id_din,id_don,id_doc,id_detn,id_detc
       type (type_diagnostic_variable_id)   :: id_muhatNET,id_ZINT,id_Vhat,id_Ahat,id_KN
       type (type_diagnostic_variable_id)   :: id_delQdelt
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyN,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
@@ -144,6 +144,7 @@
    call self%get_parameter(self%Mpart, 'Mpart', '-',   'part of the mortality that goes to detritus',default=0.5_rk)
    
    ! Register dependendcies on external state variables
+   call self%register_state_dependency(self%id_dic, 'dic',   'mmolC/m^3','dissolved inorganic carbon')
    call self%register_state_dependency(self%id_din, 'din',   'mmolN/m^3','dissolved inorganic nitrogen')
    call self%register_state_dependency(self%id_don, 'don','mmolN/m^3','dissolved organic nitrogen')
    call self%register_state_dependency(self%id_doc, 'doc','mmolC/m^3','dissolved organic carbon')
@@ -152,6 +153,7 @@
 
    ! Register state variables
    call self%register_state_variable(self%id_phyC,'C','mmolC/m^3','bound-C concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=0.0_rk)
+   call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_phyC)
    if ( self%dynQN ) then
      call self%register_state_variable(self%id_phyN,'N','mmolN/m^3','bound-N concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=0.0_rk)
      ! Register contribution of diagnostic to global aggregate variables.
@@ -290,7 +292,7 @@
    real(rk)                   :: mu0hat_fT,V0hat_fT,RMchl_fT
    real(rk)                   :: mu,respN,mort,Pprod,muNET,KN_monod
    real(rk)                   :: limfunc_L,fC,limfunc_Nmonod
-   real(rk)                   :: f_din_phy,f_din_phy_hypot,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
+   real(rk)                   :: f_dic_phy,f_din_phy,f_din_phy_hypot,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
    real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN
    real(rk)                   :: delta_t,delta_din,delta_parE,del_phyn_din
@@ -321,6 +323,7 @@
    !get Ld (fractional day length)
    _GET_(self%id_depFDL,Ld)
    _GET_(self%id_temp,tC) ! temperature in Celcius
+   !_GET_(self%id_dic,dic)    ! carbon (no need, as C is assumed to be non limiting)
    _GET_(self%id_din,din)    ! nutrients
    _GET_GLOBAL_(self%id_doy,doy)  ! day of year
    
@@ -586,6 +589,7 @@
        f_din_phy_hypot = (vN + delQ_delt) * phyC  !eq. A-6 in S16 (hypothetical flux between din-phy (only diagnostic)
      end if  
    end if
+   f_dic_phy = mu*phyC
    
    ! Mortality
    mort=self%M0p * Tfac * PhyN**2
@@ -598,11 +602,14 @@
    
    !write(*,'(A,5F12.5)')'  (phy) dphyC*dt,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q: ', (f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)*12,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q
    ! Set temporal derivatives
-   _SET_ODE_(self%id_phyC, mu*phyC - f_phy_doc - f_phy_detc)  !  f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
+   _SET_ODE_(self%id_phyC, f_dic_phy - f_phy_doc - f_phy_detc)  !  f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
    !write(*,'(A,2F15.10)')'  (phy.6) phyC,delta_phyC',phyC,(mu*phyC - f_phy_don/Q - f_phy_detn/Q)*delta_t
    if ( self%dynQN ) then
      _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn) !Eq.1b, Eq8 (for mu*phyC) (f_phy_doc doesn't appear in K20, since it's=0 (see above))
    end if
+   
+   !dC/dt
+   _SET_ODE_(self%id_dic, -f_dic_phy) !Assuming that resp terms (RespChl and RespN) are added back to the DIC pool (when CO2 is resolved, this would have to change)
    
    !dN/dt
    if ( self%dynQN .or. self%mimic_Monod) then

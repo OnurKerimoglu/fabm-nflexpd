@@ -1,5 +1,5 @@
 instances:
-  phyC_Cbased_IA:
+  phy_Cbased_IA:
     use: .true.
     long_name: Phytoplankton-Cbased-IA
     model: nflexpd/phy_Cbased
@@ -11,7 +11,7 @@ instances:
       Theta_opt : .true.             # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
       fV_opt : .true.                # whether to optimize fV (true/false)
-      PARintern: .false.             # whether use internally calculated PAR
+      PARintern: .true.             # whether use internally calculated PAR
       TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
       ThetaHat_min: 0.00             # Minimum allowed value, which is also used when par<I_0
       RMchl: 0.1                     # loss rate of chlorophyll (d-1)
@@ -29,6 +29,7 @@ instances:
     initialization:
       C: 0.8                      # Phytoplankton-N concentration (mmol m-3)
     coupling:
+      dic: abio_Cbased/dic        # carbon source (mmolC m-3)
       din: abio_Cbased/din        # nutrient source (mmolN m-3)
       don: abio_Cbased/don        # sink for excreted matter (mmolN m-3)
       doc: abio_Cbased/doc        # sink for excreted matter (mmolC m-3)
@@ -49,9 +50,9 @@ instances:
       din: abio_Cbased/din                       # [mmolN/m^3] (state) nutrient source (mmolN m-3)
       f_don_din: abio_Cbased/f_don_din           # [mmolN/m^3/d] (diagnostic) flux from DON to DIN
       #f_din_phy: phyC_Cbased_DA/f_dinphy         #[molN/m^3/d] (diagnostic) net N uptake by phytoplankton
-      vN_dQdt_I: phyC_Cbased_IA/vN_dQdt_I       #[molN/m^3/d] (diagnostic) phyC*(vN+delQ/delI*dI/dt)
-      del_phyn_din: phyC_Cbased_IA/del_phyn_din #[-] (diagnostic) Change in phyto-N per change in DIN
-  phyC_Cbased_DA:
+      vN_dQdt_I: phy_Cbased_IA/vN_dQdt_I       #[molN/m^3/d] (diagnostic) phyC*(vN+delQ/delI*dI/dt)
+      del_phyn_din: phy_Cbased_IA/del_phyn_din #[-] (diagnostic) Change in phyto-N per change in DIN
+  phy_Cbased_DA:
     use: .false.
     long_name: Phytoplankton-Cbased-IA
     model: nflexpd/phy_Cbased
@@ -83,6 +84,7 @@ instances:
       C: 0.8                      # Phytoplankton-N concentration (mmol m-3)
       N: 0.16                        # Phytoplankton-N concentration (mmol m-3)
     coupling:
+      dic: abio_Cbased/dic        # carbon source (mmolC m-3)
       din: abio_Cbased/din        # nutrient source (mmolN m-3)
       don: abio_Cbased/don        # sink for excreted matter (mmolN m-3)
       doc: abio_Cbased/doc        # sink for excreted matter (mmolC m-3)
@@ -103,15 +105,15 @@ instances:
     coupling:
       din: abio_Cbased/din                       # [mmolN/m^3] (state) nutrient source (mmolN m-3)
       f_don_din: abio_Cbased/f_don_din           # [mmolN/m^3/d] (diagnostic) flux from DON to DIN
-      f_din_phy: phyC_Cbased_DA/f_dinphy         #[molN/m^3/d] (diagnostic) net N uptake by phytoplankton
+      f_din_phy: phy_Cbased_DA/f_dinphy         #[molN/m^3/d] (diagnostic) net N uptake by phytoplankton
       #vN_dQdt_I: phyC_Cbased_IA/vN_dQdt_I       #[molN/m^3/d] (diagnostic) phyC*(vN+delQ/delI*dI/dt)
       #del_phyn_din: phyC_Cbased_IA/del_phyn_din #[-] (diagnostic) Change in phyto-N per change in DIN
   abio_Cbased:
     long_name: Abiotic
     model: nflexpd/abio_Cbased
     parameters:
-      PAR_ext_inE: .false.           # PAR provided externally are in Einsten/Quanta [mol/m2/d]
-      PAR_dmean_FDL: .true.          # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
+      PAR_ext_inE: .true.           # PAR provided externally are in Einsten/Quanta [mol/m2/d]
+      PAR_dmean_FDL: .false.          # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
       w_det: -2.0                    # vertical velocity (<0 for sinking) (m d-1)
       kc: 0.03                       # specific light extinction (m2 mmol-1)
       kdet: 0.1                      # Degredation rate of Detritus (d-1)

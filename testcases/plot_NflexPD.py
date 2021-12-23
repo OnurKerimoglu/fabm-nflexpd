@@ -41,7 +41,8 @@ namelibNbasedDA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp','totalN':'total_nitro
              'DOC':'abio_doc','DetC':'abio_detc'
             }
 namelibCbasedIA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
-                 'totalN':'total_nitrogen_calculator_result',
+             'totalC':'total_carbon_calculator_result',
+             'totalN':'total_nitrogen_calculator_result',
              #'totalN':'abio_Cbased_din+abio_Cbased_don+abio_Cbased_detn+phy_Cbased_IA_N',
              'I-dm':'abio_Cbased_PAR_dmean','I':'abio_Cbased_PAR',
              'Phy-C':'phy_Cbased_IA_C','Phy-N':'phy_Cbased_IA_N','Phy-Q':'phy_Cbased_IA_Q',
@@ -53,7 +54,8 @@ namelibCbasedIA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
              'DOC':'abio_Cbased_doc','DetC':'abio_Cbased_detc'
             }
 namelibCbasedDA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
-               'totalN':'total_nitrogen_calculator_result',
+            'totalC':'total_carbon_calculator_result',
+             'totalN':'total_nitrogen_calculator_result',
              #'totalN':'abio_Cbased_din+abio_Cbased_don+abio_Cbased_detn+phy_Cbased_DA_N',
              'I-dm':'abio_Cbased_PAR_dmean','I':'abio_Cbased_PAR',
              'Phy-C':'phy_Cbased_DA_C','Phy-N':'phy_Cbased_DA_N','Phy-Q':'phy_Cbased_DA_Q',
@@ -65,16 +67,16 @@ namelibCbasedDA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
              'DOC':'abio_Cbased_doc','DetC':'abio_Cbased_detc'
             }
 prettyunits={'I_0':'E\ m^{-2}\ d^{-1}','wind':'m\ s^{-1}','T':'^\circ C',
-             'I-dm':'E\ m^{-2}\ d^{-1}','I':'E\ m^{-2}\ d^{-1}','totalN':'mmolN\ m^{-3}',
+             'I-dm':'E\ m^{-2}\ d^{-1}','I':'E\ m^{-2}\ d^{-1}',
              'Phy-C':'mmolC\ m^{-3}','Phy-N':'mmolN\ m^{-3}','Phy-Q':'molN\ molC^{-1}',
              'Phy-Chl':'mg m^{-3}','Phy-Chl2C':'gChl\ gC^{-3}',
-             'DIN':'mmolN\ m^{-3}','DON':'mmolN\ m^{-3}','DetN':'mmolN\ m^{-3}',
-             'DOC':'mmolC\ m^{-3}','DetC':'mmolC\ m^{-3}',
+             'DIN':'mmolN\ m^{-3}','DON':'mmolN\ m^{-3}','DetN':'mmolN\ m^{-3}', 'totalN':'mmolN\ m^{-3}',
+             'DIC':'mmolC\ m^{-3}','DOC':'mmolC\ m^{-3}','DetC':'mmolC\ m^{-3}', 'totalC':'mmolC\ m^{-3}',
               'mu':'d^{-1}', 'vN':'molN\ molC^{-1} d^{-1}', 'R_N':'d^{-1}', 'R_Chl':'d^{-1}',
              'fA':'-', 'fV':'-', 'fC':'-', 'limfunc_L':'-'
              }
 prettynames={'I_0':'$I_0$','wind':'wind','T':'T',
-             'I-dm':r'$\bar{I}$','I':'$I$','totalN':'Total N',
+             'I-dm':r'$\bar{I}$','I':'$I$','totalN':'Total N','totalC':'Total C',
              'Phy-C':r'$Phy_C$','Phy-N':'$Phy_N$','Phy-Q':'$Q$',
              'Phy-Chl':'$Phy_{Chl}$','Phy-Chl2C':r'$\theta$',
              'DIN':'DIN','DON':'DON','DetN':'$Det_N$',
@@ -93,8 +95,12 @@ def main(fnames, numyears, modnames, variants, ids):
            #'abio1':['abio_PAR_dmean','temp', 'mld_surf'],
            #'abio2':['abio_din','abio_detc/abio_detn','abio_detc_sed/abio_detn_sed'],
            #'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
-            'abio1':['DIC','DIN', 'totalN', 'I-dm', #'I',
-                     'DOC','DON','DetC', 'DetN'],
+            'abio0':['I-dm', 'temp'],
+            'abio1':['totalC','totalN',
+                     'Phy-C', 'Phy-N',
+                     'DIC','DIN',
+                     'DOC','DON',
+                     'DetC', 'DetN'],
             'phy-1':['Phy-C','Phy-N','Phy-Q',
                      '',     'Phy-Chl','Phy-Chl2C'],
             'phy-2': ['mu', 'vN', 'R_N', 'R_Chl'],
@@ -118,6 +124,8 @@ def plot_multifile(fnames, numyears, groupname, varset, variants, modnames, ids)
             numcol=3.0
         elif len(varset) in [4,8,12]:
             numcol=4.0
+        elif len(varset) in [10]:
+            numcol=2.0
     else:
         numcol = len(varset)
     numrow = np.ceil(len(varset) / numcol)
@@ -192,7 +200,7 @@ def plot_multifile(fnames, numyears, groupname, varset, variants, modnames, ids)
         # ax.set_position([box.x0, box.y0, (box.x1 - box.x0) * 0.8, box.y1 - box.y0])
         if j==0: #(j+1)%numcol==1 
             #ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.8),fontsize=12)
-            ax.legend(loc='center left', bbox_to_anchor=(0.6, 0.7),fontsize=12)
+            ax.legend(loc='center left', bbox_to_anchor=(0.7, 0.7),fontsize=12)
 
         ax.grid(b=True, axis='y', which='major', color='0.5', linestyle='-')
         # x-axis
@@ -573,7 +581,7 @@ if __name__ == "__main__":
       #fnames = ['/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_NbasedDA.nc',
                # '/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_CbasedDA.nc']
       fnames = ['/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lext_CbasedIA_dm.nc',
-                '/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lint_CbasedIA_dm.nc']
+                '/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lext_CbasedDA_dm.nc']
       print('plotting default file(s):'+'; '.join(fnames))
     else:
       print('plotting file specified:'+sys.argv[1])
@@ -581,8 +589,8 @@ if __name__ == "__main__":
 
     if len(sys.argv)<3:
       #variants = ['dm', '6h']
-      #variants = ['IA','DA']
-      variants = ['IA', 'IA']
+      variants = ['IA','DA']
+      #variants = ['IA', 'IA']
     else:
       variants=sys.argv[2].split(',')
 
@@ -593,9 +601,9 @@ if __name__ == "__main__":
       modnames=sys.argv[3].split(',')
 
     if len(sys.argv)<5: #no third argument was passed
-      #ids=['IA','DA']
-      #modnames=['Nbased','Cbased']
-      ids=['PAR-nm','PAR-an']#
+      #ids=['Nbased','Cbased']
+      ids = ['IA', 'DA']
+      #ids=['PAR:N','PAR:A']#
     else:
       ids=sys.argv[4].split(',')
 

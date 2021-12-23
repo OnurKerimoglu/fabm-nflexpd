@@ -23,7 +23,7 @@
 ! !PUBLIC DERIVED TYPES:
    type,extends(type_base_model),public :: type_NflexPD_abio_Cbased
 !     Variable identifiers
-      type (type_state_variable_id)     :: id_din,id_don,id_doc,id_detn,id_detc
+      type (type_state_variable_id)     :: id_dic,id_din,id_don,id_doc,id_detn,id_detc
       type (type_dependency_id)         :: id_temp,id_depth,id_parW,id_parW_dmean
       type (type_horizontal_dependency_id)  :: id_lat
       type (type_global_dependency_id)  :: id_doy
@@ -97,6 +97,8 @@
    call self%get_parameter(self%kc_dt0,'kc_dt0','m-1', 'attenuaton coefficient on the first time step',  default=0.2_rk)
    
    ! Register state variables
+   call self%register_state_variable(self%id_dic,'dic','mmolC/m^3','DIC concentration',     &
+                                1000.0_rk,minimum=0.0_rk,no_river_dilution=.true.)
    call self%register_state_variable(self%id_din,'din','mmolN/m^3','DIN concentration',     &
                                 1.0_rk,minimum=0.0_rk,no_river_dilution=.true.)
    call self%register_state_variable(self%id_don,'don','mmolN/m^3','DON concentration',     &
@@ -112,6 +114,9 @@
                                 specific_light_extinction=0.0_rk)                             
    
    ! Register contribution of state to global aggregate variables.
+   call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_dic)
+   call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_doc)
+   call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_detc)
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_din)
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_don)
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_detn)
@@ -187,7 +192,7 @@
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
-   real(rk)                   :: din, detn, detc, don, doc
+   real(rk)                   :: dic, din, detn, detc, don, doc
    real(rk)                   :: f_det_don, f_det_doc, f_don_din, f_doc_dic
    real(rk)                   :: Ld,Tfac,parE,parE_dm
    real(rk)                   :: lat,depth,doy,tC,parW,parW_dm
@@ -245,6 +250,7 @@
    if (doy .ne. doy_prev) then !i.e., if it's a real time step (and, e.g., not a 'fake' step of a RK4 ode method)
      
      !Access the values at the prev. time step as recorded by the diagnostic variables
+     _GET_(self%id_dic,dic) ! dic
      _GET_(self%id_din,din) ! din
      _GET_(self%id_ddin_dep,din_prev)
      _GET_(self%id_dPARdm_dep,parEdm_prev) !mol/m2/d
@@ -306,6 +312,8 @@
    _SET_ODE_(self%id_detc, -f_det_doc) !Sink term in Eq.2b
    _SET_ODE_(self%id_don,   f_det_don - f_don_din)
    _SET_ODE_(self%id_doc,  f_det_doc - f_doc_dic)  !Eq.3b
+   _SET_ODE_(self%id_dic, f_doc_dic)
+   
    !Standard: i.e., DA or FS approaches:
    !_SET_ODE_(self%id_din,   f_don_din)
    !IA approach:
