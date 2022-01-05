@@ -216,12 +216,8 @@
    _GET_(self%id_don,don) ! dissolved organic nitrogen
    ! Retrieve environmental dependencies
    _GET_(self%id_temp,tC) ! temperature in Celcius
+   _GET_GLOBAL_(self%id_doy,doy) ! day of year 
    
-   !Calculate Fractional day length
-   _GET_HORIZONTAL_(self%id_lat,lat)
-   _GET_GLOBAL_(self%id_doy,doy)
-   Ld=FDL(lat,doy)
-    
    _GET_(self%id_parW,parW) ! local photosynthetically active radiation (PAR)
    _GET_(self%id_parW_dmean,parW_dm) !current daily average PAR
    if ( parW_dm .lt. 0.0 ) then
@@ -236,10 +232,15 @@
      ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
    end if
    
+   !Calculate daytime average light based on fractional day length 
    if (self%PAR_dmean_FDL) then
-    !Convert average irradiance throughout the day to average irradiance during day light, as needed by the phy module
-    parE_dm=parE_dm/Ld ![mol/m2/d] 
+    _GET_HORIZONTAL_(self%id_lat,lat)
+    Ld=FDL(lat,doy) 
+   else
+    Ld=1.0
    end if
+   !Convert average irradiance throughout the day to average irradiance during day light, as needed by the phy module
+   parE_dm=parE_dm/Ld ![mol/m2/d]
    
    !For providing the delta_t,delta_din and delta_par between the current and previous time step
    _GET_(self%id_ddoy_dep,doy_prev)  ! day of year at the previous time step
