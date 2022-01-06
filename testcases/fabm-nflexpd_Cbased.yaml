@@ -8,7 +8,7 @@ instances:
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
       dynQN: .false.                 # whether to dynamically represent QN (explicit state var for N- and C-)
-      Theta_opt : .true.             # whether to optimize theta (true/false)
+      Theta_opt : .false.             # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
       fV_opt : .true.                # whether to optimize fV (true/false)
       PARintern: .false.             # whether use internally calculated PAR
@@ -24,7 +24,7 @@ instances:
       A0hat: 0.1                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
-      M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
+      M0p: 0.01                       # sp. quad. mortality rate (m3 molC-1 d-1)
       Mpart: 1.0                     # part of the mortality that goes to detritus
     initialization:
       C: 0.8                      # Phytoplankton-N concentration (mmol m-3)
@@ -61,7 +61,7 @@ instances:
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
       dynQN: .true.                  # whether to dynamically represent QN (explicit state var for N- and C-)
-      Theta_opt : .true.             # whether to optimize theta (true/false)
+      Theta_opt : .false.             # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
       fV_opt : .true.                # whether to optimize fV (true/false)
       PARintern: .false.             # whether use internally calculated PAR
@@ -78,7 +78,7 @@ instances:
       A0hat: 0.1                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
-      M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
+      M0p: 0.01                       # sp. quad. mortality rate (m3 molC-1 d-1)
       Mpart: 1.0                     # part of the mortality that goes to detritus
     initialization:
       C: 0.8                      # Phytoplankton-N concentration (mmol m-3)

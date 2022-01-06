@@ -292,7 +292,7 @@
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: doy,tC,Tfac,depth
    real(rk)                   :: mu0hat_fT,V0hat_fT,RMchl_fT
-   real(rk)                   :: mu,respN,mort,Pprod,muNET,KN_monod
+   real(rk)                   :: mu,respN,mortC,mortN,Pprod,muNET,KN_monod
    real(rk)                   :: limfunc_L,fC,limfunc_Nmonod
    real(rk)                   :: f_dic_phy,f_din_phy,f_din_phy_hypot,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
    real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt
@@ -566,7 +566,9 @@
        !
        !delZ/delN, eq.A-5 in S16
        !delZ_delN= -self%Q0*muhatNET/(2*din*vNhat)*(1-(vNhat/self%V0hat)-(vNhat/sqrt(self%V0hat*self%A0hat*din))) 
-       delZ_delN= -self%Q0*muhatNET/(2*din*vNhat)*(1-(vNhat/(V0hat_fT))-(vNhat/sqrt(V0hat_fT*self%A0hat*din))) 
+       !delZ_delN= -self%Q0*muhatNET/(2*din*vNhat)*(1-(vNhat/(V0hat_fT))-(vNhat/sqrt(V0hat_fT*self%A0hat*din))) 
+       !self-obtained solution (yields the same result as with the EqA-5 in S16):
+       delZ_delN=-self%Q0*muhatNET/(2*fA*self%A0hat*din*din)
        !!delQ/delI, eq. A-2 in S16
        delQ_delI=delQ_delZ*delZ_delI 
        !write(*,'(A,3F15.5)')'  (phy.3) delQ_delI,delQ_delZ,delZ_delI:',delQ_delI,delQ_delZ,delZ_delI
@@ -594,13 +596,14 @@
    f_dic_phy = mu*phyC
    
    ! Mortality
-   mort=self%M0p * Tfac * PhyN**2
-   f_phy_detn = self%Mpart  * mort
-   f_phy_detc = f_phy_detn/Q              !Table 1
-   f_phy_don = (1.0 - self%Mpart) * mort
-   f_phy_doc = f_phy_don/Q                !Doesn't appear in K20, since Mpart=1 -> f_phy_don=0 
+   mortC = self%M0p * Tfac * PhyC**2
+   mortN = mortC * Q
    
    !Calculate fluxes between pools
+   f_phy_detc = self%Mpart  * mortC              !Table 1
+   f_phy_detn = self%Mpart  * mortN
+   f_phy_doc = (1.0 - self%Mpart) * mortC        !Doesn't appear in K21, since Mpart=1 -> f_phy_don=0 
+   f_phy_don = (1.0 - self%Mpart) * mortN
    
    !write(*,'(A,5F12.5)')'  (phy) dphyC*dt,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q: ', (f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)*12,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q
    ! Set temporal derivatives
