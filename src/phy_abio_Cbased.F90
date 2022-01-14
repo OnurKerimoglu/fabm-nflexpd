@@ -70,6 +70,7 @@
       
       !abio
       real(rk) :: w_det,kdet,kdon,par0_dt0,kc_dt0
+      logical :: PAR_dmean_FDL,PAR_ext_inE
       
 
       contains
@@ -169,6 +170,8 @@
    call self%get_parameter(self%Mpart, 'Mpart', '-',   'part of the mortality that goes to detritus',default=0.5_rk)
    
    !abio
+   call self%get_parameter(self%PAR_ext_inE, 'PAR_ext_inE','-', 'PAR provided externally are in Einsten/Quanta [mol/m2/d]', default=.false.)
+   call self%get_parameter(self%PAR_dmean_FDL, 'PAR_dmean_FDL','-', 'PAR as day time average (PAR_dm/FDL, FDL: fractional day length)', default=.true.)
    call self%get_parameter(self%w_det,     'w_det','m d-1',    'vertical velocity (<0 for sinking)',default=-5.0_rk,scale_factor=d_per_s)
    call self%get_parameter(kc,      'kc', 'm2 mmol-1','specific light extinction',         default=0.03_rk)
    call self%get_parameter(self%kdet,'kdet','d-1',      'sp. rate for f_det_don',             default=0.003_rk,scale_factor=d_per_s)
@@ -354,7 +357,7 @@
    call self%register_dependency(self%id_parW, standard_variables%downwelling_photosynthetic_radiative_flux)
    call self%register_dependency(self%id_parW_dmean,temporal_mean(self%id_parW,period=1._rk*86400._rk,resolution=1._rk))
    
-   call self%register_dependency(self%id_dpardm_dep,'PAR_dmean','E/m^2/d',       'photosynthetically active radiation, daily averaged')
+   call self%register_dependency(self%id_dpardm_dep,'PAR_dmean','E/m^2/d', 'prev. val of photosynthetically active radiation, daily averaged')
    call self%register_diagnostic_variable(self%id_delta_par,'delta_par','E/m^2/d','diff betw current and prev time step',&
                      output=output_instantaneous)
    
@@ -501,9 +504,24 @@
    if ( parW_dm .lt. 0.0 ) then
      parW_dm=parW
    end if
-   parE = parW * 4.6 * 1e-6* secs_pr_day ![mol/m2/d]
-   parE_dm= parW_dm * 4.6 * 1e-6* secs_pr_day/Ld  ![mol/m2/d]
-   ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
+   if (self%PAR_ext_inE) then ![mol/m2/d]
+     parE = parW ![mol/m2/d]
+     parE_dm = parW_dm ![mol/m2/d]
+   else !assume to be in !W/m2
+     parE = parW * 4.6 * 1e-6* secs_pr_day ![mol/m2/d]
+     parE_dm= parW_dm * 4.6 * 1e-6* secs_pr_day ![mol/m2/d]
+     ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
+   end if
+   
+   !Calculate daytime average light based on fractional day length 
+   if (self%PAR_dmean_FDL) then
+    _GET_HORIZONTAL_(self%id_lat,lat)
+    Ld=FDL(lat,doy) 
+   else
+    Ld=1.0
+   end if
+   !Convert average irradiance throughout the day to average irradiance during day light, as needed by the phy module
+   parE_dm=parE_dm/Ld ![mol/m2/d]
    
    !For providing the delta_t,delta_din and delta_par between the current and previous time step
    _GET_(self%id_din,din) ! din
@@ -516,15 +534,14 @@
       
      _GET_(self%id_ddin_dep,din_prev)
      _GET_(self%id_dPARdm_dep,parEdm_prev) !mol/m2/d
-     !write(*,*)'doy_prev,din_prev,parEdm_prev',doy_prev,din_prev,parEdm_prev 
-
+     !write(*,*)'doy_prev,din_prev,parEdm_prev',doy_prev,din_prev,parEdm_prev
+     
      !in the first time step, strange things may happen, as the diagnostics are not available yet
      if (doy_prev .lt. 0.0) then
        doy_prev = -1.0 ! just an arbitrary finite number, as the delta_din&par will be 0      
        din_prev=din ! such that delta_din=0
        parEdm_prev=parE_dm ! such that delta_par=0
      end if
-     
      !calculate the deltas
      delta_t=(doy-doy_prev)*secs_pr_day !days to secs
      delta_din=din-din_prev      

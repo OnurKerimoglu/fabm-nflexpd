@@ -27,6 +27,8 @@ instances:
       M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 1.0                     # part of the mortality that goes to detritus
       #abio:
+      PAR_ext_inE: .true.            # PAR provided externally are in Einsten/Quanta [mol/m2/d]
+      PAR_dmean_FDL: .false.         # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
       w_det: -2.0                    # vertical velocity (<0 for sinking) (m d-1)
       kc: 0.03                       # specific light extinction (m2 mmol-1)
       kdet: 0.1                      # Degredation rate of Detritus (d-1)
@@ -41,7 +43,7 @@ instances:
       detn: 3.0                      # Det-N concentration (mmol m-3)
       detc: 19.875                   # Det-C concentration (mmol m-3)
   abiophy_IA:
-    use: .false.
+    use: .true.
     long_name: Phytoabio-Cbased-IA
     model: nflexpd/phyabio_Cbased
     parameters:
@@ -50,7 +52,7 @@ instances:
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
       dynQN: .false.                 # whether to dynamically represent QN (explicit state var for N- and C-)
-      Theta_opt : .true.             # whether to optimize theta (true/false)
+      Theta_opt : .false.             # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
       fV_opt : .true.                # whether to optimize fV (true/false)
       TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
@@ -68,6 +70,8 @@ instances:
       M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 1.0                     # part of the mortality that goes to detritus
       #abio:
+      PAR_ext_inE: .true.            # PAR provided externally are in Einsten/Quanta [mol/m2/d]
+      PAR_dmean_FDL: .false.         # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
       w_det: -2.0                    # vertical velocity (<0 for sinking) (m d-1)
       kc: 0.03                       # specific light extinction (m2 mmol-1)
       kdet: 0.1                      # Degredation rate of Detritus (d-1)
@@ -82,7 +86,7 @@ instances:
       detn: 3.0                      # Det-N concentration (mmol m-3)
       detc: 19.875                   # Det-C concentration (mmol m-3)
   abiophy_DA:
-    use: true
+    use: false
     long_name: Phytoabio-Cbased-DA
     model: nflexpd/phyabio_Cbased
     parameters:
@@ -109,6 +113,8 @@ instances:
       M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 1.0                     # part of the mortality that goes to detritus
       #abio:
+      PAR_ext_inE: .true.            # PAR provided externally are in Einsten/Quanta [mol/m2/d]
+      PAR_dmean_FDL: .false.         # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
       w_det: -2.0                    # vertical velocity (<0 for sinking) (m d-1)
       kc: 0.03                       # specific light extinction (m2 mmol-1)
       kdet: 0.1                      # Degredation rate of Detritus (d-1)
@@ -151,6 +157,8 @@ instances:
       M0p: 0.1                       # sp. quad. mortality rate (m3 molN-1 d-1)
       Mpart: 1.0                     # part of the mortality that goes to detritus
       #abio:
+      PAR_ext_inE: .true.            # PAR provided externally are in Einsten/Quanta [mol/m2/d]
+      PAR_dmean_FDL: .false.         # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
       w_det: -2.0                    # vertical velocity (<0 for sinking) (m d-1)
       kc: 0.03                       # specific light extinction (m2 mmol-1)
       kdet: 0.1                      # Degredation rate of Detritus (d-1)
