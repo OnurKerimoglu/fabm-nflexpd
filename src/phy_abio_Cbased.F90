@@ -30,7 +30,7 @@
       type (type_state_variable_id)        :: id_phyC,id_phyN
       type (type_dependency_id)            :: id_parW,id_temp,id_par_dmean,id_depth,id_depFDL
       !type (type_horizontal_dependency_id) :: id_depFDL
-      type (type_diagnostic_variable_id)   :: id_muhatNET,id_ZINT,id_Vhat,id_Ahat,id_KN
+      type (type_diagnostic_variable_id)   :: id_dI_dt,id_muhatNET,id_ZINT,id_Vhat,id_Ahat,id_KN
       type (type_diagnostic_variable_id)   :: id_delQdelt
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyN,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR,id_mu,id_muNET,id_muhatG,id_vNhat,id_vN,id_respN,id_respChl
@@ -65,7 +65,7 @@
       real(rk) :: mu0hat,aI
       real(rk) :: A0hat,V0hat,Q0,Qmax,KN_monod
       real(rk) :: fA_fixed,fV_fixed,TheHat_fixed,Q_fixed,ThetaHat_min
-      logical  :: dynQN,fV_opt,fA_opt,Theta_opt,mimic_Monod
+      logical  :: dynQN,fV_opt,fA_opt,Theta_opt,mimic_Monod,PARintern
       real(rk) :: dic_per_n
       
       !abio
@@ -123,6 +123,7 @@
    call self%get_parameter(self%fA_opt, 'fA_opt','-', 'whether to optimize fA', default=.false.)
    call self%get_parameter(self%fV_opt, 'fV_opt','-', 'whether to optimize fV', default=.false.)
    call self%get_parameter(self%mimic_Monod, 'mimic_Monod','-', 'whether to mimic Monod model', default=.false.)
+   call self%get_parameter(self%PARintern, 'PARintern','-', 'whether use internally calculated PAR', default=.false.)
    !light-related
    call self%get_parameter(self%TheHat_fixed, 'TheHat_fixed','gChl molC-1', 'Theta_Hat to use when Theta_opt=false', default=0.6_rk)
    call self%get_parameter(self%ThetaHat_min, 'ThetaHat_min','gChl molC-1', 'Minimum allowed value, which is also used when par<I_0', default=0.1_rk)
@@ -263,6 +264,8 @@
      call self%register_diagnostic_variable(self%id_fdinphy, 'f_dinphy','molN/m^3/d',    'net N uptake by phytoplankton',           &
                                      output=output_instantaneous)
    else
+     call self%register_diagnostic_variable(self%id_dI_dt, 'dI_dt','E/m^2/d^2',    'dI/dt',           &
+                                     output=output_time_step_averaged)
      call self%register_diagnostic_variable(self%id_ZINT, 'ZINT','-',    'Qs*(muhatNET/vNhat+zetaN)',           &
                                      output=output_time_step_averaged)
      call self%register_diagnostic_variable(self%id_delQdelt, 'dQ_dt','mmolN/mmolC/d',    'dQ/dT',           &
@@ -468,6 +471,8 @@
    real(rk)                   :: f_din_phy,f_din_phy_hypot,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
    real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN
+   real(rk)                   :: Imin,Imax,dI_dt_analytical
+   real(rk), parameter        :: pi = 3.1415926535897931
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
    
    !abio
@@ -611,21 +616,30 @@
    end if
    
    ! Retrieve current environmental conditions.
-   !_GET_(self%id_parW,parW)             ! local photosynthetically active radiation
-   !parE=parW* 4.6 * 1e-6   !molE/m2/s
-   ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
-   _GET_(self%id_par_dmean,parE_dm) !par is assumed to be daytime average PAR, in molE/m2/d 
-   !write(*,*)'P.L275:depth,parE_dm',depth,par_dm
-   parE_dm=(parE_dm/secs_pr_day) !in molE/m2/s 
+   if (self%PARintern) then
+     Imin=1.6 !molE/m2/d 
+     Imax=110.0 !molE/m2/d
+     parE_dm=(Imin+(Imax-Imin)/2.0*(1.0+sin(2.0*pi*(doy/366.-0.25)))) /secs_pr_day !molE/m2/s
+     dI_dt_analytical = (Imax-Imin)*(pi/365)*cos(2*pi*(doy/365.-0.25)) /(secs_pr_day*secs_pr_day) !molE/m2/s2
+     !write(*,*)'I,dI/dt',parE_dm*secs_pr_day, dI_dt_analytical*secs_pr_day*secs_pr_day
+   else
+     _GET_(self%id_parW,parW)             ! local photosynthetically active radiation
+     parE=parW* 4.6 * 1e-6   !molE/m2/s
+     ! 1 W/m2 ≈ 4.6 μmole/m2/s: Plant Growth Chamber Handbook (chapter 1, radiation; https://www.controlledenvironments.org/wp-content/uploads/sites/6/2017/06/Ch01.pdf
+     _GET_(self%id_par_dmean,parE_dm) !par is assumed to be daytime average PAR, in molE/m2/d 
+     !write(*,*)'parE_dm,parE_dm_int,diff:',parE_dm,parE_dm_int,parE_dm-parE_dm_int
+     !write(*,*)'P.L275:depth,parE_dm',depth,par_dm
+     parE_dm=(parE_dm/secs_pr_day) !in molE/m2/s 
    
-   if ( parE_dm .lt. 0.0 ) then
-     parE_dm=parE
-   end if
+     if ( parE_dm .lt. 0.0 ) then
+       parE_dm=parE
+     end if
    
-   !when parE_dm=0 (eg., during the first day, where parE_dm is not yet calculated, muhatNET and fV becomes both 0, which makes Q=NaN
-   !so we set it to a very small value
-   if (parE_dm .eq. 0.0 ) then
-     parE_dm=1e-6
+     !when parE_dm=0 (eg., during the first day, where parE_dm is not yet calculated, muhatNET and fV becomes both 0, which makes Q=NaN
+     !so we set it to a very small value
+     if (parE_dm .eq. 0.0 ) then
+       parE_dm=1e-6
+     end if
    end if
    
    ! delta_t,delta_parE,delta_din
@@ -846,8 +860,14 @@
        !write(*,'(A,3F15.5)')'  (phy.3) delQ_delI,delQ_delZ,delZ_delI:',delQ_delI,delQ_delZ,delZ_delI
        !!delQ/delN, eq. A-3 in S16
        delQ_delN=delQ_delZ*delZ_delN
-       !dI/dt: discrete approximation
-       dI_dt = delta_parE / delta_t
+       if (self%PARintern) then
+         !Analytical solution of dI/dt
+         dI_dt = dI_dt_analytical
+         !write(*,*)'dI_dt analytical,discrete:',dI_dt,delta_parE / delta_t
+       else
+         !dI/dt: discrete approximation
+         dI_dt = delta_parE / delta_t
+       end if
        !!dN/dt: discrete approximation (Note that in this combined (abio+phy) version, this is only diagnostic)
        dN_dt = delta_din / delta_t  
        ! !delQ/delt, eq. A-6 in S16: (Note that in this combined (abio+phy) version,  this is only diagnostic) 
@@ -880,6 +900,7 @@
      _SET_DIAGNOSTIC_(self%id_fdinphy, f_din_phy * secs_pr_day) !*s_p_d such that output is in d-1
      _SET_ODE_(self%id_din, f_don_din - f_din_phy)
    else
+     _SET_DIAGNOSTIC_(self%id_dI_dt, dI_dt*secs_pr_day*secs_pr_day)
      _SET_DIAGNOSTIC_(self%id_fdinphy_hypot,f_din_phy_hypot * secs_pr_day)
      _SET_DIAGNOSTIC_(self%id_ZINT, ZINT)
      _SET_DIAGNOSTIC_(self%id_delQdelt,delQ_delt*secs_pr_day)
