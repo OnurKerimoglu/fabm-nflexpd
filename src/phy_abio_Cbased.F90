@@ -40,7 +40,7 @@
       type (type_dependency_id)            :: id_dep_delta_t,id_dep_delta_din,id_dep_delta_par
       
       !abio
-      type (type_state_variable_id)     :: id_din,id_don,id_doc,id_detn,id_detc
+      type (type_state_variable_id)     :: id_dic,id_din,id_don,id_doc,id_detn,id_detc
       !type (type_dependency_id)         :: id_depth!,id_temp,id_parW,
       type (type_dependency_id)         :: id_parW_dmean
       type (type_horizontal_dependency_id)  :: id_lat
@@ -183,6 +183,8 @@
    ! Register state and diagnostic variables
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
    !ABIO:
+   call self%register_state_variable(self%id_dic,'dic','mmolC/m^3','DIC concentration',     &
+                                1000.0_rk,minimum=0.0_rk,no_river_dilution=.true.)
    call self%register_state_variable(self%id_din,'din','mmolN/m^3','DIN concentration',     &
                                 1.0_rk,minimum=0.0_rk,no_river_dilution=.true., &
                                 specific_light_extinction=0.0_rk)
@@ -200,6 +202,9 @@
                                 specific_light_extinction=0.0_rk)
                                 
    ! Register contribution of state to global aggregate variables.
+   call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_dic)
+   call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_doc)
+   call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_detc)
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_din)
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_don)
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_detn)
@@ -248,6 +253,7 @@
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
    !PHY
    call self%register_state_variable(self%id_phyC,'C','mmolC/m^3','bound-C concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=0.0_rk)
+   call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_phyC)
    if ( self%dynQN ) then
      call self%register_state_variable(self%id_phyN,'N','mmolN/m^3','bound-N concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=0.0_rk)
      ! Register contribution of diagnostic to global aggregate variables.
@@ -459,7 +465,7 @@
 !
 ! !LOCAL VARIABLES:
    !phy
-   real(rk)                   :: din,phyC,phyN,parW,parE,parE_dm,Ld
+   real(rk)                   :: dic,din,phyC,phyN,parW,parE,parE_dm,Ld
    real(rk)                   :: ThetaHat,vNhat,muhatG,RhatChl,muhatNET
    real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
    real(rk)                   :: vN,RMchl,zetaChl
@@ -468,7 +474,7 @@
    real(rk)                   :: mu0hat_fT,V0hat_fT,RMchl_fT
    real(rk)                   :: mu,respN,mortC,mortN,Pprod,muNET,KN_monod
    real(rk)                   :: limfunc_L,fC,limfunc_Nmonod
-   real(rk)                   :: f_din_phy,f_din_phy_hypot,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
+   real(rk)                   :: f_dic_phy,f_din_phy,f_din_phy_hypot,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
    real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN
    real(rk)                   :: Imin,Imax,dI_dt_analytical
@@ -529,6 +535,7 @@
    parE_dm=parE_dm/Ld ![mol/m2/d]
    
    !For providing the delta_t,delta_din and delta_par between the current and previous time step
+   !_GET_(self%id_dic,dic)    ! carbon (no need, as C is assumed to be non limiting)
    _GET_(self%id_din,din) ! din
    _GET_(self%id_ddoy_dep,doy_prev)  ! day of year at the previous time step
    !write(*,*)' (abio.1) doy_prev(s),doy(s),Ld',doy_prev*secs_pr_day,doy*secs_pr_day,Ld
@@ -879,6 +886,7 @@
        f_din_phy_hypot = (vN + delQ_delt) * phyC  !eq. A-6 in S16 (hypothetical flux between din-phy, only diagnostic)
      end if  
    end if
+   f_dic_phy = mu*phyC
    
    ! Mortality
    mortC = self%M0p * Tfac * PhyC**2
@@ -892,7 +900,7 @@
    
    !write(*,'(A,5F12.5)')'  (phy) dphyC*dt,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q: ', (f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)*12,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q
    ! Set temporal derivatives
-   _SET_ODE_(self%id_phyC, mu*phyC - f_phy_doc - f_phy_detc)  !  f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
+   _SET_ODE_(self%id_phyC, f_dic_phy - f_phy_doc - f_phy_detc)  !  f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
    !write(*,'(A,2F15.10)')'  (phy.6) phyC,delta_phyC',phyC,(mu*phyC - f_phy_don/Q - f_phy_detn/Q)*delta_t
    if ( self%dynQN ) then
      _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn) !Eq.1b, Eq8 (for mu*phyC) (f_phy_doc doesn't appear in K20, since it's=0 (see above))
@@ -913,6 +921,9 @@
      !_SET_ODE_(self%id_din, f_don_din - f_din_phy)
    end if
    
+   !dC/dt
+   _SET_ODE_(self%id_dic, f_doc_dic-f_dic_phy) !Assuming that resp terms (RespChl and RespN) are added back to the DIC pool (when CO2 is resolved, this would have to change)
+
    ! If externally maintained dim,dom und det pools are coupled:
    _SET_ODE_(self%id_don, f_phy_don + f_det_don - f_don_din)
    _SET_ODE_(self%id_doc,  f_phy_doc + f_det_doc - f_doc_dic)  !Eq.3b
