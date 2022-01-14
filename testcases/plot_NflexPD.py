@@ -42,8 +42,8 @@ namelibNbasedDA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp','totalN':'total_nitro
             }
 namelibCbasedIA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
              'totalC':'total_carbon_calculator_result',
-             'totalN':'total_nitrogen_calculator_result',
-             #'totalN':'abio_Cbased_din+abio_Cbased_don+abio_Cbased_detn+phy_Cbased_IA_N',
+             #'totalN':'total_nitrogen_calculator_result',
+             'totalN':'abio_Cbased_din+abio_Cbased_don+abio_Cbased_detn+phy_Cbased_IA_C*phy_Cbased_IA_Q', #+phy_Cbased_IA_N',
              'I-dm':'abio_Cbased_PAR_dmean','I':'abio_Cbased_PAR', 'dI_dt':'phy_Cbased_IA_dI_dt',
              'Phy-C':'phy_Cbased_IA_C','Phy-N':'phy_Cbased_IA_N','Phy-Q':'phy_Cbased_IA_Q',
              'Phy-Chl':'phy_Cbased_IA_Chl','Phy-Chl2C':'phy_Cbased_IA_Chl2C',
@@ -96,25 +96,25 @@ def main(fnames, numyears, modnames, variants, ids):
            #'abio1':['abio_PAR_dmean','temp', 'mld_surf'],
            #'abio2':['abio_din','abio_detc/abio_detn','abio_detc_sed/abio_detn_sed'],
            #'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
-            'abio0':['I-dm', 'dI_dt'],
-            'abio1':['totalC','totalN',
+           'abio0':['I-dm', 'dI_dt'],
+           'abio1':['totalC','totalN',
                      'Phy-C', 'Phy-N',
                      'DIC','DIN',
                      'DOC','DON',
                      'DetC', 'DetN'],
-            'phy-1':['Phy-C','Phy-N','Phy-Q',
+           'phy-1':['Phy-C','Phy-N','Phy-Q',
                      '',     'Phy-Chl','Phy-Chl2C'],
-            'phy-2': ['mu', 'vN', 'R_N', 'R_Chl'],
-            'phy-3': ['fA', 'fV', 'fC',
-                      'ThetaHat', 'limfunc_L',''],
+           'phy-2': ['mu', 'vN', 'R_N', 'R_Chl'],
+           'phy-3': ['fA', 'fV', 'fC',
+                     'ThetaHat', 'limfunc_L',''],
          }
   for groupname,varset in varsets.iteritems():
       #print ('%s,%s'%(groupname,varset))
-      if len(variants)>1:
-          plot_multifile(fnames, numyears, groupname, varset, variants,modnames,ids)
-      # if not (len(modnames)==2 and 'OBS' in modnames):
-      #     for variantno in range(0,len(variants)):
-      #         plot_singlefile(fnames[variantno], numyears, groupname, varset, variants[variantno],modnames[variantno])
+      #if len(variants)>1:
+      plot_multifile(fnames, numyears, groupname, varset, variants,modnames,ids)
+      #if not (len(modnames)==2 and 'OBS' in modnames):
+      #    for variantno in range(0,len(variants)):
+      #        plot_singlefile(fnames[variantno], numyears, groupname, varset, variants[variantno],modnames[variantno])
 
 def plot_multifile(fnames, numyears, groupname, varset, variants, modnames, ids):
     cols=['darkblue','orange','green']
@@ -486,9 +486,14 @@ def get_varvals_op(ncv,varn0):
         units = ncv[varn_set[0]].units
         longname = '%s' %(varn_set[0])
         for varn in varn_set[1:]:
-            varvals = varvals + np.squeeze(ncv[varn][:])
-            longname = '%s %s %s' % (longname, symb, varn)
-            #if not ncv[varn].units == units:
+            if '*' in varn or '/' in varn:
+                varfound, varvalsOP, longnameOP, unitsOP = get_varvals_op(ncv, varn)
+                varvals = varvals + varvalsOP
+                longname = '%s %s %s' % (longname, symb, varn)
+            else:
+                varvals = varvals + np.squeeze(ncv[varn][:])
+                longname = '%s %s %s' % (longname, symb, varn)
+            # if not ncv[varn].units == units:
             #    raise(Exception('Units of variables to be added do not match: %s vs %s'%(units,ncv[varn].units)))
     else:
         if '-' in varn0:
@@ -581,8 +586,8 @@ if __name__ == "__main__":
     if len(sys.argv) < 2: #this means no arguments were passed
       #fnames = ['/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_NbasedDA.nc',
                # '/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_CbasedDA.nc']
-      fnames = ['/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lext_CbasedIA_dm.nc',
-                '/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lint_CbasedIA_dm.nc']
+      fnames = ['/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lint_CbasedIA_dm.nc']
+                #'/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lint_CbasedIA_dm.nc']
       print('plotting default file(s):'+'; '.join(fnames))
     else:
       print('plotting file specified:'+sys.argv[1])
@@ -591,20 +596,21 @@ if __name__ == "__main__":
     if len(sys.argv)<3:
       #variants = ['dm', '6h']
       #variants = ['IA','DA']
-      variants = ['IA', 'IA']
+      variants = ['IA']#, 'IA']
     else:
       variants=sys.argv[2].split(',')
 
     if len(sys.argv)<4: #no third argument was passed
       #modnames=['Nbased','Cbased']
-      modnames=['Cbased','Cbased']#
+      modnames=['Cbased'] #,'Cbased']#
     else:
       modnames=sys.argv[3].split(',')
 
     if len(sys.argv)<5: #no third argument was passed
+      ids=['sim']
       #ids=['Nbased','Cbased']
       #ids = ['IA', 'DA']
-      ids=['PAR:N','PAR:A']#
+      #ids=['PAR:N','PAR:A']
     else:
       ids=sys.argv[4].split(',')
 
@@ -614,6 +620,6 @@ if __name__ == "__main__":
     else:
       numyears=int(sys.argv[5]) #number of years to plot (counting from the last year backwards)
 
-    print('plotting last ' + str(numyears) + ' year of the simulation')
+    print('plotting last ' + str(numyears) + ' year of the simulations: ' + ','.join(ids))
 
     main(fnames, numyears, modnames, variants, ids)
