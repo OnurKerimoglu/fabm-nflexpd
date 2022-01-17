@@ -16,11 +16,13 @@ varlims1D={'I_dm':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf'
          'Phy-fA':[0.0,1.0], 'Phy-fV':[0.0,0.5], 'Phy-ThetaHat':[0.00,0.05],'Phy-fC':[0,0.2],'Phy-limfunc_L':[0.,1]}
 varlims0D={'I_dm':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf':[-100,0],'wind':[-6,26],
          'DetC_sed/DetN_sed':[4.0,16.0],'DetC/DetN':[5.0,30.0],'DOC/DON':[5.0,30.0],
+         'totalN':[21.16,21.11],'totalC':[1040.547,1040.552],
          'DIC': [0, 1000],'DIN': [0, 20],'DetC':[0,300],'DetN':[0,15], 'DOC':[0,300], 'DON':[0,15],
          'Phy-Chl':[0,20.],'Phy-C':[0,100.0],'Phy-N':[0,7.5],'Phy-Q':[0.02,0.22],'Phy-Chl2C':[0.00,0.1],
          'Phy-PPR':[0,20.],'Phy-mu':[0,0.4],'Phy-vN':[0,0.05],'Phy-f_dinphy':[0,0.5],'Phy-R_N':[0,0.04],'Phy-R_Chl':[0,0.1],
          'Phy-fA':[0.0,1.0], 'Phy-fV':[0.0,0.5], 'Phy-ThetaHat':[0.00,0.05],'Phy-fC':[0,0.2],'Phy-limfunc_L':[0.,1]}
-namelibNbasedIA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp','totalN':'total_nitrogen_calculator_result',
+namelibNbasedIA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
+                 'totalN':'total_nitrogen_calculator_result',
                'I-dm':'abio_PAR_dmean','I':'abio_PAR',
              'Phy-C':'phy_IA_C','Phy-N':'phy_IA_N','PhyC-Q':'phy_IA_Q',
              'Phy-Chl':'phy_IA_Chl','PhyC-Chl2C':'phy_IA_Chl2C',
@@ -30,7 +32,8 @@ namelibNbasedIA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp','totalN':'total_nitro
              'DIN':'abio_din','DON':'abio_don','DetN':'abio_detn',
              'DOC':'abio_doc','DetC':'abio_detc'
             }
-namelibNbasedDA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp','totalN':'total_nitrogen_calculator_result',
+namelibNbasedDA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
+                 'totalN':'total_nitrogen_calculator_result',
                'I-dm':'abio_PAR_dmean','I':'abio_PAR',
              'Phy-C':'phy_DA_C','Phy-N':'phy_DA_N','Phy-Q':'phy_DA_Q',
              'Phy-Chl':'phy_DA_Chl','Phy-Chl2C':'phy_DA_Chl2C',
@@ -57,7 +60,7 @@ namelibCbasedDA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
             'totalC':'total_carbon_calculator_result',
              'totalN':'total_nitrogen_calculator_result',
              #'totalN':'abio_Cbased_din+abio_Cbased_don+abio_Cbased_detn+phy_Cbased_DA_N',
-             'I-dm':'abio_Cbased_PAR_dmean','I':'abio_Cbased_PAR',
+             'I-dm':'abio_Cbased_PAR_dmean','I':'abio_Cbased_PAR', 'dI_dt':'phy_Cbased_IA_dI_dt',
              'Phy-C':'phy_Cbased_DA_C','Phy-N':'phy_Cbased_DA_N','Phy-Q':'phy_Cbased_DA_Q',
              'Phy-Chl':'phy_Cbased_DA_Chl','Phy-Chl2C':'phy_Cbased_DA_Chl2C',
              'mu':'phy_Cbased_DA_mu','vN':'phy_Cbased_DA_vN','R_N':'phy_Cbased_DA_R_N','R_Chl':'phy_Cbased_DA_R_Chl',
@@ -83,7 +86,7 @@ prettynames={'I_0':'$I_0$','wind':'wind','T':'T',
              'DIN':'DIN','DON':'DON','DetN':'$Det_N$',
              'DOC':'DOC','DetC':'$Det_C$',
               'mu':'$\mu$', 'vN':'$V_N$', 'R_N':'$R_N$', 'R_Chl':'$R_{Chl}$',
-             'fA':'$f_A$', 'fV':'$f_V$', 'fC':'$f_C$', 'limfunc_L':'$L_I$'
+             'fA':'$f_A$', 'fV':'$f_V$', 'fC':'$f_C$', 'limfunc_L':'$L_I$','ThetaHat':r'$\hat{\theta}$'
              }
 numlevels=6
 #depth range to be shown:

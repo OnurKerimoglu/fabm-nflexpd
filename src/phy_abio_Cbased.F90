@@ -467,7 +467,7 @@
    !phy
    real(rk)                   :: dic,din,phyC,phyN,parW,parE,parE_dm,Ld
    real(rk)                   :: ThetaHat,vNhat,muhatG,RhatChl,muhatNET
-   real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT,valSIT
+   real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT
    real(rk)                   :: vN,RMchl,zetaChl
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: tC,Tfac,depth
@@ -475,9 +475,10 @@
    real(rk)                   :: mu,respN,mortC,mortN,Pprod,muNET,KN_monod
    real(rk)                   :: limfunc_L,fC,limfunc_Nmonod
    real(rk)                   :: f_dic_phy,f_din_phy,f_din_phy_hypot,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
-   real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt
+   real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt,dN_dt_imp
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN
    real(rk)                   :: Imin,Imax,dI_dt_analytical
+   real(rk)                   :: totN
    real(rk), parameter        :: pi = 3.1415926535897931
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
    
@@ -626,7 +627,7 @@
    if (self%PARintern) then
      Imin=1.6 !molE/m2/d 
      Imax=110.0 !molE/m2/d
-     parE_dm=(Imin+(Imax-Imin)/2.0*(1.0+sin(2.0*pi*(doy/366.-0.25)))) /secs_pr_day !molE/m2/s
+     parE_dm=(Imin+(Imax-Imin)/2.0*(1.0+sin(2.0*pi*(doy/365.-0.25)))) /secs_pr_day !molE/m2/s
      dI_dt_analytical = (Imax-Imin)*(pi/365)*cos(2*pi*(doy/365.-0.25)) /(secs_pr_day*secs_pr_day) !molE/m2/s2
      !write(*,*)'I,dI/dt',parE_dm*secs_pr_day, dI_dt_analytical*secs_pr_day*secs_pr_day
    else
@@ -660,7 +661,7 @@
    
    !Calculate intermediate terms:
    !Temperature factor 
-   Tfac = FofT(tC)
+   !Tfac = FofT(tC) !obtained already for abio
    
    !scale all parameters that needs to be scaled:
    mu0hat_fT = self%mu0hat * Tfac
@@ -849,36 +850,47 @@
        ! Calculate the balance-flux through changes in Q (re-location of N)
        !!delQ/delZ, eq. A-2&3 (Z=ZINT)      
        delQ_delZ= -self%Q0/(4*ZINT*sqrt(ZINT*(1.+ZINT))) 
+       !molN/molC
        !write(*,'(A,4F12.5)')'  (phy) delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT)):',delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT))
-       !(exp(-ai*ThetaHat*parE_dm/(mu0hat*Tfac))=1-valSIT
+       !(exp(-ai*ThetaHat*parE_dm/(mu0hat*Tfac))=1-limfunc_L
        
        !delZ/delI, eq.A-4 in S16
        !old (based on muhatG = previously muhatI):
-       !delZ_delI= self%Q0*self%aI*ThetaHat/(2*vNhat)*(1-valSIT)
+       !delZ_delI= self%Q0*self%aI*ThetaHat/(2*vNhat)*(1-limfunc_L)
        !new (based on muhat_net):
-       delZ_delI= self%Q0/(2*vNhat)*(Ld*(1-ThetaHat*zetaChl))*(self%aI*ThetaHat)*(1-valSIT) 
-       !write(*,'(A,4F15.5)')'  (phy.2) delZ_delI, ThetaHat, vNhat, (1-valSIT)',delZ_delI, ThetaHat, vNhat, (1-valSIT)
-       !
+       delZ_delI= self%Q0/(2*vNhat)*(Ld*(1-ThetaHat*zetaChl))*(self%aI*ThetaHat)*(1-limfunc_L)
+       !m2s/molE
+       !write(*,'(A,3F15.5)')'  (phyL863) delZ_delI, vNhat, limfunc_L',delZ_delI, vNhat, limfunc_L
        !delZ/delN, eq.A-5 in S16
        !delZ_delN= -self%Q0*muhatNET/(2*din*vNhat)*(1-(vNhat/self%V0hat)-(vNhat/sqrt(self%V0hat*self%A0hat*din))) 
-       delZ_delN= -self%Q0*muhatNET/(2*din*vNhat)*(1-(vNhat/(V0hat_fT))-(vNhat/sqrt(V0hat_fT*self%A0hat*din))) 
+       !delZ_delN= -self%Q0*muhatNET/(2*din*vNhat)*(1-(vNhat/(V0hat_fT))-(vNhat/sqrt(V0hat_fT*self%A0hat*din)))
+       !m3/molN
+       !self-obtained solution (yields the same result as with the EqA-5 in S16):
+       delZ_delN=-self%Q0*muhatNET/(2*fA*self%A0hat*din*din)
+       !m3/molN
        !!delQ/delI, eq. A-2 in S16
        delQ_delI=delQ_delZ*delZ_delI 
+       !molN/molC/(molE/m2/s)
        !write(*,'(A,3F15.5)')'  (phy.3) delQ_delI,delQ_delZ,delZ_delI:',delQ_delI,delQ_delZ,delZ_delI
        !!delQ/delN, eq. A-3 in S16
        delQ_delN=delQ_delZ*delZ_delN
+       !m3/mmolC
        if (self%PARintern) then
          !Analytical solution of dI/dt
          dI_dt = dI_dt_analytical
+         !molE/m2/s2
          !write(*,*)'dI_dt analytical,discrete:',dI_dt,delta_parE / delta_t
        else
          !dI/dt: discrete approximation
          dI_dt = delta_parE / delta_t
+         !molE/m2/s2
        end if
        !!dN/dt: discrete approximation (Note that in this combined (abio+phy) version, this is only diagnostic)
        dN_dt = delta_din / delta_t  
+       !mmol/m3/s
        ! !delQ/delt, eq. A-6 in S16: (Note that in this combined (abio+phy) version,  this is only diagnostic) 
        delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt 
+       !molN/molC/s
        !write(*,'(A,5F20.10)')'  (phy.4) delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt:',delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt
        !write(*,'(A,3F15.10)')'  (phy.5) vN,delQ_delI*dI_dt,delQ_delN*dN_dt:',mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt
        
@@ -898,7 +910,6 @@
    f_phy_doc = (1.0 - self%Mpart) * mortC        !Doesn't appear in K21, since Mpart=1 -> f_phy_don=0 
    f_phy_don = (1.0 - self%Mpart) * mortN        !Doesn't appear in K20, since Mpart=1 -> f_phy_don=0 
    
-   !write(*,'(A,5F12.5)')'  (phy) dphyC*dt,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q: ', (f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)*12,vN, f_din_phy/Q, -f_phy_don/Q, -f_phy_detn/Q
    ! Set temporal derivatives
    _SET_ODE_(self%id_phyC, f_dic_phy - f_phy_doc - f_phy_detc)  !  f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
    !write(*,'(A,2F15.10)')'  (phy.6) phyC,delta_phyC',phyC,(mu*phyC - f_phy_don/Q - f_phy_detn/Q)*delta_t
@@ -916,10 +927,16 @@
      _SET_DIAGNOSTIC_(self%id_ZINT, ZINT)
      _SET_DIAGNOSTIC_(self%id_delQdelt,delQ_delt*secs_pr_day)
      ! 'Implicit': After rearranging and isolating dN/dt
-     _SET_ODE_(self%id_din, (f_don_din - (vN+delQ_delI*dI_dt)*phyC)/(1+phyC*delQ_delN))
+     dN_dt_imp=(f_don_din - (vN+delQ_delI*dI_dt)*phyC)/(1+phyC*delQ_delN)
+     _SET_ODE_(self%id_din, dN_dt_imp)
      !'Explicit': f_din_phy = (vN + delQ_delt) * phyC (Eq.10) 
      !_SET_ODE_(self%id_din, f_don_din - f_din_phy)
    end if
+   
+   !if ( mod(doy*10.,10.0) .eq. 0.0 .or. doy<11./secs_pr_day) then
+   !  totN = din+don+detN+phyC*Q
+   !  write(*,'(A,F3.1,6F13.8)')'doy,totN,din,delQ_delZ,delZ_delN,delZ_delI,dN_dt: ',doy,totN,din,delQ_delZ,delZ_delN,delZ_delI,dN_dt_imp
+   !end if
    
    !dC/dt
    _SET_ODE_(self%id_dic, f_doc_dic-f_dic_phy) !Assuming that resp terms (RespChl and RespN) are added back to the DIC pool (when CO2 is resolved, this would have to change)
