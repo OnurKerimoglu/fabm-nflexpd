@@ -466,7 +466,7 @@
 ! !LOCAL VARIABLES:
    !phy
    real(rk)                   :: dic,din,phyC,phyN,parW,parE,parE_dm,Ld
-   real(rk)                   :: ThetaHat,vNhat,muhatG,RhatChl,muhatNET
+   real(rk)                   :: LamW,ThetaHat,vNhat,muhatG,RhatChl,muhatNET
    real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT
    real(rk)                   :: vN,RMchl,zetaChl
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
@@ -477,6 +477,7 @@
    real(rk)                   :: f_dic_phy,f_din_phy,f_din_phy_hypot,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
    real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt,dN_dt_imp
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN
+   real(rk)                   :: delZ_delmu,delmu_delZ,delT_delI,delmu_delT
    real(rk)                   :: Imin,Imax,dI_dt_analytical
    real(rk)                   :: totN
    real(rk), parameter        :: pi = 3.1415926535897931
@@ -676,7 +677,8 @@
      if( parE_dm .gt. I_zero ) then
        !argument for the Lambert's W function
        larg = (1.0 + RMchl_fT/(Ld*mu0hat_fT)) * exp(1.0 + self%aI*parE_dm/(mu0hat_fT*self%zetaChl)) !Eq.26, term in brackets
-       ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * mu0hat_fT/(self%aI*parE_dm) !Eq.26
+       LamW=WAPR(larg, 0, 0)
+       ThetaHat = 1.0/self%zetaChl + ( 1.0 -  LamW ) * mu0hat_fT/(self%aI*parE_dm) !Eq.26
      else
        !write(*,*)'parE_dm,I_0',parE_dm,I_zero
        ThetaHat = self%ThetaHat_min  !Eq.26, if I<=IC (=0 in K20)
@@ -695,6 +697,10 @@
    !write(*,*)'depth,parE_dm,SIT',depth,parE_dm,1.0-exp(-self%aI*ThetaHat*parE_dm/(Tfac*self%mu0hat))
    muhatG = Ld * mu0hat_fT * limfunc_L !Eq.21 in K20
    
+   !if ( mod(doy*10.,10.0) .eq. 0.0 .or. doy<11./secs_pr_day) then
+   !  write(*,'(A,F6.1,4F16.10)')'  (phyL701) doy,parE_dm,larg,LamW,ThetaHat:',doy,parE_dm*secs_pr_day,larg,LamW,ThetaHat
+   !end if
+   
    !'Net' light limited growth rate, muhatNET
    !muhatNET=muhatG*(1.0-zetaChl*ThetaHat)-Tfac*RMchl*zetaChl*ThetaHat
    !Chloroplast-specific respiration rate:
@@ -702,7 +708,7 @@
    !Chloroplast-specific net growth rate
    muhatNET=muhatG-RhatChl !Eq. 23 in K20 (= A-cursive in Pahlow etal 2013, Appendix 1)
    if (.not. self%mimic_Monod .and. self%fV_opt .and. parE_dm .gt. I_zero .and. muhatNET .lt. 0.0) then
-     write(*,'(A,F10.8,A,F10.8,A,F5.2,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8)')'Ld:',Ld,'  fT:',Tfac,'  depth:',depth,'  I_C:',I_zero*86400,'  Idm:',parE_dm*86400,'  WAPR:',WAPR(larg, 0, 0),'  ThetaHat:',ThetaHat,'  SI:',limfunc_L,'  muhatNET:',muhatNET*86400
+     write(*,'(A,F10.8,A,F10.8,A,F5.2,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8)')'Ld:',Ld,'  fT:',Tfac,'  depth:',depth,'  I_C:',I_zero*86400,'  Idm:',parE_dm*86400,'  WAPR:',LamW,'  ThetaHat:',ThetaHat,'  SI:',limfunc_L,'  muhatNET:',muhatNET*86400
    end if
    
    !Optimal allocation for affinity vs max. uptake
@@ -748,7 +754,7 @@
    else
      fV = self%fV_fixed !Used for FS in K20
    end if
-   
+         
    !fC
    !can help avoiding model crashing:
    if (din .gt. self%mindin) then ! 'din detection limit' for phytoplankton
@@ -854,13 +860,27 @@
        !write(*,'(A,4F12.5)')'  (phy) delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT)):',delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT))
        !(exp(-ai*ThetaHat*parE_dm/(mu0hat*Tfac))=1-limfunc_L
        
-       !delZ/delI, eq.A-4 in S16
-       !old (based on muhatG = previously muhatI):
-       !delZ_delI= self%Q0*self%aI*ThetaHat/(2*vNhat)*(1-limfunc_L)
-       !new (based on muhat_net):
-       delZ_delI= self%Q0/(2*vNhat)*(Ld*(1-ThetaHat*zetaChl))*(self%aI*ThetaHat)*(1-limfunc_L)
-       !m2s/molE
+       delZ_delmu = self%Q0/(2*vNhat)
+       delmu_delZ = (Ld*(1-ThetaHat*zetaChl))*(self%aI*ThetaHat)*(1-limfunc_L)
        !write(*,'(A,3F15.5)')'  (phyL863) delZ_delI, vNhat, limfunc_L',delZ_delI, vNhat, limfunc_L
+       !delZ/delI, eq.A-4 in S16
+       if ( self%theta_opt ) then
+         if ( parE_dm .gt. I_zero) then
+           delT_delI = -V0hat_fT / (self%aI * parE_dm**2) * (1.0_rk - LamW) - LamW / (1.0_rk + LamW) / (parE_dm * zetaChl)
+         else
+           delT_delI = 0.0_rk
+         end if
+         delmu_delT = Ld * (self%aI * parE_dm * (1 - limfunc_L) * (1 - zetaChl * ThetaHat) - limfunc_L * zetaChl * V0hat_fT) - RMchl_fT*zetaChl
+         delZ_delI = delZ_delmu * (delmu_delZ + delmu_delT*delT_delI)
+         !m2s/molE
+         !if ( mod(doy*10.,10.0) .eq. 0.0 .or. doy<11./secs_pr_day) then
+         !  write(*,'(A,F6.1,4F16.10)')'  (phyL877) doy,delmu_delZ,delmu_delT*delT_delI,delmu_delT,delT_delI:',doy,delmu_delZ,delmu_delT*delT_delI,delmu_delT,delT_delI
+         !end if
+       else
+         delZ_delI = delZ_delmu * delmu_delZ
+         !m2s/molE
+       end if
+       
        !delZ/delN, eq.A-5 in S16
        !delZ_delN= -self%Q0*muhatNET/(2*din*vNhat)*(1-(vNhat/self%V0hat)-(vNhat/sqrt(self%V0hat*self%A0hat*din))) 
        !delZ_delN= -self%Q0*muhatNET/(2*din*vNhat)*(1-(vNhat/(V0hat_fT))-(vNhat/sqrt(V0hat_fT*self%A0hat*din)))

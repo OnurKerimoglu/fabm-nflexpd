@@ -286,7 +286,7 @@
 !
 ! !LOCAL VARIABLES:
    real(rk)                   :: din,phyC,phyN,parW,parE,parE_dm,Ld
-   real(rk)                   :: ThetaHat,vNhat,muhatG,RhatChl,muhatNET
+   real(rk)                   :: LamW,ThetaHat,vNhat,muhatG,RhatChl,muhatNET
    real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT
    real(rk)                   :: vN,RMchl,zetaChl
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
@@ -297,6 +297,7 @@
    real(rk)                   :: f_dic_phy,f_din_phy,f_din_phy_hypot,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
    real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN
+   real(rk)                   :: delZ_delmu,delmu_delZ,delT_delI,delmu_delT
    real(rk)                   :: delta_t,delta_din,delta_parE,del_phyn_din
    real(rk)                   :: total_del_phyn_din
    real(rk)                   :: Imin,Imax,dI_dt_analytical
@@ -380,7 +381,8 @@
      if( parE_dm .gt. I_zero ) then
        !argument for the Lambert's W function
        larg = (1.0 + RMchl_fT/(Ld*mu0hat_fT)) * exp(1.0 + self%aI*parE_dm/(mu0hat_fT*self%zetaChl)) !Eq.26, term in brackets
-       ThetaHat = 1.0/self%zetaChl + ( 1.0 -  WAPR(larg, 0, 0) ) * mu0hat_fT/(self%aI*parE_dm) !Eq.26
+       LamW=WAPR(larg, 0, 0)
+       ThetaHat = 1.0/self%zetaChl + ( 1.0 -  LamW ) * mu0hat_fT/(self%aI*parE_dm) !Eq.26
      else
        !write(*,*)'parE_dm,I_0',parE_dm,I_zero
        ThetaHat = self%ThetaHat_min  !Eq.26, if I<=IC (=0 in K20)
@@ -398,6 +400,10 @@
    limfunc_L=SIT(self%aI,mu0hat_fT,parE_dm,ThetaHat) !Eq.22 in K20
    !write(*,*)'depth,parE_dm,SIT',depth,parE_dm,1.0-exp(-self%aI*ThetaHat*parE_dm/(Tfac*self%mu0hat))
    muhatG = Ld * mu0hat_fT * limfunc_L !Eq.21 in K20
+   
+   !if ( mod(doy*10.,10.0) .eq. 0.0 .or. doy<11./secs_pr_day) then
+   !  write(*,'(A,F6.1,4F16.10)')'  (phyL701) doy,parE_dm,larg,LamW,ThetaHat:',doy,parE_dm*secs_pr_day,larg,LamW,ThetaHat
+   !end if
    
    !'Net' light limited growth rate, muhatNET
    !muhatNET=muhatG*(1.0-zetaChl*ThetaHat)-Tfac*RMchl*zetaChl*ThetaHat
@@ -559,17 +565,27 @@
        !write(*,'(A,4F12.5)')'  (phy) delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT)):',delQ_delZ,self%Q0,ZINT,4*ZINT*sqrt(ZINT*(1.+ZINT))
        !(exp(-ai*ThetaHat*parE_dm/(mu0hat*Tfac))=1-limfunc_L
        
-       !delZ/delI, eq.A-4 in S16
-       !old (based on muhatG = previously muhatI):
-       !delZ_delI= self%Q0*self%aI*ThetaHat/(2*vNhat)*(1-limfunc_L)
-       !new (based on muhat_net):
-       delZ_delI= self%Q0/(2*vNhat)*(Ld*(1-ThetaHat*zetaChl))*(self%aI*ThetaHat)*(1-limfunc_L)
-       !m2s/molE
+       delZ_delmu = self%Q0/(2*vNhat)
+       delmu_delZ = (Ld*(1-ThetaHat*zetaChl))*(self%aI*ThetaHat)*(1-limfunc_L)
        !write(*,'(A,3F15.5)')'  (phyL863) delZ_delI, vNhat, limfunc_L',delZ_delI, vNhat, limfunc_L
-       !delZ/delN, eq.A-5 in S16
-       !delZ_delN= -self%Q0*muhatNET/(2*din*vNhat)*(1-(vNhat/(V0hat_fT))-(vNhat/sqrt(V0hat_fT*self%A0hat*din))) 
-       !m3/molN
-       !self-obtained solution (yields the same result as with the EqA-5 in S16):
+       !delZ/delI, eq.A-4 in S16
+       if ( self%theta_opt ) then
+         if ( parE_dm .gt. I_zero) then
+           delT_delI = -V0hat_fT / (self%aI * parE_dm**2) * (1.0_rk - LamW) - LamW / (1.0_rk + LamW) / (parE_dm * zetaChl)
+         else
+           delT_delI = 0.0_rk
+         end if
+         delmu_delT = Ld * (self%aI * parE_dm * (1 - limfunc_L) * (1 - zetaChl * ThetaHat) - limfunc_L * zetaChl * V0hat_fT) - RMchl_fT*zetaChl
+         delZ_delI = delZ_delmu * (delmu_delZ + delmu_delT*delT_delI)
+         !m2s/molE
+         !if ( mod(doy*10.,10.0) .eq. 0.0 .or. doy<11./secs_pr_day) then
+         !  write(*,'(A,F6.1,4F16.10)')'  (phyL877) doy,delmu_delZ,delmu_delT*delT_delI,delmu_delT,delT_delI:',doy,delmu_delZ,delmu_delT*delT_delI,delmu_delT,delT_delI
+         !end if
+       else
+         delZ_delI = delZ_delmu * delmu_delZ
+         !m2s/molE
+       end if
+       
        delZ_delN=-self%Q0*muhatNET/(2*fA*self%A0hat*din*din)
        !m3/molN
        !!delQ/delI, eq. A-2 in S16
@@ -613,7 +629,6 @@
    f_phy_detn = self%Mpart  * mortN
    f_phy_doc = (1.0 - self%Mpart) * mortC        !Doesn't appear in K21, since Mpart=1 -> f_phy_don=0 
    f_phy_don = (1.0 - self%Mpart) * mortN
-   
    
    !if ( mod(doy*10.,10.0) .eq. 0.0 .or. doy<100./secs_pr_day) then
    !  write(*,'(A,F3.1,6F12.8)')'doy,din,delQ_delZ,delZ_delN,delZ_delI,vNhat,lI: ',doy,din,delQ_delZ,delZ_delN,delZ_delI,vNhat,limfunc_L

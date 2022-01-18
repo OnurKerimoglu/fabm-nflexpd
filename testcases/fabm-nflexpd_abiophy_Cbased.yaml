@@ -54,7 +54,7 @@ instances:
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
       PARintern: .true.             # whether use internally calculated PAR
       dynQN: .false.                 # whether to dynamically represent QN (explicit state var for N- and C-)
-      Theta_opt : .false.             # whether to optimize theta (true/false)
+      Theta_opt : .true.             # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
       fV_opt : .true.                # whether to optimize fV (true/false)
       TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
@@ -92,10 +92,10 @@ instances:
     long_name: Phytoabio-Cbased-DA
     model: nflexpd/phyabio_Cbased
     parameters:
-      kc: 0.03                       # specific light extinction (m2 mmol-1)
+      kc: 0.00                       # specific light extinction (m2 mmol-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
-      PARintern: .true.             # whether use internally calculated PAR
+      PARintern: .false.             # whether use internally calculated PAR
       dynQN: .true.                  # whether to dynamically represent QN (explicit state var for N- and C-)
       Theta_opt : .true.             # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
