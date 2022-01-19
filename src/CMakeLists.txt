@@ -9,7 +9,7 @@ add_library(fabm_models_nflexpd OBJECT
             phy_Cbased.F90
             abio_Cbased.F90
             RHSext_Cbased.F90
-            lambert_modified.f90
+            lambert.F90
            )
 
 add_dependencies(fabm_models_nflexpd fabm_base)
