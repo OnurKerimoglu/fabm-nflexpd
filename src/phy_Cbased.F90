@@ -286,10 +286,11 @@
 !
 ! !LOCAL VARIABLES:
    real(rk)                   :: din,phyC,phyN,parW,parE,parE_dm,Ld
-   real(rk)                   :: LamW,ThetaHat,vNhat,muhatG,RhatChl,muhatNET
+   real(rk)                   :: ThetaHat,vNhat,muhatG,RhatChl,muhatNET
+   real(rk)                   :: LamW,l1,l2,aim
+   real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT
    real(rk)                   :: vN,RMchl,zetaChl
-   real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
    real(rk)                   :: doy,tC,Tfac,depth
    real(rk)                   :: mu0hat_fT,V0hat_fT,RMchl_fT
    real(rk)                   :: mu,respN,mortC,mortN,Pprod,muNET,KN_monod
@@ -380,9 +381,22 @@
    if( self%theta_opt ) then
      if( parE_dm .gt. I_zero ) then
        !argument for the Lambert's W function
-       larg = (1.0 + RMchl_fT/(Ld*mu0hat_fT)) * exp(1.0 + self%aI*parE_dm/(mu0hat_fT*self%zetaChl)) !Eq.26, term in brackets
-       LamW=WAPR(larg, 0, 0)
-       ThetaHat = 1.0/self%zetaChl + ( 1.0 -  LamW ) * mu0hat_fT/(self%aI*parE_dm) !Eq.26
+       aim = self%aI*parE_dm/mu0hat_fT
+       !larg = (1.0 + RMchl_fT/(Ld*mu0hat_fT)) * exp(1.0 + self%aI*parE_dm/(mu0hat_fT*self%zetaChl)) !Eq.26, term in brackets
+       larg=(1.0 + RMchl_fT / (Ld * mu0hat_fT)) * exp(1.0 + aim / zetaChl)
+       if (aim/zetaChl > 85.0) then !(aim > 700.0*self%zetaChl) then
+         ! approximation of lambertw(x) for large x: W0(x) = l1 - l2 + l2/l1
+         ! with l1 = ln(x), l2 = ln(l1)
+         ! the relative error is less than 1e-6
+         l1 = log(1.0 + RMchl_fT/(Ld*mu0hat_fT)) + 1.0 + aim/zetaChl
+         l2 = log(l1)
+         LamW = l1 - l2 + l2/l1
+         !write(*,*)'  approx LamW',LamW
+       else
+         LamW = WAPR(larg, 0, 0)
+      end if
+      !ThetaHat = 1.0/zetaChl + ( 1.0 -  LamW ) * mu0hat_fT/(self%aI*parE_dm) !Eq.26
+      ThetaHat = 1.0/zetaChl + (1.0 - LamW)/aim
      else
        !write(*,*)'parE_dm,I_0',parE_dm,I_zero
        ThetaHat = self%ThetaHat_min  !Eq.26, if I<=IC (=0 in K20)
@@ -412,7 +426,7 @@
    !Chloroplast-specific net growth rate
    muhatNET=muhatG-RhatChl !Eq. 23 in K20 (= A-cursive in Pahlow etal 2013, Appendix 1)
    if (.not. self%mimic_Monod .and. self%fV_opt .and. parE_dm .gt. I_zero .and. muhatNET .lt. 0.0) then
-     write(*,'(A,F10.8,A,F10.8,A,F5.2,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8)')'Ld:',Ld,'  fT:',Tfac,'  depth:',depth,'  I_C:',I_zero*86400,'  Idm:',parE_dm*86400,'  WAPR:',WAPR(larg, 0, 0),'  ThetaHat:',ThetaHat,'  SI:',limfunc_L,'  muhatNET:',muhatNET*86400
+     write(*,'(A,F10.8,A,F10.8,A,F5.2,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8,A,F10.8)')'Ld:',Ld,'  fT:',Tfac,'  depth:',depth,'  I_C:',I_zero*86400,'  Idm:',parE_dm*86400,'  WAPR:',LamW,'  ThetaHat:',ThetaHat,'  SI:',limfunc_L,'  muhatNET:',muhatNET*86400
    end if
    
    !Optimal allocation for affinity vs max. uptake
@@ -571,7 +585,7 @@
        !delZ/delI, eq.A-4 in S16
        if ( self%theta_opt ) then
          if ( parE_dm .gt. I_zero) then
-           delT_delI = -V0hat_fT / (self%aI * parE_dm**2) * (1.0_rk - LamW) - LamW / (1.0_rk + LamW) / (parE_dm * zetaChl)
+           delT_delI = -mu0hat_fT / (self%aI * parE_dm**2) * (1.0_rk - LamW) - LamW / (1.0_rk + LamW) / (parE_dm * zetaChl)
          else
            delT_delI = 0.0_rk
          end if
