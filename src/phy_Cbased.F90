@@ -166,12 +166,13 @@
    end if
    
    
+   call self%register_diagnostic_variable(self%id_dI_dt, 'dI_dt','E/m^2/d^2',    'dI/dt',           &
+                                     output=output_time_step_averaged)
+                                     
    if ( self%dynQN .or. self%mimic_Monod) then
      call self%register_diagnostic_variable(self%id_fdinphy, 'f_dinphy','molN/m^3/d',    'net N uptake by phytoplankton',           &
                                      output=output_instantaneous)
    else
-     call self%register_diagnostic_variable(self%id_dI_dt, 'dI_dt','E/m^2/d^2',    'dI/dt',           &
-                                     output=output_time_step_averaged)
      call self%register_diagnostic_variable(self%id_ZINT, 'ZINT','-',    'Qs*(muhatNET/vNhat+zetaN)',           &
                                      output=output_time_step_averaged)
      call self%register_diagnostic_variable(self%id_delQdelt, 'dQ_dt','mmolN/mmolC/d',    'dQ/dT',           &
@@ -301,7 +302,7 @@
    real(rk)                   :: delZ_delmu,delmu_delZ,delT_delI,delmu_delT
    real(rk)                   :: delta_t,delta_din,delta_parE,del_phyn_din
    real(rk)                   :: total_del_phyn_din
-   real(rk)                   :: Imin,Imax,dI_dt_analytical
+   real(rk)                   :: Imin,Imax
    real(rk), parameter        :: pi = 3.1415926535897931
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
@@ -330,12 +331,15 @@
    !_GET_(self%id_dic,dic)    ! carbon (no need, as C is assumed to be non limiting)
    _GET_(self%id_din,din)    ! nutrients
    _GET_GLOBAL_(self%id_doy,doy)  ! day of year
-   
+   ! delta_t,delta_din
+   _GET_(self%id_dep_delta_t,delta_t)
+   _GET_(self%id_dep_delta_din,delta_din)
+
    if (self%PARintern) then
      Imin=1.6 !molE/m2/d 
      Imax=110.0 !molE/m2/d
      parE_dm=(Imin+(Imax-Imin)/2.0*(1.0+sin(2.0*pi*(doy/365.-0.25)))) /secs_pr_day !molE/m2/s
-     dI_dt_analytical = (Imax-Imin)*(pi/365)*cos(2*pi*(doy/365.-0.25)) /(secs_pr_day*secs_pr_day) !molE/m2/s2
+     dI_dt = (Imax-Imin)*(pi/365)*cos(2*pi*(doy/365.-0.25)) /(secs_pr_day*secs_pr_day) !molE/m2/s2
      !write(*,*)'I,dI/dt',parE_dm*secs_pr_day, dI_dt_analytical*secs_pr_day*secs_pr_day
    else
      _GET_(self%id_parW,parW)             ! local photosynthetically active radiation
@@ -355,15 +359,14 @@
      if (parE_dm .eq. 0.0 ) then
        parE_dm=1e-6
      end if
+     
+     ! Discrete/numerical approximation for dI/dt
+     _GET_(self%id_dep_delta_parE,delta_parE) !mol/m2/d
+     delta_parE=(delta_parE/secs_pr_day) !mol/m2/d *d/s = mol/m2/s
+     !write(*,'(A,F10.1,5F12.5)')'  (phy.L379) doy(s),delta_I,delta_N,par,din,phyC:',doy*secs_pr_day,delta_par,delta_din,par_dm,din,phyC
+     !dI/dt: discrete approximation
+     dI_dt = delta_parE / delta_t
    end if
-   
-   ! delta_t,delta_par,delta_din
-   !_GET_(self%id_ddoy_dep,doy_prev) ! day of year at the previous time step
-   _GET_(self%id_dep_delta_t,delta_t)
-   _GET_(self%id_dep_delta_din,delta_din)
-   _GET_(self%id_dep_delta_parE,delta_parE) !mol/m2/d
-   delta_parE=(delta_parE/secs_pr_day) !mol/m2/s
-   !write(*,'(A,F10.1,5F12.5)')'  (phy.1) doy(s),delta_I,delta_N,par,din,phyC:',doy*secs_pr_day,delta_par,delta_din,par_dm,din,phyC
    
    !Calculate intermediate terms:
    !Temperature factor 
@@ -559,7 +562,6 @@
      delQ_delt = 0.0_rk
      delQ_delI = 0.0_rk
      delQ_delN = 0.0_rk
-     dI_dt = 0.0_rk
      dN_dt = 0.0_rk
    else
      !Balanced growth:
@@ -568,7 +570,6 @@
        delQ_delt = 0.0_rk
        delQ_delI = 0.0_rk
        delQ_delN = 0.0_rk
-       dI_dt = 0.0_rk
        dN_dt = 0.0_rk
        f_din_phy = vN * phyC  !Eq.5 in K20
      else
@@ -609,16 +610,6 @@
        !!delQ/delN, eq. A-3 in S16
        delQ_delN=delQ_delZ*delZ_delN
        !m3/mmolC
-       if (self%PARintern) then
-         !Analytical solution of dI/dt
-         dI_dt = dI_dt_analytical
-         !molE/m2/s2
-         !write(*,*)'dI_dt analytical,discrete:',dI_dt,delta_parE / delta_t
-       else
-         !dI/dt: discrete approximation
-         dI_dt = delta_parE / delta_t
-         !molE/m2/s2
-       end if
        !!dN/dt: discrete approximation (Note that in this combined (abio+phy) version, this is only diagnostic)
        dN_dt = delta_din / delta_t
        !mmol/m3/s
@@ -665,7 +656,6 @@
      !Explicit:
      !_SET_ODE_(self%id_din, f_don_din - f_din_phy)
    else
-     _SET_DIAGNOSTIC_(self%id_dI_dt, dI_dt*secs_pr_day*secs_pr_day)
      _SET_DIAGNOSTIC_(self%id_fdinphy_hypot,f_din_phy_hypot * secs_pr_day)
      _SET_DIAGNOSTIC_(self%id_ZINT, ZINT)
      _SET_DIAGNOSTIC_(self%id_delQdelt,delQ_delt*secs_pr_day)
@@ -706,7 +696,7 @@
    _SET_DIAGNOSTIC_(self%id_fC, fC)
    _SET_DIAGNOSTIC_(self%id_limfunc_L, limfunc_L)
    _SET_DIAGNOSTIC_(self%id_Tfac, Tfac)
-   
+   _SET_DIAGNOSTIC_(self%id_dI_dt, dI_dt*secs_pr_day*secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_mu, mu * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_muNET, muNET * secs_pr_day) !*s_p_d such that output is in d-1
    _SET_DIAGNOSTIC_(self%id_vN, vN * secs_pr_day) !*s_p_d such that output is in d-1
