@@ -172,9 +172,9 @@
    call self%register_dependency(self%id_dep_delta_din, 'delta_din','mmolN/m^3','prev. val of diff in DIN betw current and prev time step')
    
    call self%register_dependency(self%id_dpardm_dep,'PAR_dmean','E/m^2/d',       'prev. val of photosynthetically active radiation, daily averaged')
-   call self%register_diagnostic_variable(self%id_delta_par,'delta_par','E/m^2/s','diff betw current and prev time step',&
+   call self%register_diagnostic_variable(self%id_delta_par,'delta_par','E/m^2/d','diff betw current and prev time step',&
                      output=output_instantaneous)
-   call self%register_dependency(self%id_dep_delta_par, 'delta_par','E/m^2/s','prev. val of diff in PAR betw current and prev time step')
+   call self%register_dependency(self%id_dep_delta_par, 'delta_par','E/m^2/d','prev. val of diff in PAR betw current and prev time step')
    
    end subroutine initialize
 !EOC
@@ -269,8 +269,8 @@
      delta_t=(doy-doy_prev)*secs_pr_day !days to secs
      delta_din=din-din_prev      
      delta_parE= parE_dm-parEdm_prev !mol/m2/d
-    
-     !write(*,*)' (abio.2) pardm_prev,pardm,delta_par',parEdm_prev,parE_dm,delta_parE,'  din_prev,din',din_prev,din
+     
+     !write(*,*)' (abio.L273) pardm_prev,pardm,delta_par,delta_par,dI/dt',parEdm_prev,parE_dm,delta_parE,delta_parE/(delta_t/secs_pr_day)
      
      !set the diagnostics
      !_GET_(self%id_dep_del_phyn_din,del_phyn_din)
@@ -287,7 +287,7 @@
      
      _SET_DIAGNOSTIC_(self%id_delta_t,delta_t)
      _SET_DIAGNOSTIC_(self%id_delta_din,delta_din)
-     _SET_DIAGNOSTIC_(self%id_delta_par,delta_parE) !mol/m2/s
+     _SET_DIAGNOSTIC_(self%id_delta_par,delta_parE) !mol/m2/d
    else
      _GET_(self%id_dep_delta_t,delta_t) !secs
      _GET_(self%id_dep_delta_din,delta_din)
