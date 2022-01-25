@@ -166,7 +166,8 @@ module nflexpd_common
 ! !INPUT PARAMETERS:
    real(rk), intent(in)    :: L,doy
    real(rk)                :: P,D,nom,denom
-   INTEGER                 :: J
+   real(rk)                :: J
+!   INTEGER                 :: J
 ! !CONSTANTS   
    real(rk),parameter      :: pi=3.14159
    
@@ -185,16 +186,17 @@ module nflexpd_common
    !L = latitude
    !J = day of the year
    
-   J=floor(doy)
+   !J=floor(doy) #this causes jumps in dI/dt when doy changes at midnight
+   J=doy
 
    P = asin(.39795*cos(.2163108 + 2*atan(.9671396*tan(.00860*(J-186)))))
    nom= sin(0.8333*pi/180) + sin(L*pi/180)*sin(P)
    denom= cos(L*pi/180)*cos(P)  
    D = 24 - (24/pi)*acos(nom/denom)
    
-   !write(*,*)'L,J,D:',L,J,D
-   
    FDL=D/24.
+   
+   !write(*,*)'J,FDL:',J,FDL
    
    return
    end function FDL
