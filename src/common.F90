@@ -165,11 +165,15 @@ module nflexpd_common
 !
 ! !INPUT PARAMETERS:
    real(rk), intent(in)    :: L,doy
-   real(rk)                :: P,D,nom,denom
-   real(rk)                :: J
-!   INTEGER                 :: J
+   real(rk)                :: day, phi, hour_angle
+!   integer                 :: day
 ! !CONSTANTS   
    real(rk),parameter      :: pi=3.14159
+   real(rk)                :: a=0.39795
+   real(rk)                :: b=0.2163108
+   real(rk)                :: c=0.9671396
+   real(rk)                :: d=0.0086
+   real(rk)                :: p = 0.8333
    
 !
 ! !REVISION HISTORY:
@@ -184,19 +188,15 @@ module nflexpd_common
 
    !D = daylength
    !L = latitude
-   !J = day of the year
+   !doy = day of the year
    
-   !J=floor(doy) #this causes jumps in dI/dt when doy changes at midnight
-   J=doy
-
-   P = asin(.39795*cos(.2163108 + 2*atan(.9671396*tan(.00860*(J-186)))))
-   nom= sin(0.8333*pi/180) + sin(L*pi/180)*sin(P)
-   denom= cos(L*pi/180)*cos(P)  
-   D = 24 - (24/pi)*acos(nom/denom)
-   
-   FDL=D/24.
-   
-   !write(*,*)'J,FDL:',J,FDL
+   !day = floor(doy) - 186 1this causes jumps in dI/dt when doy changes at midnight
+   day = doy - 186
+   phi = asin(a * cos(b + 2 * atan(c * tan(d * day))))
+   hour_angle = (sin(p*pi/180) + sin(L*pi/180) * sin(phi)) / (cos(L*pi/180) * cos(phi))
+   FDL = 1 - acos(min(max(hour_angle, -1.0), 1.0)) / pi
+  
+   !write(*,*)'day,FDL:',day,FDL
    
    return
    end function FDL
