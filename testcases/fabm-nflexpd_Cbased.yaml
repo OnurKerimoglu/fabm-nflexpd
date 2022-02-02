@@ -51,7 +51,7 @@ instances:
       din: abio_Cbased/din                       # [mmolN/m^3] (state) nutrient source (mmolN m-3)
       f_don_din: abio_Cbased/f_don_din           # [mmolN/m^3/d] (diagnostic) flux from DON to DIN
       #f_din_phy: phyC_Cbased_DA/f_dinphy         #[molN/m^3/d] (diagnostic) net N uptake by phytoplankton
-      vN_dQdt_I: phy_Cbased_IA/vN_dQdt_I       #[molN/m^3/d] (diagnostic) phyC*(vN+delQ/delI*dI/dt)
+      vN_dQdt_I: phy_Cbased_IA/vN_dQdt_I       #[molN/m^3/d] (diagnostic) phyC*(vN+delQ/delI*dI/dt+delQ_delLd*dLd_dt)
       del_phyn_din: phy_Cbased_IA/del_phyn_din #[-] (diagnostic) Change in phyto-N per change in DIN
   phy_Cbased_DA:
     use: .false.

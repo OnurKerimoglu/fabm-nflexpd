@@ -301,6 +301,7 @@
    real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN
    real(rk)                   :: delZ_delmu,delmu_delZ,delT_delI,delmu_delT
+   real(rk)                   :: delQ_delLd,delZ_delLd,delT_delLd,delmu_delLd
    real(rk)                   :: delta_t,delta_din,delta_parE,del_phyn_din
    real(rk)                   :: total_del_phyn_din
    real(rk)                   :: Imin,Imax
@@ -616,8 +617,15 @@
        !!dN/dt: discrete approximation (Note that in this combined (abio+phy) version, this is only diagnostic)
        dN_dt = delta_din / delta_t
        !mmol/m3/s
+       !Daylength derivatives:
+       delT_delLd = LamW / (1.0 + LamW) * mu0hat_fT/(self%aI * parE_dm * Ld) / (1.0 + Ld * mu0hat_fT / RMchl_fT)
+       !(alternative) delT_delLd = W / (1.0 + W) / (aim * Ld) / (1.0 + Ld * mu0hat_fT / RMchl_fT)
+       !aim = self%aI*parE_dm/mu0hat_fT
+       delmu_delLd= (mu0hat_fT * limfunc_L + Ld * self%aI * PARE_dm * (1.0 - limfunc_L) * delT_delLd) * (1.0 - zetaChl * ThetaHat) - (Ld * mu0hat_fT * limfunc_L + RMchl_fT) * zetaChl * delT_delLd
+       delZ_delLd=delZ_delmu*delmu_delLd
+       delQ_delLd=delQ_delZ*delZ_delLd
        ! !delQ/delt, eq. A-6 in S16: (Note that in this combined (abio+phy) version,  this is only diagnostic) 
-       delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt 
+       delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt + delQ_delLd*dLd_dt
        !molN/molC/s
        !write(*,'(A,5F20.10)')'  (phy.4) delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt:',delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt
        !write(*,'(A,3F15.10)')'  (phy.5) vN,delQ_delI*dI_dt,delQ_delN*dN_dt:',mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt
@@ -665,7 +673,7 @@
      !Terms for the Implicit solution:
      del_phyn_din=phyC*delQ_delN ![unitless] this is the term in the denominator for the current species 
      _SET_DIAGNOSTIC_(self%id_del_phyn_din,del_phyn_din) ! [unitless] exported to the abio- component, such that it can calculate the sum
-     _SET_DIAGNOSTIC_(self%id_vN_dQdt_I,(vN+delQ_delI*dI_dt)*phyC*secs_pr_day) !mmolN/m^3/d
+     _SET_DIAGNOSTIC_(self%id_vN_dQdt_I,(vN+delQ_delI*dI_dt+delQ_delLd*dLd_dt)*phyC*secs_pr_day) !mmolN/m^3/d
      !RHS's are set externallly
      !'Explicit': f_din_phy = (vN + delQ_delt) * phyC (Eq.10) 
      !_SET_ODE_(self%id_din, f_don_din - f_din_phy)

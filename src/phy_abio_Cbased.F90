@@ -479,6 +479,7 @@
    real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt,dN_dt_imp
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN
    real(rk)                   :: delZ_delmu,delmu_delZ,delT_delI,delmu_delT
+   real(rk)                   :: delQ_delLd,delZ_delLd,delT_delLd,delmu_delLd
    real(rk)                   :: Imin,Imax
    real(rk)                   :: totN
    real(rk), parameter        :: pi = 3.1415926535897931
@@ -914,8 +915,15 @@
        !!dN/dt: discrete approximation (Note that in this combined (abio+phy) version, this is only diagnostic)
        dN_dt = delta_din / delta_t  
        !mmol/m3/s
+       !Daylength derivatives:
+       delT_delLd = LamW / (1.0 + LamW) * mu0hat_fT/(self%aI * parE_dm * Ld) / (1.0 + Ld * mu0hat_fT / RMchl_fT)
+       !(alternative) delT_delLd = W / (1.0 + W) / (aim * Ld) / (1.0 + Ld * mu0hat_fT / RMchl_fT)
+       !aim = self%aI*parE_dm/mu0hat_fT
+       delmu_delLd= (mu0hat_fT * limfunc_L + Ld * self%aI * PARE_dm * (1.0 - limfunc_L) * delT_delLd) * (1.0 - zetaChl * ThetaHat) - (Ld * mu0hat_fT * limfunc_L + RMchl_fT) * zetaChl * delT_delLd
+       delZ_delLd=delZ_delmu*delmu_delLd
+       delQ_delLd=delQ_delZ*delZ_delLd
        ! !delQ/delt, eq. A-6 in S16: (Note that in this combined (abio+phy) version,  this is only diagnostic) 
-       delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt 
+       delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt + delQ_delLd*dLd_dt
        !molN/molC/s
        !write(*,'(A,5F20.10)')'  (phy.4) delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt:',delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt
        !write(*,'(A,3F15.10)')'  (phy.5) vN,delQ_delI*dI_dt,delQ_delN*dN_dt:',mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt
@@ -952,7 +960,7 @@
      _SET_DIAGNOSTIC_(self%id_ZINT, ZINT)
      _SET_DIAGNOSTIC_(self%id_delQdelt,delQ_delt*secs_pr_day)
      ! 'Implicit': After rearranging and isolating dN/dt
-     dN_dt_imp=(f_don_din - (vN+delQ_delI*dI_dt)*phyC)/(1+phyC*delQ_delN)
+     dN_dt_imp=(f_don_din - (vN+delQ_delI*dI_dt+delQ_delLd*dLd_dt)*phyC)/(1+phyC*delQ_delN)
      _SET_ODE_(self%id_din, dN_dt_imp)
      !'Explicit': f_din_phy = (vN + delQ_delt) * phyC (Eq.10) 
      !_SET_ODE_(self%id_din, f_don_din - f_din_phy)
