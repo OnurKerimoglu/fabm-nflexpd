@@ -154,7 +154,7 @@ module nflexpd_common
 ! !IROUTINE: Fractional Day Length
 !
 ! !INTERFACE:
-   real(rk) function FDL(L,doy)
+   subroutine calc_daylength(L,doy,FDL,dFDL_dt)
 !
 ! !DESCRIPTION:
 ! Here, the sunrise and sunset are calculated based on latitude and day of year (doy)
@@ -165,8 +165,10 @@ module nflexpd_common
 !
 ! !INPUT PARAMETERS:
    real(rk), intent(in)    :: L,doy
+   real(rk)                :: FDL,dFDL_dt
    real(rk)                :: day, phi, hour_angle
 !   integer                 :: day
+   real(rk)                :: dphi_dd,dha_dphi,dL_dha
 ! !CONSTANTS   
    real(rk),parameter      :: pi=3.14159
    real(rk)                :: a=0.39795
@@ -174,10 +176,10 @@ module nflexpd_common
    real(rk)                :: c=0.9671396
    real(rk)                :: d=0.0086
    real(rk)                :: p = 0.8333
-   
 !
 ! !REVISION HISTORY:
-!  Original author(s):  O. Kerimoglu 27.11.2018
+!  Original author(s):  O. Kerimoglu 27.11.2018 
+!  Contribution by   :  M.Pahlow 02.02.2022 for the derivative terms
 !
 !EOP
 !-----------------------------------------------------------------------
@@ -195,11 +197,16 @@ module nflexpd_common
    phi = asin(a * cos(b + 2 * atan(c * tan(d * day))))
    hour_angle = (sin(p*pi/180) + sin(L*pi/180) * sin(phi)) / (cos(L*pi/180) * cos(phi))
    FDL = 1 - acos(min(max(hour_angle, -1.0), 1.0)) / pi
-  
+   
    !write(*,*)'day,FDL:',day,FDL
    
-   return
-   end function FDL
+   !time-derivative of daylength
+   dphi_dd = -(2 * a * c * d * sin(b + 2 * atan(c * tan(d * day))) * (tan(d * day)**2 + 1)) / (sqrt(1 - a**2 * cos(b + 2 * atan(c * tan(d * day)))** 2) * (c**2 * tan(d * day)**2 + 1))
+   dha_dphi = tan(L*pi/180) + (sin(p*pi/180) + sin(L*pi/180) * sin(phi)) * tan(phi) / cos(L*pi/180) / cos(phi)
+   dL_dha = 1 / pi / sqrt(1 - hour_angle**2) 
+   dFDL_dt = dL_dha * dha_dphi * dphi_dd
+  
+   end subroutine
 !EOC
 
 end module

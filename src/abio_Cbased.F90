@@ -194,7 +194,7 @@
 ! !LOCAL VARIABLES:
    real(rk)                   :: dic, din, detn, detc, don, doc
    real(rk)                   :: f_det_don, f_det_doc, f_don_din, f_doc_dic
-   real(rk)                   :: Ld,Tfac,parE,parE_dm
+   real(rk)                   :: Ld,dLd_dt,Tfac,parE,parE_dm
    real(rk)                   :: lat,depth,doy,tC,parW,parW_dm
    real(rk)                   :: doy_prev,delta_t
    real(rk)                   :: din_prev,delta_din
@@ -235,9 +235,10 @@
    !Calculate daytime average light based on fractional day length 
    if (self%PAR_dmean_FDL) then
     _GET_HORIZONTAL_(self%id_lat,lat)
-    Ld=FDL(lat,doy) 
+    call calc_daylength(lat,doy,Ld,dLd_dt) 
    else
     Ld=1.0
+    dLd_dt=0.0
    end if
    !Convert average irradiance throughout the day to average irradiance during day light, as needed by the phy module
    parE_dm=parE_dm/Ld ![mol/m2/d]

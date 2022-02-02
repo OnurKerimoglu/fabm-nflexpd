@@ -465,7 +465,7 @@
 !
 ! !LOCAL VARIABLES:
    !phy
-   real(rk)                   :: dic,din,phyC,phyN,parW,parE,parE_dm,Ld
+   real(rk)                   :: dic,din,phyC,phyN,parW,parE,parE_dm,Ld,dLd_dt
    real(rk)                   :: ThetaHat,vNhat,muhatG,RhatChl,muhatNET
    real(rk)                   :: LamW,l1,l2,aim
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
@@ -507,11 +507,7 @@
    _GET_(self%id_don,don) ! dissolved organic nitrogen
    ! Retrieve environmental dependencies
    _GET_(self%id_temp,tC) ! temperature in Celcius
-   
-   !Calculate Fractional day length
-   _GET_HORIZONTAL_(self%id_lat,lat)
    _GET_GLOBAL_(self%id_doy,doy)
-   Ld=FDL(lat,doy)
    
    _GET_(self%id_parW,parW) ! local photosynthetically active radiation (PAR)
    _GET_(self%id_parW_dmean,parW_dm) !current daily average PAR
@@ -530,9 +526,10 @@
    !Calculate daytime average light based on fractional day length 
    if (self%PAR_dmean_FDL) then
     _GET_HORIZONTAL_(self%id_lat,lat)
-    Ld=FDL(lat,doy) 
+    call calc_daylength(lat,doy,Ld,dLd_dt) 
    else
     Ld=1.0
+    dLd_dt=0.0
    end if
    !Convert average irradiance throughout the day to average irradiance during day light, as needed by the phy module
    parE_dm=parE_dm/Ld ![mol/m2/d]
