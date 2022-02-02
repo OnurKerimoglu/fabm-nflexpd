@@ -7,7 +7,7 @@ instances:
       kc: 0.03                       # specific light extinction (m2 mmolN-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
-      PARintern: .true.             # whether use internally calculated PAR
+      PARintern: .true.              # whether use internally calculated PAR
       dynQN: .false.                 # whether to dynamically represent QN (explicit state var for N- and C-)
       Theta_opt : .true.             # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
@@ -38,7 +38,8 @@ instances:
       delta_t: abio_Cbased/delta_t # integ. time step (s)
       delta_din: abio_Cbased/delta_din # difference in DIN since the prev. time step
       delta_par: abio_Cbased/delta_par # difference in par since the prev. time step
-      FDL: abio_Cbased/FDL        # Fractional Day Length (-)
+      FDL: abio_Cbased/FDL        # Fractional daylength (-)
+      dFDL_dt: abio_Cbased/dFDL_dt # Time-derivative of the fractional daylength
       PAR_dmean: abio_Cbased/PAR_dmean  # PAR, daily mean (mol/m2/d)
   RHSext_Cbased_IA:
     use: .true.
@@ -62,7 +63,7 @@ instances:
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
       PARintern: .false.             # whether use internally calculated PAR
       dynQN: .true.                  # whether to dynamically represent QN (explicit state var for N- and C-)
-      Theta_opt : .false.             # whether to optimize theta (true/false)
+      Theta_opt : .true.             # whether to optimize theta (true/false)
       fA_opt : .true.                # whether to optimize fA (true/false)
       fV_opt : .true.                # whether to optimize fV (true/false)
       TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
@@ -82,7 +83,7 @@ instances:
       Mpart: 1.0                     # part of the mortality that goes to detritus
     initialization:
       C: 0.8                      # Phytoplankton-N concentration (mmol m-3)
-      N: 0.16                        # Phytoplankton-N concentration (mmol m-3)
+      N: 0.1                        # Phytoplankton-N concentration (mmol m-3)
     coupling:
       dic: abio_Cbased/dic        # carbon source (mmolC m-3)
       din: abio_Cbased/din        # nutrient source (mmolN m-3)
@@ -112,8 +113,8 @@ instances:
     long_name: Abiotic
     model: nflexpd/abio_Cbased
     parameters:
-      PAR_ext_inE: .true.           # PAR provided externally are in Einsten/Quanta [mol/m2/d]
-      PAR_dmean_FDL: .false.          # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
+      PAR_ext_inE: .true.            # PAR provided externally are in Einsten/Quanta [mol/m2/d]
+      PAR_dmean_FDL: .true.          # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
       w_det: -2.0                    # vertical velocity (<0 for sinking) (m d-1)
       kc: 0.03                       # specific light extinction (m2 mmol-1)
       kdet: 0.1                      # Degredation rate of Detritus (d-1)

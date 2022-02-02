@@ -526,7 +526,8 @@
    !Calculate daytime average light based on fractional day length 
    if (self%PAR_dmean_FDL) then
     _GET_HORIZONTAL_(self%id_lat,lat)
-    call calc_daylength(lat,doy,Ld,dLd_dt) 
+    call calc_daylength(lat,doy,Ld,dLd_dt)
+    !write(*,'(A, 2F10.5)')'phyabioL530: Ld,dLd_dt',Ld,dLd_dt*86400
    else
     Ld=1.0
     dLd_dt=0.0

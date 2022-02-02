@@ -36,7 +36,7 @@
       type(type_diagnostic_variable_id)    :: id_fphydoc,id_fphydon,id_fphydetc,id_fphydetn
       
       type (type_global_dependency_id)  :: id_doy
-      type (type_dependency_id)            :: id_depth,id_temp,id_parW,id_par_dmean,id_depFDL
+      type (type_dependency_id)            :: id_depth,id_temp,id_parW,id_par_dmean,id_depFDL,id_depdFDLdt
       !type (type_horizontal_dependency_id) :: id_depFDL
       type (type_dependency_id)            :: id_dep_delta_t,id_dep_delta_din,id_dep_delta_parE
       
@@ -263,6 +263,7 @@
    call self%register_dependency(self%id_parW, standard_variables%downwelling_photosynthetic_radiative_flux)
    call self%register_dependency(self%id_par_dmean, 'PAR_dmean','E/m^2/s','photosynthetically active radiation, daily averaged')
    call self%register_dependency(self%id_depFDL, 'FDL','-',       'fractional day length')
+   call self%register_dependency(self%id_depdFDLdt, 'dFDL_dt','/s',       'Time derivative of the fractional day length')
    call self%register_dependency(self%id_temp,standard_variables%temperature)
    call self%register_global_dependency(self%id_doy,standard_variables%number_of_days_since_start_of_the_year)
    
@@ -286,7 +287,7 @@
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
-   real(rk)                   :: din,phyC,phyN,parW,parE,parE_dm,Ld
+   real(rk)                   :: din,phyC,phyN,parW,parE,parE_dm,Ld,dLd_dt
    real(rk)                   :: ThetaHat,vNhat,muhatG,RhatChl,muhatNET
    real(rk)                   :: LamW,l1,l2,aim
    real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
@@ -327,6 +328,8 @@
    !_GET_HORIZONTAL_(self%id_FDL,Ld)
    !get Ld (fractional day length)
    _GET_(self%id_depFDL,Ld)
+   _GET_(self%id_depdFDLdt,dLd_dt)
+   !write(*,'(A, 2F10.5)')'phyL332: Ld,dLd_dt',Ld,dLd_dt*86400
    _GET_(self%id_temp,tC) ! temperature in Celcius
    !_GET_(self%id_dic,dic)    ! carbon (no need, as C is assumed to be non limiting)
    _GET_(self%id_din,din)    ! nutrients

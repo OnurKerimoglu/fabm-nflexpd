@@ -73,7 +73,7 @@ instances:
       Mpart: 1.0                     # part of the mortality that goes to detritus
       #abio:
       PAR_ext_inE: .true.            # PAR provided externally are in Einsten/Quanta [mol/m2/d]
-      PAR_dmean_FDL: .false.         # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
+      PAR_dmean_FDL: .true.         # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
       w_det: -2.0                    # vertical velocity (<0 for sinking) (m d-1)
       kc: 0.00                       # specific light extinction (m2 mmol-1)
       kdet: 0.1                      # Degredation rate of Detritus (d-1)

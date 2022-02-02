@@ -204,7 +204,7 @@ module nflexpd_common
    dphi_dd = -(2 * a * c * d * sin(b + 2 * atan(c * tan(d * day))) * (tan(d * day)**2 + 1)) / (sqrt(1 - a**2 * cos(b + 2 * atan(c * tan(d * day)))** 2) * (c**2 * tan(d * day)**2 + 1))
    dha_dphi = tan(L*pi/180) + (sin(p*pi/180) + sin(L*pi/180) * sin(phi)) * tan(phi) / cos(L*pi/180) / cos(phi)
    dL_dha = 1 / pi / sqrt(1 - hour_angle**2) 
-   dFDL_dt = dL_dha * dha_dphi * dphi_dd
+   dFDL_dt = dL_dha * dha_dphi * dphi_dd / 86400 ! units in [/s]
   
    end subroutine
 !EOC

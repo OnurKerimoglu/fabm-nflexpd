@@ -27,7 +27,7 @@
       type (type_dependency_id)         :: id_temp,id_depth,id_parW,id_parW_dmean
       type (type_horizontal_dependency_id)  :: id_lat
       type (type_global_dependency_id)  :: id_doy
-      type (type_diagnostic_variable_id):: id_dPAR,id_dPAR_dmean, id_dFDL
+      type (type_diagnostic_variable_id):: id_dPAR,id_dPAR_dmean,id_dFDL,id_dFDLdt
       !type (type_horizontal_diagnostic_variable_id):: id_dFDL
       type (type_diagnostic_variable_id):: id_fdetdon,id_fdetdoc,id_fdondin,id_fdocdic
       type (type_bottom_diagnostic_variable_id):: id_detn_sed,id_detc_sed
@@ -127,6 +127,7 @@
    
    !call self%register_diagnostic_variable(self%id_dFDL,'FDL','-',       'fractional day length',source=source_do_surface) !,domain=domain_surface)
    call self%register_diagnostic_variable(self%id_dFDL,'FDL','-',       'fractional day length')
+   call self%register_diagnostic_variable(self%id_dFDLdt,'dFDL_dt','/s',       'time derivative of fractional day length')
    call self%register_diagnostic_variable(self%id_dPAR,'PAR','E/m^2/d',       'photosynthetically active radiation')
    call self%register_diagnostic_variable(self%id_dPAR_dmean, 'PAR_dmean','E/m^2/d','photosynthetically active radiation averaged during day light')
    
@@ -281,6 +282,7 @@
      
      ! Export diagnostic variables
      _SET_DIAGNOSTIC_(self%id_dFDL,Ld) !Fractional day length
+     _SET_DIAGNOSTIC_(self%id_dFDLdt,dLd_dt) !/s Time derivative of the fractional day length
      _SET_DIAGNOSTIC_(self%id_ddoy,doy)
      _SET_DIAGNOSTIC_(self%id_ddin, din)
      _SET_DIAGNOSTIC_(self%id_dPAR, parE) ! mol/m2/d
