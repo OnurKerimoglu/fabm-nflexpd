@@ -878,7 +878,9 @@
        !(exp(-ai*ThetaHat*parE_dm/(mu0hat*Tfac))=1-limfunc_L
        
        delZ_delmu = self%Q0/(2*vNhat)
+       ![s] = [molN/molC]/[molN/molC/s]
        delmu_delZ = (Ld*(1-ThetaHat*zetaChl))*(self%aI*ThetaHat)*(1-limfunc_L)
+       ![m2/molE]
        !write(*,'(A,3F15.5)')'  (phyL863) delZ_delI, vNhat, limfunc_L',delZ_delI, vNhat, limfunc_L
        !delZ/delI, eq.A-4 in S16
        if ( self%theta_opt ) then
@@ -916,12 +918,14 @@
        dN_dt = delta_din / delta_t  
        !mmol/m3/s
        !Daylength derivatives:
-       delT_delLd = LamW / (1.0 + LamW) * mu0hat_fT/(self%aI * parE_dm * Ld) / (1.0 + Ld * mu0hat_fT / RMchl_fT)
-       !(alternative) delT_delLd = W / (1.0 + W) / (aim * Ld) / (1.0 + Ld * mu0hat_fT / RMchl_fT)
-       !aim = self%aI*parE_dm/mu0hat_fT
+       delT_delLd = LamW / (1.0 + LamW) * mu0hat_fT/(self%aI * parE_dm) / (1.0 + Ld * mu0hat_fT / RMchl_fT)
+       ![gChl/molC]
        delmu_delLd= (mu0hat_fT * limfunc_L + Ld * self%aI * PARE_dm * (1.0 - limfunc_L) * delT_delLd) * (1.0 - zetaChl * ThetaHat) - (Ld * mu0hat_fT * limfunc_L + RMchl_fT) * zetaChl * delT_delLd
+       ![/s]
        delZ_delLd=delZ_delmu*delmu_delLd
+       ![-] =  s *[/1]
        delQ_delLd=delQ_delZ*delZ_delLd
+       !molN/molC/s
        ! !delQ/delt, eq. A-6 in S16: (Note that in this combined (abio+phy) version,  this is only diagnostic) 
        delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt + delQ_delLd*dLd_dt
        !molN/molC/s
