@@ -263,7 +263,9 @@
    call self%register_dependency(self%id_parW, standard_variables%downwelling_photosynthetic_radiative_flux)
    call self%register_dependency(self%id_par_dmean, 'PAR_dmean','E/m^2/s','photosynthetically active radiation, daily averaged')
    call self%register_dependency(self%id_depFDL, 'FDL','-',       'fractional day length')
-   call self%register_dependency(self%id_depdFDLdt, 'dFDL_dt','/s',       'Time derivative of the fractional day length')
+   if ( .not. (self%dynQN .or. self%mimic_Monod)) then
+     call self%register_dependency(self%id_depdFDLdt, 'dFDL_dt','/s',       'Time derivative of the fractional day length')
+   end if
    call self%register_dependency(self%id_temp,standard_variables%temperature)
    call self%register_global_dependency(self%id_doy,standard_variables%number_of_days_since_start_of_the_year)
    
