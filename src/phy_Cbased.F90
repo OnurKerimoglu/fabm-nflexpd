@@ -622,7 +622,7 @@
        dN_dt = delta_din / delta_t
        !mmol/m3/s
        !Daylength derivatives:
-       delT_delLd = LamW / (1.0 + LamW) * mu0hat_fT/(self%aI * parE_dm) / (1.0 + Ld * mu0hat_fT / RMchl_fT)
+       delT_delLd = LamW / (1.0 + LamW) * mu0hat_fT/(self%aI * parE_dm * Ld) / (1.0 + Ld * mu0hat_fT / RMchl_fT)
        ![gChl/molC]
        delmu_delLd= (mu0hat_fT * limfunc_L + Ld * self%aI * PARE_dm * (1.0 - limfunc_L) * delT_delLd) * (1.0 - zetaChl * ThetaHat) - (Ld * mu0hat_fT * limfunc_L + RMchl_fT) * zetaChl * delT_delLd
        ![/s]
