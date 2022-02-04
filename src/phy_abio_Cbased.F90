@@ -713,7 +713,7 @@
 
    ! Light limited growth rate
    limfunc_L=SIT(self%aI,mu0hat_fT,parE_dm,ThetaHat) !Eq.22 in K20
-   !write(*,*)'depth,parE_dm,SIT',depth,parE_dm,1.0-exp(-self%aI*ThetaHat*parE_dm/(Tfac*self%mu0hat))
+   !write(*,*)'depth,parE_dm,SIT',depth,parE_dm,1.0-exp(-self%aI*ThetaHat*parE_dm/(mu0hat_fT))
    muhatG = Ld * mu0hat_fT * limfunc_L !Eq.21 in K20
    
    !if ( mod(doy*10.,10.0) .eq. 0.0 .or. doy<11./secs_pr_day) then
@@ -740,7 +740,7 @@
    ! Optimal VNhat
    vNhat = vAff( din, fA, self%A0hat, V0hat_fT ) !Eq.16,17 in K20
    ! Equivalent way of calculating optimal vNhat
-   !vNhat2=vOU(din,self%A0hat,self%V0hat * Tfac)
+   !vNhat2=vOU(din,self%A0hat,V0hat_fT)
 
    if (.not. self%dynQN) then
      if ( self%mimic_Monod ) then
@@ -753,7 +753,7 @@
        end if
        limfunc_Nmonod = din / ( KN_monod + din)
        !Nutrient limitation function in affinity form:
-       !limfunc_Nmonod = fA*self%A0hat*din / ((1.0-fA)*self%V0hat*Tfac+fA*self%A0hat*din)
+       !limfunc_Nmonod = fA*self%A0hat*din / ((1.0-fA)*V0hat_fT+fA*self%A0hat*din)
      else
        !Optimal Q: 
        ZINT = (self%zetaN + muhatNET/vNhat) * self%Q0 / 2.0 !Eq.10, denominator term in sqrt
@@ -901,8 +901,7 @@
        end if
        
        !delZ/delN, eq.A-5 in S16
-       !delZ_delN= -self%Q0*muhatNET/(2*din*vNhat)*(1-(vNhat/self%V0hat)-(vNhat/sqrt(self%V0hat*self%A0hat*din))) 
-       !delZ_delN= -self%Q0*muhatNET/(2*din*vNhat)*(1-(vNhat/(V0hat_fT))-(vNhat/sqrt(V0hat_fT*self%A0hat*din)))
+       !delZ_delN= -self%Q0*muhatNET/(2*din*vNhat)*(1-(vNhat/V0hat_fT)-(vNhat/sqrt(V0hat_fT*self%A0hat*din)))
        !m3/molN
        !self-obtained solution (yields the same result as with the EqA-5 in S16):
        delZ_delN=-self%Q0*muhatNET/(2*fA*self%A0hat*din*din)
