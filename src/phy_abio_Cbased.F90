@@ -480,7 +480,7 @@
    real(rk)                   :: mu,respN,mortC,mortN,Pprod,muNET,KN_monod
    real(rk)                   :: limfunc_L,fC,limfunc_Nmonod
    real(rk)                   :: f_dic_phy,f_din_phy,f_din_phy_hypot,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
-   real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt,dN_dt_imp
+   real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,delQ_delTemp,dI_dt,dN_dt,dTemp_dt,dN_dt_imp
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN
    real(rk)                   :: delZ_delmu,delmu_delZ,delT_delI,delmu_delT
    real(rk)                   :: delQ_delLd,delZ_delLd,delT_delLd,delmu_delLd
@@ -497,6 +497,7 @@
    real(rk)                   :: din_prev,delta_din
    real(rk)                   :: tC_prev,delta_temp
    real(rk)                   :: parW_dm,parEdm_prev,delta_parE
+   real(rk)                   :: Q_p, ZINT_p, vNhat_p, fA_p, muhatNET_p, RhatChl_p, muhatG_p, limfunc_L_p, ThetaHat_p, LamW_p, aim_p, RMchl_fT_p, V0hat_fT_p, mu0hat_fT_p, Tfac_p !required to numerically approximate delQ/delT
    !real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
 !-----------------------------------------------------------------------
@@ -922,9 +923,56 @@
        ![-] =  s *[/1]
        delQ_delLd=delQ_delZ*delZ_delLd
        !molN/molC/s
-
+       !Temperature Derivatives: 
+       ! Numerical approximation of delQ/delT: 
+       ! Calculate Q with the T from the previous time step
+       dTemp_dt=delta_temp/delta_t
+       if (delta_temp .eq. 0.0) then
+         delQ_delTemp=0.0 !to avoid division by 0 errors
+       else
+         Tfac_p = FofT(tC_prev)
+         !scale all parameters that needs to be scaled:
+         mu0hat_fT_p = self%mu0hat * Tfac_p
+         V0hat_fT_p = self%V0hat * Tfac_p
+         RMchl_fT_p = self%RMchl * Tfac_p
+       
+         if (self%theta_opt) then
+           I_zero = zetaChl * RMchl_fT_p / (Ld*self%aI)   ! Threshold irradiance
+           if( parE_dm .gt. I_zero ) then
+             aim_p = self%aI*parE_dm/mu0hat_fT_p
+             LamW_p = FLamW(aim_p,Ld,mu0hat_fT_p,RMchl_fT_p,zetaChl)
+             ThetaHat_p = 1.0/zetaChl + (1.0 - LamW_p)/aim_p
+           else
+             ThetaHat_p = self%ThetaHat_min  !Eq.26, if I<=IC (=0 in K20)
+           end if
+         else
+           ThetaHat_p = self%TheHat_fixed
+         end if
+         ! Light limited growth rate
+         limfunc_L_p=SIT(self%aI,mu0hat_fT_p,parE_dm,ThetaHat_p) !Eq.22 in K20
+         muhatG_p = Ld * mu0hat_fT_p * limfunc_L_p !Eq.21 in K20
+         !Chloroplast-specific respiration rate:
+         RhatChl_p=muhatG_p*zetaChl*ThetaHat_p + RMchl_fT_p*zetaChl*ThetaHat_p !Eq.23 in K20
+         !Chloroplast-specific net growth rate
+         muhatNET_p=muhatG_p-RhatChl_p !Eq. 23 in K20 (= A-cursive in Pahlow etal 2013, Appendix 1)
+         !Optimal allocation for affinity vs max. uptake
+         if( self%fA_opt ) then
+           fA_p = 1.0 / ( 1.0 + sqrt(self%A0hat * din /(V0hat_fT_p)) ) !Eq.18 in K20
+         else
+           fA_p =  self%fA_fixed !Used for FS in K20
+         end if
+         ! Optimal VNhat
+         vNhat_p = vAff( din, fA_p, self%A0hat, V0hat_fT_p ) !Eq.16,17 in K20
+         ZINT_p = (self%zetaN + muhatNET_p/vNhat_p) * self%Q0 / 2.0 !Eq.10, denominator term in sqrt
+         Q_p = ( 1.0 + sqrt(1.0 + 1.0/ZINT_p) )*(self%Q0/2.0) !Eq.10 in K20 (=Eq10. in PO13)
+         delQ_delTemp=(Q-Q_p)/(tC-tC_prev)
+         !write(*,*)'doy',doy
+         !if (doy .gt. 0.0 .and. doy .lt. 2.0) then
+         !write(*,*)'doy,Q,Q_p,tC,tC_prev',doy,Q,Q_p,tC,tC_prev
+         !end if
+       end if
        !(for diagnostics): total delQ_delt
-       delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt + delQ_delLd*dLd_dt
+       delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt + delQ_delLd*dLd_dt + delQ_delTemp*dTemp_dt
        f_din_phy_hypot = (vN + delQ_delt) * phyC  !eq. A-6 in S16 (hypothetical flux between din-phy, only diagnostic)
      end if  
    end if
@@ -956,7 +1004,7 @@
      _SET_DIAGNOSTIC_(self%id_ZINT, ZINT)
      _SET_DIAGNOSTIC_(self%id_delQdelt,delQ_delt*secs_pr_day)
      ! 'Implicit': After rearranging and isolating dN/dt
-     dN_dt_imp=(f_don_din - (vN+delQ_delI*dI_dt+delQ_delLd*dLd_dt)*phyC)/(1+phyC*delQ_delN)
+     dN_dt_imp=(f_don_din - (vN+delQ_delI*dI_dt+delQ_delLd*dLd_dt+delQ_delTemp*dTemp_dt)*phyC)/(1+phyC*delQ_delN)
      _SET_ODE_(self%id_din, dN_dt_imp)
      !'Explicit': f_din_phy = (vN + delQ_delt) * phyC (Eq.10) 
      !_SET_ODE_(self%id_din, f_don_din - f_din_phy)
