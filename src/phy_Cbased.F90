@@ -37,7 +37,7 @@
       type (type_global_dependency_id)  :: id_doy
       type (type_dependency_id)            :: id_depth,id_temp,id_parW,id_par_dmean,id_depFDL,id_depdFDLdt
       !type (type_horizontal_dependency_id) :: id_depFDL
-      type (type_dependency_id)            :: id_dep_delta_t,id_dep_delta_din,id_dep_delta_parE
+      type (type_dependency_id)            :: id_dep_delta_t,id_dep_delta_din,id_dep_delta_parE,id_dep_delta_temp
       
 !     Model parameters
       real(rk) :: kc,w_phy,mindin
@@ -271,6 +271,7 @@
    call self%register_dependency(self%id_dep_delta_t, 'delta_t','s','diff betw current and prev time step')
    call self%register_dependency(self%id_dep_delta_din, 'delta_din','mmolN/m^3','diff in DIN betw current and prev time step')
    call self%register_dependency(self%id_dep_delta_parE, 'delta_par','E/m^2/s','diff in PAR betw current and prev time step')
+   call self%register_dependency(self%id_dep_delta_temp,'delta_temp','Degree_Celsius', 'diff in PAR betw current and prev time step')
    
    end subroutine initialize
 !EOC
@@ -302,7 +303,8 @@
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN
    real(rk)                   :: delZ_delmu,delmu_delZ,delT_delI,delmu_delT
    real(rk)                   :: delQ_delLd,delZ_delLd,delT_delLd,delmu_delLd
-   real(rk)                   :: delta_t,delta_din,delta_parE,del_phyn_din
+   real(rk)                   :: delta_t,delta_din,delta_parE,delta_temp,del_phyn_din
+   real(rk)                   :: tC_prev
    real(rk)                   :: total_del_phyn_din
    real(rk)                   :: Imin,Imax
    real(rk), parameter        :: pi = 3.1415926535897931
@@ -335,10 +337,13 @@
    !_GET_(self%id_dic,dic)    ! carbon (no need, as C is assumed to be non limiting)
    _GET_(self%id_din,din)    ! nutrients
    _GET_GLOBAL_(self%id_doy,doy)  ! day of year
-   ! delta_t,delta_din
+   ! delta_t,delta_din,delta_temp
    _GET_(self%id_dep_delta_t,delta_t)
    _GET_(self%id_dep_delta_din,delta_din)
-
+   _GET_(self%id_dep_delta_temp,delta_temp)
+   tC_prev=tC-delta_temp
+   !write(*,*)'phy:tC,tC_prev',tC,tC_prev
+   
    if (self%PARintern) then
      Imin=1.6 !molE/m2/d 
      Imax=110.0 !molE/m2/d
@@ -380,11 +385,11 @@
    mu0hat_fT = self%mu0hat * Tfac
    V0hat_fT = self%V0hat * Tfac
    RMchl_fT = self%RMchl * Tfac
+   zetaChl=self%zetaChl !no temp effect
    
    ! Primary production
    ! Optimization of ThetaHat (optimal Chl content in the chloroplasts)
-   I_zero = self%zetaChl * RMchl_fT / (Ld*self%aI)   ! Threshold irradiance
-   zetaChl=self%zetaChl
+   I_zero = zetaChl * RMchl_fT / (Ld*self%aI)   ! Threshold irradiance
    if( self%theta_opt ) then
      if( parE_dm .gt. I_zero ) then
        aim = self%aI*parE_dm/mu0hat_fT
@@ -615,6 +620,7 @@
        ![-] =  s *[/1]
        delQ_delLd=delQ_delZ*delZ_delLd
        ![molN/molC]
+       
        ! !delQ/delt, eq. A-6 in S16: (Note that in this combined (abio+phy) version,  this is only diagnostic) 
        delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt + delQ_delLd*dLd_dt
        

@@ -36,7 +36,7 @@
       type (type_diagnostic_variable_id)   :: id_fQ,id_limfunc_Nmonod,id_fC,id_limfunc_L,id_Tfac
       type(type_diagnostic_variable_id)    :: id_fphydoc,id_fphydon,id_fphydetc,id_fphydetn
       type (type_diagnostic_variable_id)   :: id_fdinphy,id_fdinphy_hypot
-      type (type_dependency_id)            :: id_dep_delta_t,id_dep_delta_din,id_dep_delta_par
+      type (type_dependency_id)            :: id_dep_delta_t,id_dep_delta_din,id_dep_delta_par,id_dep_delta_temp
       
       !abio
       type (type_state_variable_id)     :: id_dic,id_din,id_don,id_doc,id_detn,id_detc
@@ -54,8 +54,8 @@
       type (type_diagnostic_variable_id)   :: id_ddoy,id_delta_t
       type (type_dependency_id)            :: id_ddoy_dep
       !for delta_par and delta_din we need 3-D diagnostics anyway
-      type (type_diagnostic_variable_id)   :: id_ddin,id_delta_din,id_delta_par
-      type (type_dependency_id)            :: id_ddin_dep,id_dpardm_dep
+      type (type_diagnostic_variable_id)   :: id_ddin,id_delta_din,id_delta_par,id_dtemp,id_delta_temp
+      type (type_dependency_id)            :: id_ddin_dep,id_dtemp_dep,id_dpardm_dep
       
 !     Model parameters
       !phy
@@ -237,10 +237,15 @@
    call self%register_diagnostic_variable(self%id_delta_t,'delta_t','s','diff betw current and prev time step',&
                      output=output_instantaneous)
    
-   
+   call self%register_diagnostic_variable(self%id_dtemp,'dtemp','Degree_Celsius', 'diagn. water temperature',&
+                     output=output_instantaneous)
+   call self%register_dependency(self%id_dtemp_dep,'dtemp','Degree_Celsius', 'prev. val of diagn. water temperature')
+   call self%register_diagnostic_variable(self%id_delta_temp,'delta_temp','Degree_Celsius','diff betw current and prev time step',&
+                     output=output_instantaneous)
+                     
    call self%register_diagnostic_variable(self%id_ddin,'ddin','mmolN/m^3', 'diagn. din conc',&
                      output=output_instantaneous)
-   call self%register_dependency(self%id_ddin_dep,'ddin','mmolN/m^3', 'diagn din conc')
+   call self%register_dependency(self%id_ddin_dep,'ddin','mmolN/m^3', 'prev. val of diagn. din conc')
    call self%register_diagnostic_variable(self%id_delta_din,'delta_din','mmolN/m^3','diff betw current and prev time step',&
                      output=output_instantaneous)
    
@@ -380,6 +385,7 @@
    call self%register_dependency(self%id_dep_delta_t, 'delta_t','s','diff betw current and prev time step')
    call self%register_dependency(self%id_dep_delta_din, 'delta_din','mmolN/m^3','diff in DIN betw current and prev time step')
    call self%register_dependency(self%id_dep_delta_par, 'delta_par','E/m^2/d','diff in PAR betw current and prev time step')
+   call self%register_dependency(self%id_dep_delta_temp, 'delta_temp','Degree_Celsius','diff in temp betw current and prev time step')
    
    end subroutine initialize
 !EOC
@@ -488,7 +494,8 @@
    real(rk)                   :: f_det_don, f_det_doc, f_don_din, f_doc_dic
    !real(rk)                   :: parE,parE_dm,depth,tC,parW !already declared for phy
    real(rk)                   :: lat,doy,doy_prev,delta_t
-   real(rk)                   :: din_prev,delta_din !din
+   real(rk)                   :: din_prev,delta_din
+   real(rk)                   :: tC_prev,delta_temp
    real(rk)                   :: parW_dm,parEdm_prev,delta_parE
    !real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
@@ -543,7 +550,7 @@
    
    !Access the values at the prev. time step as recorded by the diagnostic variables
    if (doy .ne. doy_prev) then !i.e., if it's a real time step (and, e.g., not a 'fake' step of a RK4 ode method)
-      
+     _GET_(self%id_dtemp_dep,tC_prev)
      _GET_(self%id_ddin_dep,din_prev)
      _GET_(self%id_dPARdm_dep,parEdm_prev) !mol/m2/d
      !write(*,*)'doy_prev,din_prev,parEdm_prev',doy_prev,din_prev,parEdm_prev
@@ -551,12 +558,14 @@
      !in the first time step, strange things may happen, as the diagnostics are not available yet
      if (doy_prev .lt. 0.0) then
        doy_prev = -1.0 ! just an arbitrary finite number, as the delta_din&par will be 0      
+       tC_prev=tC !such that delta_temp=0
        din_prev=din ! such that delta_din=0
        parEdm_prev=parE_dm ! such that delta_par=0
      end if
      !calculate the deltas
      delta_t=(doy-doy_prev)*secs_pr_day !days to secs
-     delta_din=din-din_prev      
+     delta_din=din-din_prev
+     delta_temp=tC-tC_prev
      delta_parE= parE_dm-parEdm_prev !mol/m2/d
      
      !write(*,*)' (abio.2) pardm_prev,pardm,delta_par',parEdm_prev,parE_dm,delta_parE,'  din_prev,din',din_prev,din
@@ -567,6 +576,7 @@
      _SET_DIAGNOSTIC_(self%id_dFDL,Ld) !Fractional day length
      _SET_DIAGNOSTIC_(self%id_ddoy,doy)
      _SET_DIAGNOSTIC_(self%id_ddin, din)
+     _SET_DIAGNOSTIC_(self%id_dtemp, tC)
      _SET_DIAGNOSTIC_(self%id_dPAR, parE) ! mol/m2/d
      _SET_DIAGNOSTIC_(self%id_dPAR_dmean, parE_dm) !mol/m2/d
      
@@ -580,11 +590,13 @@
      _SET_DIAGNOSTIC_(self%id_delta_t,delta_t) !secs
      _SET_DIAGNOSTIC_(self%id_delta_din,delta_din)
      _SET_DIAGNOSTIC_(self%id_delta_par,delta_parE) !mol/m2/d
+     _SET_DIAGNOSTIC_(self%id_delta_temp,delta_temp)
      
    else
      _GET_(self%id_dep_delta_t,delta_t) !secs
      _GET_(self%id_dep_delta_din,delta_din)
      _GET_(self%id_dep_delta_par,delta_parE) !mol/m2/d
+     _GET_(self%id_dep_delta_temp,delta_temp)
    end if
    
    !Calculate intermediate terms:
@@ -910,13 +922,9 @@
        ![-] =  s *[/1]
        delQ_delLd=delQ_delZ*delZ_delLd
        !molN/molC/s
-       ! !delQ/delt, eq. A-6 in S16: (Note that in this combined (abio+phy) version,  this is only diagnostic) 
+
+       !(for diagnostics): total delQ_delt
        delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt + delQ_delLd*dLd_dt
-       !molN/molC/s
-       !write(*,'(A,5F20.10)')'  (phy.4) delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt:',delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt
-       !write(*,'(A,3F15.10)')'  (phy.5) vN,delQ_delI*dI_dt,delQ_delN*dN_dt:',mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt
-       
-       !f_din_phy = (mu*Q + delQ_delt) *phyC
        f_din_phy_hypot = (vN + delQ_delt) * phyC  !eq. A-6 in S16 (hypothetical flux between din-phy, only diagnostic)
      end if  
    end if

@@ -38,6 +38,7 @@ instances:
       delta_t: abio_Cbased/delta_t # integ. time step (s)
       delta_din: abio_Cbased/delta_din # difference in DIN since the prev. time step
       delta_par: abio_Cbased/delta_par # difference in par since the prev. time step
+      delta_temp: abio_Cbased/delta_temp    # difference in temp since the prev. time step
       FDL: abio_Cbased/FDL        # Fractional daylength (-)
       dFDL_dt: abio_Cbased/dFDL_dt # Time-derivative of the fractional daylength
       PAR_dmean: abio_Cbased/PAR_dmean  # PAR, daily mean (mol/m2/d)
