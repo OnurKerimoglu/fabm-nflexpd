@@ -4,6 +4,7 @@ module nflexpd_common
 
    use fabm_types
    use fabm_standard_variables
+   use lambert
 
    implicit none
    
@@ -208,6 +209,49 @@ module nflexpd_common
   
    end subroutine
 !EOC
+
+!-----------------------------------------------------------------------
+!
+!  !IROUTINE: call Lambert-W function or approximate it   
+!
+!  !INTERFACE:
+   real(rk) function FLamW(aim,Ld,mu0hat_fT,RMchl_fT,zetaChl)
+!
+!  !DESCRIPTION:
+!  Returns the value of the Lambert-W function, or its approximation 
+!
+!  !USES:
+   IMPLICIT NONE
+!
+!  !INPUT PARAMETERS:
+   real(rk), intent(in)                :: aim, Ld, mu0hat_fT, RMchl_fT, zetaChl
+   real(rk)                            :: l1,l2 !intermediate variables used for the approximation
+   real                                :: larg !argument to WAPR(real(4),0,0) in lambert.f90
+!
+!  !REVISION HISTORY:
+!  Original author(s):  Markus Pahlow (implemented by Onur Kerimoglu)
+!
+!EOP
+!-----------------------------------------------------------------------
+!BOC
+   if (aim/zetaChl > 85.0) then
+     ! approximation of lambertw(x) for large x: W0(x) = l1 - l2 + l2/l1
+     ! with l1 = ln(x), l2 = ln(l1)
+     ! the relative error is less than 1e-6
+     l1 = log(1.0 + RMchl_fT/(Ld*mu0hat_fT)) + 1.0 + aim/zetaChl
+     l2 = log(l1)
+     FLamW = l1 - l2 + l2/l1
+     !write(*,*)'  approx LamW',LamW
+   else
+     !larg = (1.0 + RMchl_fT/(Ld*mu0hat_fT)) * exp(1.0 + self%aI*parE_dm/(mu0hat_fT*self%zetaChl)) !Eq.26, term in brackets
+     larg=(1.0 + RMchl_fT / (Ld * mu0hat_fT)) * exp(1.0 + aim / zetaChl)
+     FLamW = WAPR(larg, 0, 0)
+   end if
+      
+   return
+   end function FLamW
+!EOC
+!-----------------------------------------------------------------------   
 
 end module
 !-----------------------------------------------------------------------

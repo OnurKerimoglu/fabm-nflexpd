@@ -13,7 +13,6 @@
 ! !DESCRIPTION:
 !
 ! !USES:
-   use lambert
    use nflexpd_common
    use fabm_types
    use fabm_expressions
@@ -467,8 +466,7 @@
    !phy
    real(rk)                   :: dic,din,phyC,phyN,parW,parE,parE_dm,Ld,dLd_dt
    real(rk)                   :: ThetaHat,vNhat,muhatG,RhatChl,muhatNET
-   real(rk)                   :: LamW,l1,l2,aim
-   real                       :: larg !argument to WAPR(real(4),0,0) in lambert.f90
+   real(rk)                   :: LamW,aim
    real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT
    real(rk)                   :: vN,RMchl,zetaChl
    real(rk)                   :: tC,Tfac,depth
@@ -681,23 +679,10 @@
    zetaChl=self%zetaChl
    if( self%theta_opt ) then
      if( parE_dm .gt. I_zero ) then
-       !argument for the Lambert's W function
        aim = self%aI*parE_dm/mu0hat_fT
-       !larg = (1.0 + RMchl_fT/(Ld*mu0hat_fT)) * exp(1.0 + self%aI*parE_dm/(mu0hat_fT*self%zetaChl)) !Eq.26, term in brackets
-       larg=(1.0 + RMchl_fT / (Ld * mu0hat_fT)) * exp(1.0 + aim / zetaChl)
-       if (aim/zetaChl > 85.0) then !(aim > 700.0*self%zetaChl) then
-         ! approximation of lambertw(x) for large x: W0(x) = l1 - l2 + l2/l1
-         ! with l1 = ln(x), l2 = ln(l1)
-         ! the relative error is less than 1e-6
-         l1 = log(1.0 + RMchl_fT/(Ld*mu0hat_fT)) + 1.0 + aim/zetaChl
-         l2 = log(l1)
-         LamW = l1 - l2 + l2/l1
-         !write(*,*)'  approx LamW',LamW
-       else
-         LamW = WAPR(larg, 0, 0)
-      end if
-      !ThetaHat = 1.0/zetaChl + ( 1.0 -  LamW ) * mu0hat_fT/(self%aI*parE_dm) !Eq.26
-      ThetaHat = 1.0/zetaChl + (1.0 - LamW)/aim
+       LamW = FLamW(aim,Ld,mu0hat_fT,RMchl_fT,zetaChl)
+       !ThetaHat = 1.0/zetaChl + ( 1.0 -  LamW ) * mu0hat_fT/(self%aI*parE_dm) !Eq.26
+       ThetaHat = 1.0/zetaChl + (1.0 - LamW)/aim
      else
        !write(*,*)'parE_dm,I_0',parE_dm,I_zero
        ThetaHat = self%ThetaHat_min  !Eq.26, if I<=IC (=0 in K20)
@@ -717,7 +702,7 @@
    muhatG = Ld * mu0hat_fT * limfunc_L !Eq.21 in K20
    
    !if ( mod(doy*10.,10.0) .eq. 0.0 .or. doy<11./secs_pr_day) then
-   !  write(*,'(A,F6.1,6F16.10)')'  (phyL715) doy,parE_dm,aim/zetaChl,exp(1+aim/zetaChl)larg,LamW,ThetaHat:',doy,parE_dm*secs_pr_day,aim/zetaChl,larg,LamW,ThetaHat,exp(1+aim/zetaChl)
+   !  write(*,'(A,F6.1,6F16.10)')'  (phyL706) doy,parE_dm,aim/zetaChl,LamW,ThetaHat:',doy,parE_dm*secs_pr_day,aim/zetaChl,LamW,ThetaHat,exp(1+aim/zetaChl)
    !end if
    
    !'Net' light limited growth rate, muhatNET
