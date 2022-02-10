@@ -264,14 +264,13 @@
    call self%register_dependency(self%id_depFDL, 'FDL','-',       'fractional day length')
    if ( .not. (self%dynQN .or. self%mimic_Monod)) then
      call self%register_dependency(self%id_depdFDLdt, 'dFDL_dt','/s',       'Time derivative of the fractional day length')
+     call self%register_dependency(self%id_dep_delta_t, 'delta_t','s','diff betw current and prev time step')
+     call self%register_dependency(self%id_dep_delta_din, 'delta_din','mmolN/m^3','diff in DIN betw current and prev time step')
+     call self%register_dependency(self%id_dep_delta_parE, 'delta_par','E/m^2/s','diff in PAR betw current and prev time step')
+     call self%register_dependency(self%id_dep_delta_temp,'delta_temp','Degree_Celsius', 'diff in PAR betw current and prev time step')
    end if
    call self%register_dependency(self%id_temp,standard_variables%temperature)
    call self%register_global_dependency(self%id_doy,standard_variables%number_of_days_since_start_of_the_year)
-   
-   call self%register_dependency(self%id_dep_delta_t, 'delta_t','s','diff betw current and prev time step')
-   call self%register_dependency(self%id_dep_delta_din, 'delta_din','mmolN/m^3','diff in DIN betw current and prev time step')
-   call self%register_dependency(self%id_dep_delta_parE, 'delta_par','E/m^2/s','diff in PAR betw current and prev time step')
-   call self%register_dependency(self%id_dep_delta_temp,'delta_temp','Degree_Celsius', 'diff in PAR betw current and prev time step')
    
    end subroutine initialize
 !EOC
