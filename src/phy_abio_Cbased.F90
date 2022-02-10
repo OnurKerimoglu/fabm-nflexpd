@@ -495,9 +495,9 @@
    !real(rk)                   :: parE,parE_dm,depth,tC,parW !already declared for phy
    real(rk)                   :: lat,doy,doy_prev,delta_t
    real(rk)                   :: din_prev,delta_din
-   real(rk)                   :: tC_prev,delta_temp
-   real(rk)                   :: parW_dm,parEdm_prev,delta_parE
-   real(rk)                   :: Q_p, ZINT_p, vNhat_p, fA_p, muhatNET_p, RhatChl_p, muhatG_p, limfunc_L_p, ThetaHat_p, LamW_p, aim_p, RMchl_fT_p, V0hat_fT_p, mu0hat_fT_p, Tfac_p !required to numerically approximate delQ/delT
+   real(rk)                   :: parW_dm,parEdm_prev,delta_parE,delta_temp
+   real(rk)                   :: tC_prev,Tfac_p,mu0hat_fT_p,V0hat_fT_p,RMchl_fT_p, aim_p,LamW_p,ThetaHat_p !required to numerically approximate delQ/delT
+   real(rk)                   :: limfunc_L_p,muhatG_p,RhatChl_p,muhatNET_p,fA_p,vNhat_p,ZINT_p,Q_p !required to numerically approximate delQ/delT
    !real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
 !-----------------------------------------------------------------------
@@ -914,6 +914,7 @@
        !!dN/dt: discrete approximation (Note that in this combined (abio+phy) version, this is only diagnostic)
        dN_dt = delta_din / delta_t  
        !mmol/m3/s
+       
        !Daylength derivatives:
        delT_delLd = LamW / (1.0 + LamW) * mu0hat_fT/(self%aI * parE_dm * Ld) / (1.0 + Ld * mu0hat_fT / RMchl_fT)
        ![gChl/molC]
@@ -923,9 +924,9 @@
        ![-] =  s *[/1]
        delQ_delLd=delQ_delZ*delZ_delLd
        !molN/molC/s
+       
        !Temperature Derivatives: 
-       ! Numerical approximation of delQ/delT: 
-       ! Calculate Q with the T from the previous time step
+       ! Numerical approximation of delQ/delT: calculate Q with the T from the previous time step
        dTemp_dt=delta_temp/delta_t
        if (delta_temp .eq. 0.0) then
          delQ_delTemp=0.0 !to avoid division by 0 errors
