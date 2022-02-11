@@ -16,7 +16,7 @@ varlims1D={'I_dm':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf'
          'Phy-fA':[0.0,1.0], 'Phy-fV':[0.0,0.5], 'Phy-ThetaHat':[0.00,0.05],'Phy-fC':[0,0.2],'Phy-limfunc_L':[0.,1]}
 varlims0D={'I_dm':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf':[-100,0],'wind':[-6,26],
          'DetC_sed/DetN_sed':[4.0,16.0],'DetC/DetN':[5.0,30.0],'DOC/DON':[5.0,30.0],
-         'totalN':[21.16,21.11],'totalC':[1040.547,1040.552],
+         'totalC':[1040.54,1040.56],'totalN':[21.09,21.14], #'totalN':[20.6, 21.2], #
          'DIC': [0, 1000],'DIN': [0, 20],'DetC':[0,300],'DetN':[0,15], 'DOC':[0,300], 'DON':[0,15],
          'Phy-Chl':[0,20.],'Phy-C':[0,100.0],'Phy-N':[0,7.5],'Phy-Q':[0.02,0.22],'Phy-Chl2C':[0.00,0.1],
          'Phy-PPR':[0,20.],'Phy-mu':[0,0.4],'Phy-vN':[0,0.05],'Phy-f_dinphy':[0,0.5],'Phy-R_N':[0,0.04],'Phy-R_Chl':[0,0.1],
@@ -43,7 +43,7 @@ namelibNbasedDA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
              'DIN':'abio_din','DON':'abio_don','DetN':'abio_detn',
              'DOC':'abio_doc','DetC':'abio_detc'
             }
-namelibCbasedIA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
+namelibCbasedIA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp', 'L$_D$':'abio_Cbased_FDL',
              'totalC':'total_carbon_calculator_result',
              #'totalN':'total_nitrogen_calculator_result',
              'totalN':'abio_Cbased_din+abio_Cbased_don+abio_Cbased_detn+phy_Cbased_IA_C*phy_Cbased_IA_Q', #+phy_Cbased_IA_N',
@@ -99,7 +99,7 @@ def main(fnames, numyears, modnames, variants, ids):
            #'abio1':['abio_PAR_dmean','temp', 'mld_surf'],
            #'abio2':['abio_din','abio_detc/abio_detn','abio_detc_sed/abio_detn_sed'],
            #'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
-           'abio0':['I-dm', 'dI_dt'],
+           'abio0':['I-dm', 'dI_dt','T','L$_D$'],
            'abio1':['totalC','totalN',
                      'Phy-C', 'Phy-N',
                      'DIC','DIN',
@@ -134,7 +134,7 @@ def plot_multifile(fnames, numyears, groupname, varset, variants, modnames, ids)
         numcol = len(varset)
     numrow = np.ceil(len(varset) / numcol)
     figuresize = (1 + 4*numcol, 1. + 1.5*numrow)
-    fpar = {'left': 0.05, 'right': 0.99, 'top': 0.93, 'bottom': 0.08, 'hspace': 0.5, 'wspace': 0.2}
+    fpar = {'left': 0.1, 'right': 0.99, 'top': 0.93, 'bottom': 0.08, 'hspace': 0.5, 'wspace': 0.2}
     if numrow == 1:
         fpar['top']=0.9; fpar['bottom']=0.13
 
@@ -181,6 +181,8 @@ def plot_multifile(fnames, numyears, groupname, varset, variants, modnames, ids)
                 else:
                     #ax.plot(t, datC, label=variant, color=cols[i],linestyle=linestyles[i])
                     ax.plot(t, datC, label=ids[i], color=cols[i], linestyle=linestyles[i])
+                    if varn in ['totalN','totalC']:
+                        ax.text(0.6,0.55-i*0.2,r'$\delta$(%s):%.2e'%(ids[i],max(datC[1:])-min(datC[1:])), transform=ax.transAxes) #,color=cols[i]
         if varn in prettyunits:
             prettyunit = prettyunits[varn]
         else:
@@ -199,12 +201,14 @@ def plot_multifile(fnames, numyears, groupname, varset, variants, modnames, ids)
             ax.set_ylim(prescylim[0], prescylim[1])
             # ylimsuf='_ylim_%s-%s'%(prescylim[0],prescylim[1])
 
+        ax.ticklabel_format(axis='y', useOffset=False) #style='plain',) #
+
         # shrink the axes width by 20% to fit that of the contour plots, and put the legend in that space
         # box = ax.get_position()
         # ax.set_position([box.x0, box.y0, (box.x1 - box.x0) * 0.8, box.y1 - box.y0])
         if j==0: #(j+1)%numcol==1 
             #ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.8),fontsize=12)
-            ax.legend(loc='center left', bbox_to_anchor=(0.7, 0.7),fontsize=12)
+            ax.legend(loc='center left', bbox_to_anchor=(0.05, 0.7),fontsize=12)
 
         ax.grid(b=True, axis='y', which='major', color='0.5', linestyle='-')
         # x-axis
@@ -589,7 +593,8 @@ if __name__ == "__main__":
     if len(sys.argv) < 2: #this means no arguments were passed
       #fnames = ['/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_NbasedDA.nc',
                # '/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_CbasedDA.nc']
-      fnames = ['/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lint_CbasedIA_dm.nc']
+      fnames = ['/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lext_Ld1_T20_CbasedIA_modular_24h.nc',
+                '/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lint_Ld1_T20_CbasedIA_modular_24h.nc']
                 #'/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lint_CbasedIA_dm.nc']
       print('plotting default file(s):'+'; '.join(fnames))
     else:
@@ -599,27 +604,27 @@ if __name__ == "__main__":
     if len(sys.argv)<3:
       #variants = ['dm', '6h']
       #variants = ['IA','DA']
-      variants = ['IA']#, 'IA']
+      variants = ['IA', 'IA']
     else:
       variants=sys.argv[2].split(',')
 
     if len(sys.argv)<4: #no third argument was passed
       #modnames=['Nbased','Cbased']
-      modnames=['Cbased'] #,'Cbased']#
+      modnames=['Cbased','Cbased']#
     else:
       modnames=sys.argv[3].split(',')
 
     if len(sys.argv)<5: #no third argument was passed
-      ids=['sim']
+      #ids=['sim']
       #ids=['Nbased','Cbased']
       #ids = ['IA', 'DA']
-      #ids=['PAR:N','PAR:A']
+      ids=['PAR:N','PAR:A']
     else:
       ids=sys.argv[4].split(',')
 
     if len(sys.argv)<6: #no third argument was passed
       #numyears=-1 # -1 means plot everything
-      numyears=2
+      numyears=1
     else:
       numyears=int(sys.argv[5]) #number of years to plot (counting from the last year backwards)
 
