@@ -1,75 +1,20 @@
 instances:
-  phy_Cbased_IA:
+  phy_Cbased_DA1:
     use: .true.
-    long_name: Phytoplankton-Cbased-IA
+    long_name: Phytoplankton-Cbased-DA1
     model: nflexpd/phy_Cbased
     parameters:
       kc: 0.03                       # specific light extinction (m2 mmolN-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
-      PARintern: .false.              # whether use internally calculated PAR
-      dynQN: .false.                 # whether to dynamically represent QN (explicit state var for N- and C-)
-      Theta_opt : .true.             # whether to optimize theta (true/false)
-      fA_opt : .true.                # whether to optimize fA (true/false)
-      fV_opt : .true.                # whether to optimize fV (true/false)
+      PARintern: .false.             # whether use internally calculated PAR
+      dynQN: .true.                  # whether to dynamically represent QN (explicit state var for N- and C-)
+      Theta_opt: .true.             # whether to optimize theta (true/false)
+      fA_opt: .true.                # whether to optimize fA (true/false)
+      fV_opt: .true.                # whether to optimize fV (true/false)
       TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
       ThetaHat_min: 0.00             # Minimum allowed value, which is also used when par<I_0
       RMchl: 0.1                     # loss rate of chlorophyll (d-1)
-      mu0hat: 5.0                    # max. potential growth rate (d-1)
-      aI: 1.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
-      fA_fixed: 0.6                  # fA to use when fa_opt=false (-)
-      fV_fixed: 0.25                 # fV to use when fv_opt=false (-)
-      Q0: 0.039                      # Subsistence cell quota (molN molC-1)
-      V0hat: 5.0                     # Potential maximum uptake rate (molN molC-1 d-1)
-      A0hat: 0.1                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
-      zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
-      zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
-      M0p: 0.01                       # sp. quad. mortality rate (m3 molC-1 d-1)
-      Mpart: 1.0                     # part of the mortality that goes to detritus
-    initialization:
-      C: 0.8                      # Phytoplankton-N concentration (mmol m-3)
-    coupling:
-      dic: abio_Cbased/dic        # carbon source (mmolC m-3)
-      din: abio_Cbased/din        # nutrient source (mmolN m-3)
-      don: abio_Cbased/don        # sink for excreted matter (mmolN m-3)
-      doc: abio_Cbased/doc        # sink for excreted matter (mmolC m-3)
-      detN: abio_Cbased/detn      # sink for dead matter (mmolN m-3)
-      detC: abio_Cbased/detc      # sink for dead matter (mmolC m-3)
-      delta_t: abio_Cbased/delta_t # integ. time step (s)
-      delta_din: abio_Cbased/delta_din # difference in DIN since the prev. time step
-      delta_par: abio_Cbased/delta_par # difference in par since the prev. time step
-      delta_temp: abio_Cbased/delta_temp    # difference in temp since the prev. time step
-      FDL: abio_Cbased/FDL        # Fractional daylength (-)
-      dFDL_dt: abio_Cbased/dFDL_dt # Time-derivative of the fractional daylength
-      PAR_dmean: abio_Cbased/PAR_dmean  # PAR, daily mean (mol/m2/d)
-  RHSext_Cbased_IA:
-    use: .true.
-    long_name: RHSext_IA
-    model: nflexpd/RHSext_Cbased
-    parameters:
-      IA : .true.                              # whether IA approach is used (true/false)
-    coupling:
-      din: abio_Cbased/din                       # [mmolN/m^3] (state) nutrient source (mmolN m-3)
-      f_don_din: abio_Cbased/f_don_din           # [mmolN/m^3/d] (diagnostic) flux from DON to DIN
-      #f_din_phy: phyC_Cbased_DA/f_dinphy         #[molN/m^3/d] (diagnostic) net N uptake by phytoplankton
-      vN_dQdt_I: phy_Cbased_IA/vN_dQdt_I       #[molN/m^3/d] (diagnostic) phyC*(vN+delQ/delI*dI/dt+delQ_delLd*dLd_dt)
-      del_phyn_din: phy_Cbased_IA/del_phyn_din #[-] (diagnostic) Change in phyto-N per change in DIN
-  phy_Cbased_DA:
-    use: .false.
-    long_name: Phytoplankton-Cbased-IA
-    model: nflexpd/phy_Cbased
-    parameters:
-      kc: 0.03                       # specific light extinction (m2 mmol-1)
-      w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
-      min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
-      PARintern: .false.             # whether use internally calculated PAR
-      dynQN: .true.                  # whether to dynamically represent QN (explicit state var for N- and C-)
-      Theta_opt : .true.             # whether to optimize theta (true/false)
-      fA_opt : .true.                # whether to optimize fA (true/false)
-      fV_opt : .true.                # whether to optimize fV (true/false)
-      TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
-      ThetaHat_min: 0.00           # Minimum allowed value, which is also used when par<I_0
-      RMchl: 0.1                   # loss rate of chlorophyll (d-1)
       mu0hat: 5.0                    # max. potential growth rate (d-1)
       aI: 1.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
       fA_fixed: 0.6                  # fA to use when fa_opt=false (-)
@@ -92,21 +37,60 @@ instances:
       doc: abio_Cbased/doc        # sink for excreted matter (mmolC m-3)
       detN: abio_Cbased/detn      # sink for dead matter (mmolN m-3)
       detC: abio_Cbased/detc      # sink for dead matter (mmolC m-3)
+      FDL: abio_Cbased/FDL        # Fractional daylength (-)
+      PAR_dmean: abio_Cbased/PAR_dmean  # PAR, daily mean (mol/m2/d)
+  phy_Cbased_DA2:
+    use: .true.
+    long_name: Phytoplankton-Cbased-DA2
+    model: nflexpd/phy_Cbased
+    parameters:
+      kc: 0.03                       # specific light extinction (m2 mmolN-1)
+      w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
+      min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
+      PARintern: .false.             # whether use internally calculated PAR
+      dynQN: .true.                  # whether to dynamically represent QN (explicit state var for N- and C-)
+      Theta_opt: .true.              # whether to optimize theta (true/false)
+      fA_opt: .true.                 # whether to optimize fA (true/false)
+      fV_opt: .true.                 # whether to optimize fV (true/false)
+      TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
+      ThetaHat_min: 0.00             # Minimum allowed value, which is also used when par<I_0
+      RMchl: 0.1                     # loss rate of chlorophyll (d-1)
+      mu0hat: 4.0                    # max. potential growth rate (d-1)
+      aI: 1.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
+      fA_fixed: 0.6                  # fA to use when fa_opt=false (-)
+      fV_fixed: 0.25                 # fV to use when fv_opt=false (-)
+      Qmax: 0.225                    # Max.Q value to calculate a down-regulation term
+      Q0: 0.039                      # Subsistence cell quota (molN molC-1)
+      V0hat: 4.0                     # Potential maximum uptake rate (molN molC-1 d-1)
+      A0hat: 0.5                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
+      zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
+      zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
+      M0p: 0.01                       # sp. quad. mortality rate (m3 molC-1 d-1)
+      Mpart: 1.0                     # part of the mortality that goes to detritus
+    initialization:
+      C: 0.8                      # Phytoplankton-N concentration (mmol m-3)
+      N: 0.1                        # Phytoplankton-N concentration (mmol m-3)
+    coupling:
+      dic: abio_Cbased/dic        # carbon source (mmolC m-3)
+      din: abio_Cbased/din        # nutrient source (mmolN m-3)
+      don: abio_Cbased/don        # sink for excreted matter (mmolN m-3)
+      doc: abio_Cbased/doc        # sink for excreted matter (mmolC m-3)
+      detN: abio_Cbased/detn      # sink for dead matter (mmolN m-3)
+      detC: abio_Cbased/detc      # sink for dead matter (mmolC m-3)
       FDL: abio_Cbased/FDL        # Fractional Day Length (-)
       PAR_dmean: abio_Cbased/PAR_dmean  # PAR, daily mean (mol/m2/d)
-      #total_del_phyn_din: abio_Cbased/total_del_phyn_din !total denominator
   RHSext_Cbased_DA:
-    use: .false.
+    use: .true.
     long_name: RHSext
     model: nflexpd/RHSext_Cbased
     parameters:
       IA : .false.                              # whether IA approach is used (true/false)
+      numphy: 2                                # number of phytoplankton instances to be coupled
     coupling:
       din: abio_Cbased/din                       # [mmolN/m^3] (state) nutrient source (mmolN m-3)
       f_don_din: abio_Cbased/f_don_din           # [mmolN/m^3/d] (diagnostic) flux from DON to DIN
-      f_din_phy: phy_Cbased_DA/f_dinphy         #[molN/m^3/d] (diagnostic) net N uptake by phytoplankton
-      #vN_dQdt_I: phyC_Cbased_IA/vN_dQdt_I       #[molN/m^3/d] (diagnostic) phyC*(vN+delQ/delI*dI/dt)
-      #del_phyn_din: phyC_Cbased_IA/del_phyn_din #[-] (diagnostic) Change in phyto-N per change in DIN
+      f_din_phy1: phy_Cbased_DA1/f_dinphy         #[molN/m^3/d] (diagnostic) net N uptake by phytoplankton
+      f_din_phy2: phy_Cbased_DA2/f_dinphy         #[molN/m^3/d] (diagnostic) net N uptake by phytoplankton
   abio_Cbased:
     long_name: Abiotic
     model: nflexpd/abio_Cbased
