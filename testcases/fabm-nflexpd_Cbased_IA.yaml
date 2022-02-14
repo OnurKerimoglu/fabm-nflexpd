@@ -4,7 +4,7 @@ instances:
     long_name: Phytoplankton-Cbased-IA1
     model: nflexpd/phy_Cbased
     parameters:
-      kc: 0.03                       # specific light extinction (m2 mmolN-1)
+      kc: 0.03                       # specific light extinction (m2 mmolC-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
       PARintern: .false.             # whether use internally calculated PAR
@@ -47,7 +47,7 @@ instances:
     long_name: Phytoplankton-Cbased-IA2
     model: nflexpd/phy_Cbased
     parameters:
-      kc: 0.03                       # specific light extinction (m2 mmolN-1)
+      kc: 0.03                       # specific light extinction (m2 mmolC-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
       PARintern: .false.             # whether use internally calculated PAR
@@ -58,12 +58,12 @@ instances:
       TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
       ThetaHat_min: 0.00             # Minimum allowed value, which is also used when par<I_0
       RMchl: 0.1                     # loss rate of chlorophyll (d-1)
-      mu0hat: 4.0                    # max. potential growth rate (d-1)
+      mu0hat: 3.0                    # max. potential growth rate (d-1)
       aI: 1.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
       fA_fixed: 0.6                  # fA to use when fa_opt=false (-)
       fV_fixed: 0.25                 # fV to use when fv_opt=false (-)
       Q0: 0.039                      # Subsistence cell quota (molN molC-1)
-      V0hat: 4.0                     # Potential maximum uptake rate (molN molC-1 d-1)
+      V0hat: 3.0                     # Potential maximum uptake rate (molN molC-1 d-1)
       A0hat: 0.5                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
@@ -106,11 +106,11 @@ instances:
       PAR_ext_inE: .true.            # PAR provided externally are in Einsten/Quanta [mol/m2/d]
       PAR_dmean_FDL: .true.          # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
       w_det: -2.0                    # vertical velocity (<0 for sinking) (m d-1)
-      kc: 0.03                       # specific light extinction (m2 mmol-1)
+      kc: 0.03                       # specific light extinction (m2 mmolC-1)
       kdet: 0.1                      # Degredation rate of Detritus (d-1)
       kdon: 0.1                      # Remineralization rate of DON
       par0_dt0: 4.5                  # daily average par at the surface on the first time step
-      kc_dt0: 0.2                    # attenuaton coefficient on the first time step
+      kc_dt0: 0.2                    # attenuation coefficient on the first time step
     initialization:
       din: 15.0                      # DIN concentration (mmol m-3)
       don: 3.0                       # DON concentration (mmol m-3)

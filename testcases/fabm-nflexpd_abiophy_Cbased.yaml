@@ -4,7 +4,7 @@ instances:
     long_name: Phytoabio-Cbased-FS
     model: nflexpd/phyabio_Cbased
     parameters:
-      kc: 0.03                       # specific light extinction (m2 mmolN-1)
+      kc: 0.03                       # specific light extinction (m2 mmolC-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
       PARintern: .false.             # whether use internally calculated PAR
@@ -31,7 +31,7 @@ instances:
       PAR_ext_inE: .true.            # PAR provided externally are in Einsten/Quanta [mol/m2/d]
       PAR_dmean_FDL: .false.         # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
       w_det: -2.0                    # vertical velocity (<0 for sinking) (m d-1)
-      kc: 0.03                       # specific light extinction (m2 mmol-1)
+      #kc: 0.03                       # specific light extinction (m2 mmolC-1)
       kdet: 0.1                      # Degredation rate of Detritus (d-1)
       kdon: 0.1                      # Remineralization rate of DON
       par0_dt0: 4.5                  # daily average par at the surface on the first time step
@@ -49,7 +49,7 @@ instances:
     model: nflexpd/phyabio_Cbased
     parameters:
       #phy
-      kc: 0.00                       # specific light extinction (m2 mmolN-1)
+      kc: 0.03                       # specific light extinction (m2 mmolC-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
       PARintern: .true.             # whether use internally calculated PAR
@@ -75,7 +75,7 @@ instances:
       PAR_ext_inE: .true.            # PAR provided externally are in Einsten/Quanta [mol/m2/d]
       PAR_dmean_FDL: .true.         # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
       w_det: -2.0                    # vertical velocity (<0 for sinking) (m d-1)
-      kc: 0.00                       # specific light extinction (m2 mmol-1)
+      #kc: 0.00                       # specific light extinction (m2 mmolC-1)
       kdet: 0.1                      # Degredation rate of Detritus (d-1)
       kdon: 0.1                      # Remineralization rate of DON
       par0_dt0: 4.5                  # daily average par at the surface on the first time step
@@ -92,7 +92,7 @@ instances:
     long_name: Phytoabio-Cbased-DA
     model: nflexpd/phyabio_Cbased
     parameters:
-      kc: 0.00                       # specific light extinction (m2 mmol-1)
+      kc: 0.03                       # specific light extinction (m2 mmolC-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
       PARintern: .false.             # whether use internally calculated PAR
@@ -119,7 +119,7 @@ instances:
       PAR_ext_inE: .true.            # PAR provided externally are in Einsten/Quanta [mol/m2/d]
       PAR_dmean_FDL: .false.         # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
       w_det: -2.0                    # vertical velocity (<0 for sinking) (m d-1)
-      kc: 0.03                       # specific light extinction (m2 mmol-1)
+      #kc: 0.03                       # specific light extinction (m2 mmolC-1)
       kdet: 0.1                      # Degredation rate of Detritus (d-1)
       kdon: 0.1                      # Remineralization rate of DON
       par0_dt0: 4.5                  # daily average par at the surface on the first time step
@@ -137,7 +137,7 @@ instances:
     long_name: Phytoabio-Cbased-DQ
     model: nflexpd/phyabio_Cbased
     parameters:
-      kc: 0.03                       # specific light extinction (m2 mmol-1)
+      kc: 0.03                       # specific light extinction (m2 mmolC-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
       PARintern: .false.             # whether use internally calculated PAR
@@ -164,7 +164,7 @@ instances:
       PAR_ext_inE: .true.            # PAR provided externally are in Einsten/Quanta [mol/m2/d]
       PAR_dmean_FDL: .false.         # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
       w_det: -2.0                    # vertical velocity (<0 for sinking) (m d-1)
-      kc: 0.03                       # specific light extinction (m2 mmol-1)
+      #kc: 0.03                       # specific light extinction (m2 mmolC-1)
       kdet: 0.1                      # Degredation rate of Detritus (d-1)
       kdon: 0.1                      # Remineralization rate of DON
       par0_dt0: 4.5                  # daily average par at the surface on the first time step

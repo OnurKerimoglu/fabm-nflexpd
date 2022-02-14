@@ -90,7 +90,7 @@
    call self%get_parameter(self%PAR_ext_inE, 'PAR_ext_inE','-', 'PAR provided externally are in Einsten/Quanta [mol/m2/d]', default=.false.)
    call self%get_parameter(self%PAR_dmean_FDL, 'PAR_dmean_FDL','-', 'PAR as day time average (PAR_dm/FDL, FDL: fractional day length)', default=.true.)
    call self%get_parameter(self%w_det,     'w_det','m d-1',    'vertical velocity (<0 for sinking)',default=-5.0_rk,scale_factor=d_per_s)
-   call self%get_parameter(kc,      'kc', 'm2 mmol-1','specific light extinction',         default=0.03_rk)
+   call self%get_parameter(kc,      'kc', 'm2 mmolC-1','specific light extinction',         default=0.045_rk)
    call self%get_parameter(self%kdet,'kdet','d-1',      'sp. rate for f_det_don',             default=0.003_rk,scale_factor=d_per_s)
    call self%get_parameter(self%kdon,'kdon','d-1',      'sp. rate for f_don_din',             default=0.003_rk,scale_factor=d_per_s)
    call self%get_parameter(self%par0_dt0,'par0_dt0','W m-2', 'daily average par at the surface on the first time step',  default=4.5_rk)
@@ -98,20 +98,23 @@
    
    ! Register state variables
    call self%register_state_variable(self%id_dic,'dic','mmolC/m^3','DIC concentration',     &
-                                1000.0_rk,minimum=0.0_rk,no_river_dilution=.true.)
+                                1000.0_rk,minimum=0.0_rk,no_river_dilution=.true., &
+                                specific_light_extinction=0.0_rk)
    call self%register_state_variable(self%id_din,'din','mmolN/m^3','DIN concentration',     &
-                                1.0_rk,minimum=0.0_rk,no_river_dilution=.true.)
+                                1.0_rk,minimum=0.0_rk,no_river_dilution=.true., &
+                                specific_light_extinction=0.0_rk)
    call self%register_state_variable(self%id_don,'don','mmolN/m^3','DON concentration',     &
-                                1.0_rk,minimum=0.0_rk,no_river_dilution=.true.)
+                                1.0_rk,minimum=0.0_rk,no_river_dilution=.true., &
+                                specific_light_extinction=0.0_rk)
    call self%register_state_variable(self%id_doc,'doc','mmolC/m^3','DOC concentration',     &
                                 6.625_rk,minimum=0.0_rk,no_river_dilution=.true., &
                                 specific_light_extinction=0.0_rk)                             
    call self%register_state_variable(self%id_detn,'detn','mmolN/m^3','Det-N concentration',    &
                                 4.5_rk,minimum=0.0_rk,vertical_movement=self%w_det, &
-                                specific_light_extinction=kc)
+                                specific_light_extinction=0.0_rk)
    call self%register_state_variable(self%id_detc,'detc','mmolC/m^3','Det-C concentration',    &
                                 6.625_rk,minimum=0.0_rk,vertical_movement=self%w_det, &
-                                specific_light_extinction=0.0_rk)                             
+                                specific_light_extinction=kc)                             
    
    ! Register contribution of state to global aggregate variables.
    call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_dic)

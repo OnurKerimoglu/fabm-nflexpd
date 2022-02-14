@@ -112,7 +112,7 @@
    ! Store parameter values in our own derived type
    ! NB: all rates must be provided in values per day and are converted here to values per second.
     ! General:
-   call self%get_parameter(self%kc,   'kc',   'm2 mmolN-1','specific light extinction',               default=0.03_rk)
+   call self%get_parameter(self%kc,   'kc',   'm2 mmolC-1','specific light extinction',               default=0.03_rk)
    call self%get_parameter(self%w_phy,       'w_phy',  'm d-1',    'vertical velocity (<0 for sinking)',      default=-1.0_rk, scale_factor=d_per_s)
    call self%get_parameter(self%mindin,       'min_din',  'mmolN m-3',    'when provided, minimum din concentration that allows growth and uptake',      default=0.0_rk)
    !general switches
@@ -173,7 +173,7 @@
    call self%get_parameter(self%PAR_ext_inE, 'PAR_ext_inE','-', 'PAR provided externally are in Einsten/Quanta [mol/m2/d]', default=.false.)
    call self%get_parameter(self%PAR_dmean_FDL, 'PAR_dmean_FDL','-', 'PAR as day time average (PAR_dm/FDL, FDL: fractional day length)', default=.true.)
    call self%get_parameter(self%w_det,     'w_det','m d-1',    'vertical velocity (<0 for sinking)',default=-5.0_rk,scale_factor=d_per_s)
-   call self%get_parameter(kc,      'kc', 'm2 mmol-1','specific light extinction',         default=0.03_rk)
+   call self%get_parameter(kc,      'kc', 'm2 mmolC-1','specific light extinction',         default=0.03_rk)
    call self%get_parameter(self%kdet,'kdet','d-1',      'sp. rate for f_det_don',             default=0.003_rk,scale_factor=d_per_s)
    call self%get_parameter(self%kdon,'kdon','d-1',      'sp. rate for f_don_din',             default=0.003_rk,scale_factor=d_per_s)
    call self%get_parameter(self%par0_dt0,'par0_dt0','W m-2', 'daily average par at the surface on the first time step',  default=4.5_rk)
@@ -183,7 +183,8 @@
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
    !ABIO:
    call self%register_state_variable(self%id_dic,'dic','mmolC/m^3','DIC concentration',     &
-                                1000.0_rk,minimum=0.0_rk,no_river_dilution=.true.)
+                                1000.0_rk,minimum=0.0_rk,no_river_dilution=.true., &
+                                specific_light_extinction=0.0_rk)
    call self%register_state_variable(self%id_din,'din','mmolN/m^3','DIN concentration',     &
                                 1.0_rk,minimum=0.0_rk,no_river_dilution=.true., &
                                 specific_light_extinction=0.0_rk)
@@ -195,10 +196,10 @@
                                 specific_light_extinction=0.0_rk)
    call self%register_state_variable(self%id_detn,'detn','mmolN/m^3','Det-N concentration',    &
                                 1.0_rk,minimum=0.0_rk,vertical_movement=self%w_det, &
-                                specific_light_extinction=kc)
+                                specific_light_extinction=0.0_rk)
    call self%register_state_variable(self%id_detc,'detc','mmolC/m^3','Det-C concentration',    &
                                 6.625_rk,minimum=0.0_rk,vertical_movement=self%w_det, &
-                                specific_light_extinction=0.0_rk)
+                                specific_light_extinction=self%kc)
                                 
    ! Register contribution of state to global aggregate variables.
    call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_dic)
@@ -256,7 +257,7 @@
                      
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
    !PHY
-   call self%register_state_variable(self%id_phyC,'C','mmolC/m^3','bound-C concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=0.0_rk)
+   call self%register_state_variable(self%id_phyC,'C','mmolC/m^3','bound-C concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=self%kc)
    call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_phyC)
    if ( self%dynQN ) then
      call self%register_state_variable(self%id_phyN,'N','mmolN/m^3','bound-N concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=0.0_rk)
