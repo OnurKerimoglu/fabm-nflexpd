@@ -147,7 +147,39 @@ module nflexpd_common
    return
    end function FofT
 !EOC
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!
+! !IROUTINE: Temperature dependence of rates for the FlexPFT model 
+!
+! !INTERFACE:
+   real(rk) function dfT_dt_fT(tC)
+!
+! !DESCRIPTION:
+! Here, temporal derivative of the Arrhenius type temperature dependence, divided by fT is calculated as required by the IA model
+!
+! !USES:
+   IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+   real(rk), intent(in)                :: tC            ! temperature [ degrees C ]
+   real(rk), parameter                 :: R = 8.31446   ! gas constant [ J /mol /K ]
+   real(rk), parameter                 :: Ea=4.82e4        ! [ J / mol ]
+   real(rk), parameter                 :: Tr=20.0          ! [ degrees C ]
+!
+! !REVISION HISTORY:
+!  Original author(s):  S. Lan Smith, 20141213
+!
+!EOP
+!-----------------------------------------------------------------------
+!BOC
+   dfT_dt_fT = Ea / (R * (tC + 273.15) ** 2)
+   return
+   end function dfT_dt_fT
+!EOC
 !-----------------------------------------------------------------------   
+
 
 
 !-----------------------------------------------------------------------

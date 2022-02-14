@@ -485,10 +485,14 @@
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN
    real(rk)                   :: delZ_delmu,delmu_delZ
    real(rk)                   :: delQ_delLd,delZ_delLd,delT_delLd,delmu_delLd
+   real(rk)                   :: delmu_delM,delZ_delM,delZ_delV !required to analytically calculate delQ/delT
+   real(rk)                   :: tC_prev,Tfac_p,mu0hat_fT_p,V0hat_fT_p,RMchl_fT_p, aim_p,LamW_p,ThetaHat_p !required to numerically approximate delQ/delT
+   real(rk)                   :: limfunc_L_p,muhatG_p,RhatChl_p,muhatNET_p,fA_p,vNhat_p,ZINT_p,Q_p !required to numerically approximate delQ/delT
    real(rk)                   :: Imin,Imax
    real(rk)                   :: totN
    real(rk), parameter        :: pi = 3.1415926535897931
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
+   logical, parameter         :: delQ_delTemp_analytical = .true.
    
    !abio
    real(rk)                   :: detn, detc, don, doc
@@ -497,8 +501,6 @@
    real(rk)                   :: lat,doy,doy_prev,delta_t
    real(rk)                   :: din_prev,delta_din
    real(rk)                   :: parW_dm,parEdm_prev,delta_parE,delta_temp
-   real(rk)                   :: tC_prev,Tfac_p,mu0hat_fT_p,V0hat_fT_p,RMchl_fT_p, aim_p,LamW_p,ThetaHat_p !required to numerically approximate delQ/delT
-   real(rk)                   :: limfunc_L_p,muhatG_p,RhatChl_p,muhatNET_p,fA_p,vNhat_p,ZINT_p,Q_p !required to numerically approximate delQ/delT
    !real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
 !-----------------------------------------------------------------------
@@ -917,6 +919,12 @@
        if (delta_temp .eq. 0.0) then
          delQ_delTemp=0.0 !to avoid division by 0 errors
        else
+        if (delQ_delTemp_analytical) then
+         delmu_delM = Ld * (1.0 - zetaChl * ThetaHat) * (limfunc_L - aim * ThetaHat * (1 - limfunc_L))  
+         delZ_delM = delZ_delmu * delmu_delM
+         delZ_delV = - muhatNET * self%Q0 / (2.0 * V0hat_fT * sqrt(V0hat_fT * vNhat))
+         delQ_delTemp = delQ_delZ * (delZ_delM * mu0hat_fT + delZ_delV * V0hat_fT - delZ_delmu * RMchl_fT*zetaChl*ThetaHat) * dfT_dt_fT(tC)
+        else
          Tfac_p = FofT(tC_prev)
          !scale all parameters that needs to be scaled:
          mu0hat_fT_p = self%mu0hat * Tfac_p
@@ -957,6 +965,7 @@
          !if (doy .gt. 0.0 .and. doy .lt. 2.0) then
          !write(*,*)'doy,Q,Q_p,tC,tC_prev',doy,Q,Q_p,tC,tC_prev
          !end if
+        end if 
        end if
        !(for diagnostics): total delQ_delt
        delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt + delQ_delLd*dLd_dt + delQ_delTemp*dTemp_dt
