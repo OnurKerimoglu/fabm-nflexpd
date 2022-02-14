@@ -300,7 +300,7 @@
    real(rk)                   :: f_dic_phy,f_din_phy,f_din_phy_hypot,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
    real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN,delQ_delTemp
-   real(rk)                   :: delZ_delmu,delmu_delZ,delT_delI,delmu_delT
+   real(rk)                   :: delZ_delmu,delmu_delI,delT_delI,delmu_delT
    real(rk)                   :: delQ_delLd,delZ_delLd,delT_delLd,delmu_delLd
    real(rk)                   :: delta_t,delta_din,delta_parE,delta_temp,del_phyn_din
    real(rk)                   :: tC_prev,Tfac_p,mu0hat_fT_p,V0hat_fT_p,RMchl_fT_p,aim_p,LamW_p,ThetaHat_p !required to numerically approximate delQ/delT
@@ -569,6 +569,7 @@
        dN_dt = 0.0_rk
        f_din_phy = vN * phyC  !Eq.5 in K20
      else
+
        ! Calculate the balance-flux through changes in Q (re-location of N)
        !!delQ/delZ, eq. A-2&3 (Z=ZINT)      
        delQ_delZ= -self%Q0/(4*ZINT*sqrt(ZINT*(1.+ZINT)))
@@ -578,27 +579,15 @@
        
        delZ_delmu = self%Q0/(2*vNhat)
        ![s] = [molN/molC]/[molN/molC/s]
-       delmu_delZ = (Ld*(1-ThetaHat*zetaChl))*(self%aI*ThetaHat)*(1-limfunc_L)
+       delmu_delI = (Ld*(1-ThetaHat*zetaChl))*(self%aI*ThetaHat)*(1-limfunc_L)
        ![m2/molE]
        !write(*,'(A,3F15.5)')'  (phyL863) delZ_delI, vNhat, limfunc_L',delZ_delI, vNhat, limfunc_L
        !delZ/delI, eq.A-4 in S16
-       if ( self%theta_opt ) then
-         if ( parE_dm .gt. I_zero) then
-           delT_delI = -mu0hat_fT / (self%aI * parE_dm**2) * (1.0_rk - LamW) - LamW / (1.0_rk + LamW) / (parE_dm * zetaChl)
-         else
-           delT_delI = 0.0_rk
-         end if
-         delmu_delT = Ld * (self%aI * parE_dm * (1 - limfunc_L) * (1 - zetaChl * ThetaHat) - limfunc_L * zetaChl * V0hat_fT) - RMchl_fT*zetaChl
-         delZ_delI = delZ_delmu * (delmu_delZ + delmu_delT*delT_delI)
-         !m2s/molE
-         !if ( mod(doy*10.,10.0) .eq. 0.0 .or. doy<11./secs_pr_day) then
-         !  write(*,'(A,F6.1,4F16.10)')'  (phyL877) doy,delmu_delZ,delmu_delT*delT_delI,delmu_delT,delT_delI:',doy,delmu_delZ,delmu_delT*delT_delI,delmu_delT,delT_delI
-         !end if
-       else
-         delZ_delI = delZ_delmu * delmu_delZ
-         !m2s/molE
-       end if
+       delZ_delI = delZ_delmu * delmu_delI
        
+       !delZ_delN with fA expanded:
+       !delZ_delN = -self%Q0*muhatNET / 2 * (1 + sqrt(self%A0hat * DIN / V0hat_fT)) / (self%A0hat * DIN ** 2)
+       !delZ_delN as f(fA), which should work with constant fA:
        delZ_delN=-self%Q0*muhatNET/(2*fA*self%A0hat*din*din)
        !m3/molN!molN/molC/s
        !!delQ/delI, eq. A-2 in S16
@@ -613,9 +602,10 @@
        !mmol/m3/s
        
        !Daylength derivatives:
-       delT_delLd = LamW / (1.0 + LamW) * mu0hat_fT/(self%aI * parE_dm * Ld) / (1.0 + Ld * mu0hat_fT / RMchl_fT)
+       !delT_delLd = LamW / (1.0 + LamW) * mu0hat_fT/(self%aI * parE_dm * Ld) / (1.0 + Ld * mu0hat_fT / RMchl_fT)
        ![gChl/molC]
-       delmu_delLd= (mu0hat_fT * limfunc_L + Ld * self%aI * PARE_dm * (1.0 - limfunc_L) * delT_delLd) * (1.0 - zetaChl * ThetaHat) - (Ld * mu0hat_fT * limfunc_L + RMchl_fT) * zetaChl * delT_delLd
+       !delmu_delLd= (mu0hat_fT * limfunc_L + Ld * self%aI * PARE_dm * (1.0 - limfunc_L) * delT_delLd) * (1.0 - zetaChl * ThetaHat) - (Ld * mu0hat_fT * limfunc_L + RMchl_fT) * zetaChl * delT_delLd
+       delmu_delLd = mu0hat_fT * limfunc_L * (1.0 - zetaChl * ThetaHat)
        ![/s]
        delZ_delLd=delZ_delmu*delmu_delLd
        ![-] =  s *[/1]

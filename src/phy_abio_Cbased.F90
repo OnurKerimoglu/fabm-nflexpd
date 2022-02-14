@@ -882,22 +882,7 @@
        ![m2/molE]
        !write(*,'(A,3F15.5)')'  (phyL863) delZ_delI, vNhat, limfunc_L',delZ_delI, vNhat, limfunc_L
        !delZ/delI, eq.A-4 in S16
-       if ( self%theta_opt ) then
-         if ( parE_dm .gt. I_zero) then
-           delT_delI = -mu0hat_fT / (self%aI * parE_dm**2) * (1.0_rk - LamW) - LamW / (1.0_rk + LamW) / (parE_dm * zetaChl)
-         else
-           delT_delI = 0.0_rk
-         end if
-         delmu_delT = Ld * (self%aI * parE_dm * (1 - limfunc_L) * (1 - zetaChl * ThetaHat) - limfunc_L * zetaChl * V0hat_fT) - RMchl_fT*zetaChl
-         delZ_delI = delZ_delmu * (delmu_delZ + delmu_delT*delT_delI)
-         !m2s/molE
-         !if ( mod(doy*10.,10.0) .eq. 0.0 .or. doy<11./secs_pr_day) then
-         !  write(*,'(A,F6.1,4F16.10)')'  (phyL877) doy,delmu_delZ,delmu_delT*delT_delI,delmu_delT,delT_delI:',doy,delmu_delZ,delmu_delT*delT_delI,delmu_delT,delT_delI
-         !end if
-       else
-         delZ_delI = delZ_delmu * delmu_delZ
-         !m2s/molE
-       end if
+       delZ_delI = delZ_delmu * delmu_delZ
        
        !delZ/delN, eq.A-5 in S16
        !delZ_delN= -self%Q0*muhatNET/(2*din*vNhat)*(1-(vNhat/V0hat_fT)-(vNhat/sqrt(V0hat_fT*self%A0hat*din)))
