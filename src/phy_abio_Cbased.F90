@@ -483,7 +483,7 @@
    real(rk)                   :: f_dic_phy,f_din_phy,f_din_phy_hypot,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
    real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,delQ_delTemp,dI_dt,dN_dt,dTemp_dt,dN_dt_imp
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN
-   real(rk)                   :: delZ_delmu,delmu_delZ,delT_delI,delmu_delT
+   real(rk)                   :: delZ_delmu,delmu_delZ
    real(rk)                   :: delQ_delLd,delZ_delLd,delT_delLd,delmu_delLd
    real(rk)                   :: Imin,Imax
    real(rk)                   :: totN

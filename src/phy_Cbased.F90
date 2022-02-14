@@ -300,7 +300,7 @@
    real(rk)                   :: f_dic_phy,f_din_phy,f_din_phy_hypot,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
    real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN,delQ_delTemp
-   real(rk)                   :: delZ_delmu,delmu_delI,delT_delI,delmu_delT
+   real(rk)                   :: delZ_delmu,delmu_delI
    real(rk)                   :: delQ_delLd,delZ_delLd,delT_delLd,delmu_delLd
    real(rk)                   :: delta_t,delta_din,delta_parE,delta_temp,del_phyn_din
    real(rk)                   :: tC_prev,Tfac_p,mu0hat_fT_p,V0hat_fT_p,RMchl_fT_p,aim_p,LamW_p,ThetaHat_p !required to numerically approximate delQ/delT
