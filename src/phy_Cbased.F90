@@ -463,11 +463,11 @@
    end if
    
    if( self%fV_opt ) then
-     fV=(self%Q0/2.0)/Q - self%zetaN*(Q - self%Q0) !Eq.14 in K20 (=Eq.9 in PO13)
-     if (fV .lt. 0.0) then
-       write(*,*)'nudging negative fV:',fV,' to 0.0'
-       fV=0.0
-     end if
+     fV=max(0.0,(self%Q0/2.0)/Q - self%zetaN*(Q - self%Q0)) !Eq.14 in K20 (=Eq.9 in PO13)
+     !if (fV .lt. 0.0) then
+       !write(*,*)'nudging negative fV:',fV,' to 0.0'
+     !  fV=0.0
+     !end if
      !write(*,'(A,F5.2,A,F7.5,A,F7.5,A,F7.5,A,F7.5)')'depth:',depth,'  Q:',Q,'  fV:',fV,'  Q0/2/Q:',(self%Q0/2.0)/Q,'  zN*(Q-Q0):',self%zetaN*(Q - self%Q0)
    else
      fV = self%fV_fixed !Used for FS in K20
