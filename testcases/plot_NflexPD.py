@@ -18,8 +18,8 @@ varlims1D={'I_dm':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf'
          'Phy-fA':[0.0,1.0], 'Phy-fV':[0.0,0.5], 'Phy-ThetaHat':[0.00,0.05],'Phy-fC':[0,0.2],'Phy-limfunc_L':[0.,1]}
 varlims0D={'I_dm':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf':[-100,0],'wind':[-6,26],
          'DetC_sed/DetN_sed':[4.0,16.0],'DetC/DetN':[5.0,30.0],'DOC/DON':[5.0,30.0],
-         #'totalC':[1040.54,1040.56],'totalN':[21.09,21.14], #'totalN':[20.6, 21.2], #
-         'totalC':[1041.34,1041.36],'totalN':[21.19,21.28],
+         'totalC':[1040.54,1040.56],'totalN':[21.09,21.14], #'totalN':[20.6, 21.2], #
+         #'totalC':[1040.45,1040.65], 'totalN':[20,30], #1D run
          'DIC': [0, 1000],'DIN': [0, 20],'DetC':[0,300],'DetN':[0,15], 'DOC':[0,300], 'DON':[0,15],
          'Phy-Chl':[0,20.],'Phy-Q':[0.02,0.22],'Phy-Chl2C':[0.00,0.1],
         'Phy-C':[0,100.0],'Phy-C 1':[0,60.0],'Phy-C 2':[0,60.0],
@@ -84,8 +84,9 @@ namelibCbasedDA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
             }
 prettyunits={'I_0':'E\ m^{-2}\ d^{-1}','wind':'m\ s^{-1}','T':'^\circ C',
              'I-dm':'E\ m^{-2}\ d^{-1}','I':'E\ m^{-2}\ d^{-1}','dI_dt':'E\ m^{-2}\ d^{-2}',
-             'Phy-C':'mmolC\ m^{-3}','Phy-N':'mmolN\ m^{-3}','Phy-Q':'molN\ molC^{-1}',
-             'Phy-Chl':'mg m^{-3}','Phy-Chl2C':'gChl\ gC^{-3}',
+             'Phy-C':'mmolC\ m^{-3}','Phy-C 1':'mmolC\ m^{-3}', 'Phy-C 2':'mmolC\ m^{-3}',
+             'Phy-N':'mmolN\ m^{-3}','Phy-N 1':'mmolN\ m^{-3}', 'Phy-N 2':'mmolN\ m^{-3}',
+             'Phy-Q':'molN\ molC^{-1}','Phy-Chl':'mg m^{-3}','Phy-Chl2C':'gChl\ gC^{-3}',
              'DIN':'mmolN\ m^{-3}','DON':'mmolN\ m^{-3}','DetN':'mmolN\ m^{-3}', 'totalN':'mmolN\ m^{-3}',
              'DIC':'mmolC\ m^{-3}','DOC':'mmolC\ m^{-3}','DetC':'mmolC\ m^{-3}', 'totalC':'mmolC\ m^{-3}',
               'mu':'d^{-1}', 'vN':'molN\ molC^{-1} d^{-1}', 'R_N':'d^{-1}', 'R_Chl':'d^{-1}',
@@ -94,8 +95,9 @@ prettyunits={'I_0':'E\ m^{-2}\ d^{-1}','wind':'m\ s^{-1}','T':'^\circ C',
 prettynames={'I_0':'$I_0$','wind':'wind','T':'T',
              'I-dm':r'$\bar{I}$','I':'$I$','dI_dt':r'd$\bar{I}$/d$t$',
              'totalN':'Total N','totalC':'Total C',
-             'Phy-C':r'$Phy_C$','Phy-N':'$Phy_N$','Phy-Q':'$Q$',
-             'Phy-Chl':'$Phy_{Chl}$','Phy-Chl2C':r'$\theta$',
+             'Phy-C':r'$Phy_C$','Phy-C 1':r'$Phy_C^1$','Phy-C 2':r'$Phy_C^2$',
+             'Phy-N':'$Phy_N$','Phy-N 1':r'$Phy_N^1$','Phy-N 2':r'$Phy_N^2$',
+             'Phy-Q':'$Q$','Phy-Chl':'$Phy_{Chl}$','Phy-Chl2C':r'$\theta$',
              'DIN':'DIN','DON':'DON','DetN':'$Det_N$',
              'DOC':'DOC','DetC':'$Det_C$',
               'mu':'$\mu$', 'vN':'$V_N$', 'R_N':'$R_N$', 'R_Chl':'$R_{Chl}$',
@@ -116,7 +118,7 @@ def main(fnames, numyears, modnames, variants, ids):
            'abio1':[ 'totalC','totalN',
                      #'Phy-C', 'Phy-N',
                      'Phy-C 1', 'Phy-N 1',
-                     'Phy-C 2', 'Phy-N 2',
+                     #'Phy-C 2', 'Phy-N 2',
                      'DIC','DIN',
                      'DOC','DON',
                      'DetC', 'DetN'],
@@ -184,7 +186,7 @@ def plot_multifile(fnames, numyears, groupname, varset, variants, modnames, ids)
                 fvarn=namelib[varn]
             else:
                 fvarn=varn
-            varfound, dat, valsat, longname, unitsnew = get_varvals(ncv, fvarn, avg=True,zint=[-5,0])
+            varfound, dat, valsat, longname, unitsnew = get_varvals(ncv, fvarn, avg=True) #,zint=[-100,0])
             #update the units only if the units of the new data set exist
             if units=='' and unitsnew!='':
                 units=unitsnew
@@ -250,6 +252,8 @@ def plot_singlefile(fname,numyears,groupname,varset,variant,modname):
         numcol = 4.
     elif len(varset)%3 == 0:
         numcol = 3.
+    elif len(varset)%5 == 0:
+        numcol = 2.
 
     numrow=len(varset)/numcol
     #figuresize = (1 + 4 * len(models), .5 + 1.5 * len(varset)/numcol)
