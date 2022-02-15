@@ -10,6 +10,9 @@ module nflexpd_common
    
    public
    
+   !real(rk), parameter        :: yearlength = 365.2425 
+   real(rk), parameter        :: yearlength = 365 !todo: needs to be changed to 366 on leap years
+   
    ! Aggregate diagnostics for e.g., carbon budgets.
    type (type_bulk_standard_variable),parameter :: total_PPR = type_bulk_standard_variable(name='total_PPR',units='mmolC/m^3/d',aggregate_variable=.true.)
    
@@ -207,7 +210,10 @@ module nflexpd_common
    real(rk)                :: a=0.39795
    real(rk)                :: b=0.2163108
    real(rk)                :: c=0.9671396
-   real(rk)                :: d=0.0086
+   !real(rk)                :: d = 0.0086 
+   !the day-length formulae of Forsythe et al. (1995) implicitly assume that a year has 365.3015 days,
+   !which is due to th rounding of π / 365.25 = 0.0086 but π / 0.0086 is actually 365.3015
+   real(rk)                :: d=pi/yearlength
    real(rk)                :: p = 0.8333
 !
 ! !REVISION HISTORY:
@@ -226,7 +232,7 @@ module nflexpd_common
    !doy = day of the year
    
    !day = floor(doy) - 186 1this causes jumps in dI/dt when doy changes at midnight
-   day = doy - 186
+   day = mod(doy,yearlength) - 186
    phi = asin(a * cos(b + 2 * atan(c * tan(d * day))))
    hour_angle = (sin(p*pi/180) + sin(L*pi/180) * sin(phi)) / (cos(L*pi/180) * cos(phi))
    FDL = 1 - acos(min(max(hour_angle, -1.0), 1.0)) / pi

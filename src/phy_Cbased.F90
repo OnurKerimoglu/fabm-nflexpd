@@ -349,8 +349,8 @@
    if (self%PARintern) then
      Imin=1.6 !molE/m2/d 
      Imax=110.0 !molE/m2/d
-     parE_dm=(Imin+(Imax-Imin)/2.0*(1.0+sin(2.0*pi*(doy/365.-0.25)))) /secs_pr_day !molE/m2/s
-     dI_dt = (Imax-Imin)*(pi/365)*cos(2*pi*(doy/365.-0.25)) /(secs_pr_day*secs_pr_day) !molE/m2/s2
+     parE_dm=(Imin+(Imax-Imin)/2.0*(1.0+sin(2.0*pi*(doy/yearlength-0.25)))) /secs_pr_day !molE/m2/s (yearlength from common.F90)
+     dI_dt = (Imax-Imin)*(pi/yearlength)*cos(2*pi*(doy/yearlength-0.25)) /(secs_pr_day*secs_pr_day) !molE/m2/s2 (yearlength from common.F90)
      !write(*,*)'I,dI/dt',parE_dm*secs_pr_day, dI_dt_analytical*secs_pr_day*secs_pr_day
    else
      _GET_(self%id_parW,parW)             ! local photosynthetically active radiation
