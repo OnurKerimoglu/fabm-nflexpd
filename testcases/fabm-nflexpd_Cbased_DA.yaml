@@ -4,7 +4,7 @@ instances:
     long_name: Phytoplankton-Cbased-DA1
     model: nflexpd/phy_Cbased
     parameters:
-      kc: 0.03                       # specific light extinction (m2 mmolC-1)
+      kc: 0.00                       # specific light extinction (m2 mmolC-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
       PARintern: .false.             # whether use internally calculated PAR
@@ -40,11 +40,11 @@ instances:
       FDL: abio_Cbased/FDL        # Fractional daylength (-)
       PAR_dmean: abio_Cbased/PAR_dmean  # PAR, daily mean (mol/m2/d)
   phy_Cbased_DA2:
-    use: .true.
+    use: .false.
     long_name: Phytoplankton-Cbased-DA2
     model: nflexpd/phy_Cbased
     parameters:
-      kc: 0.03                       # specific light extinction (m2 mmolC-1)
+      kc: 0.00                       # specific light extinction (m2 mmolC-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
       PARintern: .false.             # whether use internally calculated PAR
@@ -85,12 +85,12 @@ instances:
     model: nflexpd/RHSext_Cbased
     parameters:
       IA : .false.                              # whether IA approach is used (true/false)
-      numphy: 2                                # number of phytoplankton instances to be coupled
+      numphy: 1                                # number of phytoplankton instances to be coupled
     coupling:
       din: abio_Cbased/din                       # [mmolN/m^3] (state) nutrient source (mmolN m-3)
       f_don_din: abio_Cbased/f_don_din           # [mmolN/m^3/d] (diagnostic) flux from DON to DIN
       f_din_phy1: phy_Cbased_DA1/f_dinphy         #[molN/m^3/d] (diagnostic) net N uptake by phytoplankton
-      f_din_phy2: phy_Cbased_DA2/f_dinphy         #[molN/m^3/d] (diagnostic) net N uptake by phytoplankton
+      #f_din_phy2: phy_Cbased_DA2/f_dinphy         #[molN/m^3/d] (diagnostic) net N uptake by phytoplankton
   abio_Cbased:
     long_name: Abiotic
     model: nflexpd/abio_Cbased
@@ -98,7 +98,7 @@ instances:
       PAR_ext_inE: .true.            # PAR provided externally are in Einsten/Quanta [mol/m2/d]
       PAR_dmean_FDL: .true.          # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
       w_det: -2.0                    # vertical velocity (<0 for sinking) (m d-1)
-      kc: 0.03                       # specific light extinction (m2 mmolC-1)
+      kc: 0.0                       # specific light extinction (m2 mmolC-1)
       kdet: 0.1                      # Degradation rate of Detritus (d-1)
       kdon: 0.1                      # Remineralization rate of DON
       par0_dt0: 4.5                  # daily average par at the surface on the first time step
