@@ -27,7 +27,7 @@
       type (type_state_variable_id)        :: id_phyC,id_phyN
       type (type_state_variable_id)        :: id_dic,id_din,id_don,id_doc,id_detn,id_detc
       type (type_diagnostic_variable_id)   :: id_dI_dt,id_muhatNET,id_ZINT,id_Vhat,id_Ahat,id_KN
-      type (type_diagnostic_variable_id)   :: id_delQdelt
+      type (type_diagnostic_variable_id)   :: id_dQdt,id_delQdelt_I,id_delQdelt_N,id_delQdelt_Ld,id_delQdelt_T
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyN,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
       type (type_diagnostic_variable_id)   :: id_PPR,id_mu,id_muNET,id_muhatG,id_vNhat,id_vN,id_respN,id_respChl
       type (type_diagnostic_variable_id)   :: id_fdinphy,id_fdinphy_hypot,id_del_phyn_din,id_vN_dQdt_I
@@ -174,8 +174,6 @@
    else
      call self%register_diagnostic_variable(self%id_ZINT, 'ZINT','-',    'Qs*(muhatNET/vNhat+zetaN)',           &
                                      output=output_time_step_averaged)
-     call self%register_diagnostic_variable(self%id_delQdelt, 'dQ_dt','mmolN/mmolC/d',    'dQ/dT',           &
-                                     output=output_time_step_averaged)
      call self%register_diagnostic_variable(self%id_fdinphy_hypot, 'f_dinphy_hypot','molN/m^3/d',    'hypothetical N uptake by phytoplankton',           &
                                      output=output_instantaneous)
      call self%register_diagnostic_variable(self%id_vN_dQdt_I, 'vN_dQdt_I','molN/m^3/d',    'phyC*(vN+delQ/delI*dI/dt)',           &
@@ -257,7 +255,18 @@
                                      output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_fphydetc, 'f_phy_detc','molN/m^3/d',    'bulk phy-C loss to DOM',           &
                                      output=output_time_step_averaged)
-
+   
+   call self%register_diagnostic_variable(self%id_dQdt, 'dQdt','molN/molC/d',    'Total change in Q over time',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_delQdelt_I, 'delQdelt_I','molN/molC/d',    'Partial change in Q over time due to I',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_delQdelt_N, 'delQdelt_N','molN/molC/d',    'Partial change in Q over time due to N',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_delQdelt_Ld, 'delQdelt_Ld','molN/molC/d',    'Partial change in Q over time due to Ld',           &
+                                     output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_delQdelt_T, 'delQdelt_T','molN/molC/d',    'Partial change in Q over time due to T',           &
+                                     output=output_time_step_averaged)
+   
    ! Register environmental dependencies
    call self%register_dependency(self%id_parW, standard_variables%downwelling_photosynthetic_radiative_flux)
    call self%register_dependency(self%id_par_dmean, 'PAR_dmean','E/m^2/s','photosynthetically active radiation, daily averaged')
@@ -298,7 +307,7 @@
    real(rk)                   :: mu,respN,mortC,mortN,Pprod,muNET,KN_monod
    real(rk)                   :: limfunc_L,fC,limfunc_Nmonod
    real(rk)                   :: f_dic_phy,f_din_phy,f_din_phy_hypot,f_phy_don,f_phy_detn,f_phy_doc,f_phy_detc
-   real(rk)                   :: delQ_delt,delQ_delI,delQ_delN,dI_dt,dN_dt
+   real(rk)                   :: dQ_dt,delQ_delI,delQ_delN,dI_dt,dN_dt
    real(rk)                   :: delQ_delZ,delZ_delI,delZ_delN,delQ_delTemp
    real(rk)                   :: delZ_delmu,delmu_delI
    real(rk)                   :: delQ_delLd,delZ_delLd,delT_delLd,delmu_delLd
@@ -557,7 +566,7 @@
        vN = 0.0_rk
      end if
      f_din_phy = vN * phyC  !Eq.5 in K20
-     delQ_delt = 0.0_rk
+     dQ_dt = 0.0_rk
      delQ_delI = 0.0_rk
      delQ_delN = 0.0_rk
      dN_dt = 0.0_rk
@@ -565,7 +574,7 @@
      !Balanced growth:
      vN=mu*Q            !Eq.6 in K20 [molN/molC/d]
      if ( self%mimic_Monod ) then
-       delQ_delt = 0.0_rk
+       dQ_dt = 0.0_rk
        delQ_delI = 0.0_rk
        delQ_delN = 0.0_rk
        dN_dt = 0.0_rk
@@ -668,15 +677,14 @@
           !end if
          end if
        end if
-       !(for diagnostics): total delQ_delt
-       
-       delQ_delt=delQ_delI*dI_dt + delQ_delN*dN_dt + delQ_delLd*dLd_dt + delQ_delTemp*dTemp_dt
+       !(for diagnostics): total dQdt
+       dQ_dt=delQ_delI*dI_dt + delQ_delN*dN_dt + delQ_delLd*dLd_dt + delQ_delTemp*dTemp_dt
        
        !write(*,'(A,5F20.10)')'  (phy.4) delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt:',delQ_delI,dI_dt,delQ_delI*dI_dt,delQ_delN,dN_dt
        !write(*,'(A,3F15.10)')'  (phy.5) vN,delQ_delI*dI_dt,delQ_delN*dN_dt:',mu*Q,delQ_delI*dI_dt,delQ_delN*dN_dt
        
        !f_din_phy = (mu*Q + delQ_delt) *phyC
-       f_din_phy_hypot = (vN + delQ_delt) * phyC  !eq. A-6 in S16 (hypothetical flux between din-phy (only diagnostic)
+       f_din_phy_hypot = (vN + dQ_dt) * phyC  !eq. A-6 in S16 (hypothetical flux between din-phy (only diagnostic)
      end if  
    end if
    f_dic_phy = mu*phyC
@@ -714,7 +722,6 @@
    else
      _SET_DIAGNOSTIC_(self%id_fdinphy_hypot,f_din_phy_hypot * secs_pr_day)
      _SET_DIAGNOSTIC_(self%id_ZINT, ZINT)
-     _SET_DIAGNOSTIC_(self%id_delQdelt,delQ_delt*secs_pr_day)
      !Terms for the Implicit solution:
      del_phyn_din=phyC*delQ_delN ![unitless] this is the term in the denominator for the current species 
      _SET_DIAGNOSTIC_(self%id_del_phyn_din,del_phyn_din) ! [unitless] exported to the abio- component, such that it can calculate the sum
@@ -763,6 +770,11 @@
    _SET_DIAGNOSTIC_(self%id_respChl, Rchl * secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_ThetaHat, ThetaHat/12.0) !gChl/molC*1molC/12gC =gChl/gC
    _SET_DIAGNOSTIC_(self%id_PPR, mu*phyC*secs_pr_day) !*s_p_d such that output is in d-1
+   _SET_DIAGNOSTIC_(self%id_dQdt,dQ_dt*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_delQdelt_I,delQ_delI*dI_dt*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_delQdelt_N,delQ_delN*dN_dt*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_delQdelt_Ld,delQ_delLd*dLd_dt*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_delQdelt_T,delQ_delTemp*dTemp_dt*secs_pr_day)
    
    !Export diagnostic bulk fluxes
    _SET_DIAGNOSTIC_(self%id_fphydoc, f_phy_doc * secs_pr_day) !*s_p_d such that output is in d-1
