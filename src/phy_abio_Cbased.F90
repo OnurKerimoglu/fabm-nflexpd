@@ -64,7 +64,7 @@
       real(rk) :: mu0hat,aI
       real(rk) :: A0hat,V0hat,Q0,Qmax,KN_monod
       real(rk) :: fA_fixed,fV_fixed,TheHat_fixed,Q_fixed,ThetaHat_min
-      logical  :: dynQN,fV_opt,fA_opt,Theta_opt,mimic_Monod,PARintern
+      logical  :: dynQN,fV_opt,fA_opt,Theta_opt,mimic_Monod,PARintern,delQ_delT_analytical
       real(rk) :: dic_per_n
       
       !abio
@@ -123,6 +123,7 @@
    call self%get_parameter(self%fV_opt, 'fV_opt','-', 'whether to optimize fV', default=.false.)
    call self%get_parameter(self%mimic_Monod, 'mimic_Monod','-', 'whether to mimic Monod model', default=.false.)
    call self%get_parameter(self%PARintern, 'PARintern','-', 'whether use internally calculated PAR', default=.false.)
+   call self%get_parameter(self%delQ_delT_analytical,'delQ_delT_analytical','-', '',default=.true.)
    !light-related
    call self%get_parameter(self%TheHat_fixed, 'TheHat_fixed','gChl molC-1', 'Theta_Hat to use when Theta_opt=false', default=0.6_rk)
    call self%get_parameter(self%ThetaHat_min, 'ThetaHat_min','gChl molC-1', 'Minimum allowed value, which is also used when par<I_0', default=0.1_rk)
@@ -919,7 +920,7 @@
        if (delta_temp .eq. 0.0) then
          delQ_delTemp=0.0 !to avoid division by 0 errors
        else
-        if (delQ_delTemp_analytical) then
+        if (self%delQ_delT_analytical) then
          delmu_delM = Ld * (1.0 - zetaChl * ThetaHat) * (limfunc_L - aim * ThetaHat * (1 - limfunc_L))  
          delZ_delM = delZ_delmu * delmu_delM
          delZ_delV = - muhatNET * self%Q0 / (2.0 * V0hat_fT * sqrt(V0hat_fT * vNhat))
