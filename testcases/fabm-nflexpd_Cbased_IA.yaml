@@ -1,10 +1,10 @@
 instances:
-  phy_Cbased_IA1:
+  phy_Cbased_IA1: # A0,Q0,V0 allometrically scaled for ESD = 1um
     use: .true.
     long_name: Phytoplankton-Cbased-IA1
     model: nflexpd/phy_Cbased
     parameters:
-      kc: 0.00                       # specific light extinction (m2 mmolC-1)
+      kc: 0.03                       # specific light extinction (m2 mmolC-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
       PARintern: .false.             # whether use internally calculated PAR
@@ -15,13 +15,13 @@ instances:
       TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
       ThetaHat_min: 0.00             # Minimum allowed value, which is also used when par<I_0
       RMchl: 0.1                     # loss rate of chlorophyll (d-1)
-      mu0hat: 5.0                    # max. potential growth rate (d-1)
+      mu0hat: 5.0                     # max. potential growth rate (d-1)
       aI: 1.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
       fA_fixed: 0.6                  # fA to use when fa_opt=false (-)
       fV_fixed: 0.25                 # fV to use when fv_opt=false (-)
       Q0: 0.039                      # Subsistence cell quota (molN molC-1)
-      V0hat: 4.0                     # Potential maximum uptake rate (molN molC-1 d-1)
-      A0hat: 0.1                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
+      V0hat: 5.0                     # Potential maximum uptake rate (molN molC-1 d-1)
+      A0hat: 0.15                    # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       M0p: 0.01                       # sp. quad. mortality rate (m3 molC-1 d-1)
@@ -42,12 +42,12 @@ instances:
       FDL: abio_Cbased/FDL        # Fractional daylength (-)
       dFDL_dt: abio_Cbased/dFDL_dt # Time-derivative of the fractional daylength
       PAR_dmean: abio_Cbased/PAR_dmean  # PAR, daily mean (mol/m2/d)
-  phy_Cbased_IA2:
+  phy_Cbased_IA2: # A0,mu0,Q0,V0 allometrically scaled for ESD = 10um
     use: .false.
     long_name: Phytoplankton-Cbased-IA2
     model: nflexpd/phy_Cbased
     parameters:
-      kc: 0.00                       # specific light extinction (m2 mmolC-1)
+      kc: 0.03                       # specific light extinction (m2 mmolC-1)
       w_phy: 0.0                     # vertical velocity (<0 for sinking) (m d-1)
       min_din: 0.00                  # when provided, minimum DIN concentration that allows growth and uptake
       PARintern: .false.             # whether use internally calculated PAR
@@ -58,13 +58,13 @@ instances:
       TheHat_fixed: 0.3              # Theta_Hat to use when Theta_opt=false (gChl molC-1)
       ThetaHat_min: 0.00             # Minimum allowed value, which is also used when par<I_0
       RMchl: 0.1                     # loss rate of chlorophyll (d-1)
-      mu0hat: 3.0                    # max. potential growth rate (d-1)
+      mu0hat: 5.0                    # max. potential growth rate (d-1)
       aI: 1.0                        # Chl-specific slope of the PI curve (m^2 E-1 molC gChl-1)
       fA_fixed: 0.6                  # fA to use when fa_opt=false (-)
       fV_fixed: 0.25                 # fV to use when fv_opt=false (-)
-      Q0: 0.039                      # Subsistence cell quota (molN molC-1)
-      V0hat: 3.0                     # Potential maximum uptake rate (molN molC-1 d-1)
-      A0hat: 0.5                     # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
+      Q0: 0.0258                     # Subsistence cell quota (molN molC-1)
+      V0hat: 7.924                   # Potential maximum uptake rate (molN molC-1 d-1)
+      A0hat: 0.024                   # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       M0p: 0.01                       # sp. quad. mortality rate (m3 molC-1 d-1)
