@@ -103,8 +103,8 @@
    call self%get_parameter(self%D,   'D',   'd-1','dilution rate', default=0.0_rk,scale_factor=d_per_s)
    call self%get_parameter(self%DICin,   'DICin',   'mmolC m-3','DIC concentration in the inflow',               default=1000.0_rk)
    call self%get_parameter(self%DINin,   'DINin',   'mmolN m-3','DIN concentration in the inflow',               default=5.0_rk)
-   call self%get_parameter(self%sdet,   'sdet',   'm d-1','Sedimentation rate of detritus',               default=0.0_rk)
-   call self%get_parameter(self%Hsml,   'Hsml',   'm','Height of the SML', default=20.0_rk,scale_factor=d_per_s)
+   call self%get_parameter(self%sdet,   'sdet',   'm d-1','Sedimentation rate of detritus', default=0.0_rk, scale_factor=d_per_s)
+   call self%get_parameter(self%Hsml,   'Hsml',   'm','Height of the SML', default=20.0_rk)
    
    ! Register dependendcies on external state variables
    call self%register_state_dependency(self%id_phyC1, 'phyC1',   'mmolC/m^3','phytoplankton carbon')
