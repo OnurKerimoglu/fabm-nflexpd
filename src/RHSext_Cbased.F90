@@ -41,7 +41,7 @@
    type,extends(type_base_model),public :: type_NflexPD_RHSext_Cbased
 !     Variable identifiers
       type (type_state_variable_id)        :: id_din
-      type (type_dependency_id)            :: id_dep_fdondin
+      type (type_dependency_id)            :: id_dep_fabiodin
       type (type_dependency_id)            :: id_dep_fdinphy
       type (type_dependency_id)            :: id_dep_del_phyn_din,id_dep_vN_dQdt_I
       type(phy_pars),dimension(:),allocatable :: phypar
@@ -97,7 +97,7 @@
    ! Register contribution of state to global aggregate variables.
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_din)
    
-   call self%register_dependency(self%id_dep_fdondin, 'f_don_din','mmolN/m^3/d',    'Bulk N flux from DOM to DIM')
+   call self%register_dependency(self%id_dep_fabiodin, 'f_abio_din','mmolN/m^3/d',    'Bulk N flux from DOM to DIM')
    
    allocate(self%phypar(self%num_phy))
    if ( self%IA ) then !when using IA approach
@@ -133,7 +133,7 @@
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
-   real(rk)                   :: f_don_din
+   real(rk)                   :: f_abio_din
    real(rk)                   :: total_del_phyn_din,vN_dQdt_I
    real(rk)                   :: f_din_phy_sum,vN_dQdt_I_sum,del_phyn_din_sum
    integer                    :: i
@@ -150,7 +150,7 @@
    phydat%del_phyn_din=0.0
    phydat%f_din_phy=0.0
    
-   _GET_(self%id_dep_fdondin,f_don_din)
+   _GET_(self%id_dep_fabiodin,f_abio_din)
    
    !Collect the data from coupling targets
    DO i=1,self%num_phy
@@ -169,10 +169,10 @@
    if ( self%IA ) then !when using IA approach
      vN_dQdt_I_sum=sum(phydat%vN_dQdt_I)
      del_phyn_din_sum=sum(phydat%del_phyn_din)
-     _SET_ODE_(self%id_din, (f_don_din/secs_pr_day - vN_dQdt_I_sum/secs_pr_day)/(1+del_phyn_din_sum))
+     _SET_ODE_(self%id_din, (f_abio_din/secs_pr_day - vN_dQdt_I_sum/secs_pr_day)/(1+del_phyn_din_sum))
    else
      f_din_phy_sum=sum(phydat%f_din_phy)  
-     _SET_ODE_(self%id_din, f_don_din/secs_pr_day-f_din_phy_sum/secs_pr_day)
+     _SET_ODE_(self%id_din, f_abio_din/secs_pr_day-f_din_phy_sum/secs_pr_day)
    end if
    
    ! Leave spatial loops (if any)

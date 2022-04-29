@@ -24,12 +24,14 @@
    type,extends(type_base_model),public :: type_NflexPD_abio_Cbased
 !     Variable identifiers
       type (type_state_variable_id)     :: id_dic,id_din,id_don,id_doc,id_detn,id_detc
+      type (type_state_variable_id)     :: id_phyC1,id_phyN1 !abio module needs these to be able to set dilution fluxes 
       type (type_dependency_id)         :: id_temp,id_depth,id_parW,id_parW_dmean
       type (type_horizontal_dependency_id)  :: id_lat
       type (type_global_dependency_id)  :: id_doy
       type (type_diagnostic_variable_id):: id_dPAR,id_dPAR_dmean,id_dFDL,id_dFDLdt
       !type (type_horizontal_diagnostic_variable_id):: id_dFDL
       type (type_diagnostic_variable_id):: id_fdetdon,id_fdetdoc,id_fdondin,id_fdocdic
+      type (type_diagnostic_variable_id):: id_fabiodin
       type (type_bottom_diagnostic_variable_id):: id_detn_sed,id_detc_sed
       
       !for saving and accessing the doy,din and par of the previous integration time step
@@ -46,8 +48,9 @@
       !type (type_dependency_id)            :: id_dep_del_phyn_din 
       
 !     Model parameters
-      logical :: PAR_dmean_FDL,PAR_ext_inE
+      logical :: PAR_dmean_FDL,PAR_ext_inE,dynQN
       real(rk) :: w_det,kdet,kdon,par0_dt0,kc_dt0
+      real(rk) :: D,DICin,DINin,sdet,Hsml
 
       contains
 
@@ -89,12 +92,25 @@
    ! NB: all rates must be provided in values per day and are converted here to values per second.
    call self%get_parameter(self%PAR_ext_inE, 'PAR_ext_inE','-', 'PAR provided externally are in Einsten/Quanta [mol/m2/d]', default=.false.)
    call self%get_parameter(self%PAR_dmean_FDL, 'PAR_dmean_FDL','-', 'PAR as day time average (PAR_dm/FDL, FDL: fractional day length)', default=.true.)
-   call self%get_parameter(self%w_det,     'w_det','m d-1',    'vertical velocity (<0 for sinking)',default=-5.0_rk,scale_factor=d_per_s)
+   call self%get_parameter(self%w_det,     'w_det','m d-1',    'vertical velocity (<0 for sinking)',default=0.0_rk,scale_factor=d_per_s)
    call self%get_parameter(kc,      'kc', 'm2 mmolC-1','specific light extinction',         default=0.045_rk)
    call self%get_parameter(self%kdet,'kdet','d-1',      'sp. rate for f_det_don',             default=0.003_rk,scale_factor=d_per_s)
    call self%get_parameter(self%kdon,'kdon','d-1',      'sp. rate for f_don_din',             default=0.003_rk,scale_factor=d_per_s)
    call self%get_parameter(self%par0_dt0,'par0_dt0','W m-2', 'daily average par at the surface on the first time step',  default=4.5_rk)
    call self%get_parameter(self%kc_dt0,'kc_dt0','m-1', 'attenuaton coefficient on the first time step',  default=0.2_rk)
+   !Dilution and sinking fluxes
+   call self%get_parameter(self%dynQN, 'dynQN','-', 'whether dynamically resolve QN', default=.false.) !abio module needs this to apply dilution to phyN 
+   call self%get_parameter(self%D,   'D',   'd-1','dilution rate', default=0.0_rk,scale_factor=d_per_s)
+   call self%get_parameter(self%DICin,   'DICin',   'mmolC m-3','DIC concentration in the inflow',               default=1000.0_rk)
+   call self%get_parameter(self%DINin,   'DINin',   'mmolN m-3','DIN concentration in the inflow',               default=5.0_rk)
+   call self%get_parameter(self%sdet,   'sdet',   'm d-1','Sedimentation rate of detritus',               default=0.0_rk)
+   call self%get_parameter(self%Hsml,   'Hsml',   'm','Height of the SML', default=20.0_rk,scale_factor=d_per_s)
+   
+   ! Register dependendcies on external state variables
+   call self%register_state_dependency(self%id_phyC1, 'phyC1',   'mmolC/m^3','phytoplankton carbon')
+   if (self%dynQN) then
+     call self%register_state_dependency(self%id_phyN1, 'phyN1',   'mmolC/m^3','phytoplankton nitrogen')
+   end if  
    
    ! Register state variables
    call self%register_state_variable(self%id_dic,'dic','mmolC/m^3','DIC concentration',     &
@@ -142,6 +158,10 @@
                                      output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_fdocdic, 'f_doc_dic','mmolC/m^3/d',    'bulk C flux from DOM to DIM',           &
                                      output=output_instantaneous)
+   !to be exported to RHSext_Cbased                                  
+   call self%register_diagnostic_variable(self%id_fabiodin, 'f_abio_din','mmolN/m^3/d',   'bulk net abiotic DIN fluxes',           &
+                                     output=output_instantaneous)                                     
+                                     
                                      
    ! Register environmental dependencies
    call self%register_global_dependency(self%id_doy,standard_variables%number_of_days_since_start_of_the_year)
@@ -210,6 +230,7 @@
    real(rk)                   :: tC_prev,delta_temp
    real(rk)                   :: parEdm_prev,delta_parE
    real(rk)                   :: total_del_phyn_din,del_phyn_din
+   real(rk)                   :: phyC1,phyN1
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
 !-----------------------------------------------------------------------
@@ -328,11 +349,23 @@
    f_doc_dic = self%kdon * Tfac * doc  !Table 1 in K20
    
    ! Set temporal derivatives
-   _SET_ODE_(self%id_detn, -f_det_don)
-   _SET_ODE_(self%id_detc, -f_det_doc) !Sink term in Eq.2b
-   _SET_ODE_(self%id_don,   f_det_don - f_don_din)
-   _SET_ODE_(self%id_doc,  f_det_doc - f_doc_dic)  !Eq.3b
-   _SET_ODE_(self%id_dic, f_doc_dic)
+   _SET_ODE_(self%id_detn, -f_det_don -self%D*detn - (self%sdet/self%Hsml)*detn)
+   _SET_ODE_(self%id_detc, -f_det_doc -self%D*detc - (self%sdet/self%Hsml)*detc)
+   _SET_ODE_(self%id_don,  f_det_don - f_don_din - self%D*don)
+   _SET_ODE_(self%id_doc,  f_det_doc - f_doc_dic - self%D*doc)  !Eq.3b
+   _SET_ODE_(self%id_dic, f_doc_dic - self%D*(dic-self%DICin))
+   
+   _SET_DIAGNOSTIC_(self%id_fabiodin, f_don_din * secs_pr_day - self%D*(din-self%DINin))
+   
+   !Apply dilution to phytoplankton
+   _GET_(self%id_phyC1,phyC1) 
+   _SET_ODE_(self%id_phyC1, -self%D*phyC1)
+   if (self%dynQN) then
+     _GET_(self%id_phyN1,phyN1) 
+     _SET_ODE_(self%id_phyN1, -self%D*phyN1)
+   end if
+   
+   !write(*,*)' (abio.368) DdetN,SdetN,Ddon,Ddin,DphyN',self%D*detn,(self%sdet/self%Hsml)*detn,self%D*don,self%D*(din-self%DINin),-self%D*phyC1
    
    !Standard: i.e., DA or FS approaches:
    !_SET_ODE_(self%id_din,   f_don_din)
