@@ -169,6 +169,7 @@
    if ( self%IA ) then !when using IA approach
      vN_dQdt_I_sum=sum(phydat%vN_dQdt_I)
      del_phyn_din_sum=sum(phydat%del_phyn_din)
+     !write(*,*)'f_abio_din',f_abio_din
      _SET_ODE_(self%id_din, (f_abio_din/secs_pr_day - vN_dQdt_I_sum/secs_pr_day)/(1+del_phyn_din_sum))
    else
      f_din_phy_sum=sum(phydat%f_din_phy)  

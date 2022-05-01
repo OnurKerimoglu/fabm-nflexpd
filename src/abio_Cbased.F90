@@ -355,7 +355,7 @@
    _SET_ODE_(self%id_doc,  f_det_doc - f_doc_dic - self%D*doc)  !Eq.3b
    _SET_ODE_(self%id_dic, f_doc_dic - self%D*(dic-self%DICin))
    
-   _SET_DIAGNOSTIC_(self%id_fabiodin, f_don_din * secs_pr_day - self%D*(din-self%DINin))
+   _SET_DIAGNOSTIC_(self%id_fabiodin, f_don_din * secs_pr_day - self%D*(din-self%DINin)* secs_pr_day)
    
    !Apply dilution to phytoplankton
    _GET_(self%id_phyC1,phyC1) 
