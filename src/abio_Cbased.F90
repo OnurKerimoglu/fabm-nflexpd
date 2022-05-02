@@ -32,6 +32,7 @@
       !type (type_horizontal_diagnostic_variable_id):: id_dFDL
       type (type_diagnostic_variable_id):: id_fdetdon,id_fdetdoc,id_fdondin,id_fdocdic
       type (type_diagnostic_variable_id):: id_fabiodin
+      type (type_diagnostic_variable_id):: id_D
       type (type_bottom_diagnostic_variable_id):: id_detn_sed,id_detc_sed
       
       !for saving and accessing the doy,din and par of the previous integration time step
@@ -164,6 +165,8 @@
                                      output=output_instantaneous)
    !to be exported to RHSext_Cbased                                  
    call self%register_diagnostic_variable(self%id_fabiodin, 'f_abio_din','mmolN/m^3/d',   'bulk net abiotic DIN fluxes',           &
+                                     output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_D, 'D','d-1',   'Dilution rate',           &
                                      output=output_instantaneous)                                     
                                      
                                      
@@ -374,6 +377,7 @@
    _SET_DIAGNOSTIC_(self%id_fdocdic, f_doc_dic * secs_pr_day) !mmolC m-3 d-1
    _SET_DIAGNOSTIC_(self%id_fdetdon, f_det_don * secs_pr_day) !mmolN m-3 d-1
    _SET_DIAGNOSTIC_(self%id_fdetdoc, f_det_doc * secs_pr_day) !mmolC m-3 d-1
+   _SET_DIAGNOSTIC_(self%id_D, self%D * secs_pr_day) !d-1
    
    ! Leave spatial loops (if any)
    _LOOP_END_

@@ -38,10 +38,10 @@
       type (type_global_dependency_id)     :: id_doy
       type (type_dependency_id)            :: id_depth,id_temp,id_parW,id_par_dmean,id_depFDL,id_depdFDLdt
       !type (type_horizontal_dependency_id) :: id_depFDL
-      type (type_dependency_id)            :: id_dep_delta_t,id_dep_delta_din,id_dep_delta_parE,id_dep_delta_temp
+      type (type_dependency_id)            :: id_dep_delta_t,id_dep_delta_din,id_dep_delta_parE,id_dep_delta_temp,id_dep_D
       
 !     Model parameters
-      real(rk) :: kc,w_phy,mindin,D
+      real(rk) :: kc,w_phy,mindin
       real(rk) :: zetaN,zetaChl,M0p,Mpart,RMChl
       real(rk) :: mu0hat,aI
       real(rk) :: A0hat,V0hat,Q0,Qmax,KN_monod
@@ -112,7 +112,6 @@
    call self%get_parameter(self%V0hat, 'V0hat','molN molC-1 d-1', 'Potential maximum uptake rate', default=5.0_rk,scale_factor=d_per_s)
    call self%get_parameter(self%A0hat, 'A0hat','m3 mmolC-1 d-1', 'Potential maximum nutrient affinity', default=0.15_rk,scale_factor=d_per_s)
    call self%get_parameter(self%KN_monod, 'KN_monod','mmolN m-3', 'Half saturation constant for growth [when Monod model is mimicked]', default=-1.0_rk)
-   call self%get_parameter(self%D,   'D',   'd-1','dilution rate', default=0.0_rk,scale_factor=d_per_s)
    
    !consistency checks
    if (self%Q_fixed .gt. 0.0 ) then
@@ -284,6 +283,7 @@
      call self%register_dependency(self%id_dep_delta_parE, 'delta_par','E/m^2/s','diff in PAR betw current and prev time step')
      call self%register_dependency(self%id_dep_delta_temp,'delta_temp','Degree_Celsius', 'diff in PAR betw current and prev time step')
    end if
+   call self%register_dependency(self%id_dep_D, 'D','d-1','Dilution rate')
    call self%register_dependency(self%id_temp,standard_variables%temperature)
    call self%register_global_dependency(self%id_doy,standard_variables%number_of_days_since_start_of_the_year)
    
@@ -303,7 +303,7 @@
    _DECLARE_ARGUMENTS_DO_
 !
 ! !LOCAL VARIABLES:
-   real(rk)                   :: din,phyC,phyN,parW,parE,parE_dm,Ld,dLd_dt,dTemp_dt
+   real(rk)                   :: din,phyC,phyN,parW,parE,parE_dm,Ld,dLd_dt,dTemp_dt,D
    real(rk)                   :: ThetaHat,vNhat,muhatG,RhatChl,muhatNET
    real(rk)                   :: LamW,aim
    real(rk)                   :: Q,Theta,fV,fQ,fA,Rchl,I_zero,ZINT
@@ -353,6 +353,7 @@
    !_GET_(self%id_dic,dic)    ! carbon (no need, as C is assumed to be non limiting)
    _GET_(self%id_din,din)    ! nutrients
    _GET_GLOBAL_(self%id_doy,doy)  ! day of year
+   _GET_(self%id_dep_D,D)
    ! delta_t,delta_din,delta_temp
    _GET_(self%id_dep_delta_t,delta_t)
    _GET_(self%id_dep_delta_din,delta_din)
@@ -709,10 +710,10 @@
    !end if
    
    ! Set temporal derivatives
-   _SET_ODE_(self%id_phyC, f_dic_phy - f_phy_doc - f_phy_detc - self%D*phyC)  !  f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
+   _SET_ODE_(self%id_phyC, f_dic_phy - f_phy_doc - f_phy_detc - (D/secs_pr_day)*phyC)  !  f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
    !write(*,'(A,2F15.10)')'  (phy.6) phyC,delta_phyC',phyC,(mu*phyC - f_phy_don/Q - f_phy_detn/Q)*delta_t
    if ( self%dynQN ) then
-     _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn - self%D*phyN) !Eq.1b, Eq8 (for mu*phyC) (f_phy_doc doesn't appear in K20, since it's=0 (see above))
+     _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn - (D/secs_pr_day)*phyN) !Eq.1b, Eq8 (for mu*phyC) (f_phy_doc doesn't appear in K20, since it's=0 (see above))
    end if
    
    !dC/dt
@@ -743,8 +744,8 @@
    _SET_ODE_(self%id_detc, f_phy_detc) !Sink term in Eq.2b
    
    !External C and D: to trace the dilution and sedimentation fluxes in 0D mode
-   _SET_ODE_(self%id_extN, +self%D*phyN)
-   _SET_ODE_(self%id_extC, +self%D*phyC)
+   _SET_ODE_(self%id_extN, +(D/secs_pr_day)*phyN)
+   _SET_ODE_(self%id_extC, +(D/secs_pr_day)*phyC)
    
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_Q, Q)

@@ -26,7 +26,6 @@ instances:
       zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       M0p: 0.01                       # sp. quad. mortality rate (m3 molC-1 d-1)
       Mpart: 1.0                     # part of the mortality that goes to detritus
-      D: 0.1                         # Dilution rate [d-1]
     initialization:
       C: 0.8                      # Phytoplankton-N concentration (mmol m-3)
     coupling:
@@ -45,6 +44,7 @@ instances:
       FDL: abio_Cbased/FDL        # Fractional daylength (-)
       dFDL_dt: abio_Cbased/dFDL_dt # Time-derivative of the fractional daylength
       PAR_dmean: abio_Cbased/PAR_dmean  # PAR, daily mean (mol/m2/d)
+      D: abio_Cbased/D                  # Dilution rate (d-1)
   phy_Cbased_IA2: # A0,mu0,Q0,V0 allometrically scaled for ESD = 10um
     use: .false.
     long_name: Phytoplankton-Cbased-IA2
@@ -72,7 +72,6 @@ instances:
       zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       M0p: 0.01                       # sp. quad. mortality rate (m3 molC-1 d-1)
       Mpart: 1.0                     # part of the mortality that goes to detritus
-      D: 0.1                         # Dilution rate [d-1]
     initialization:
       C: 0.8                      # Phytoplankton-N concentration (mmol m-3)
     coupling:
@@ -91,6 +90,7 @@ instances:
       FDL: abio_Cbased/FDL        # Fractional daylength (-)
       dFDL_dt: abio_Cbased/dFDL_dt # Time-derivative of the fractional daylength
       PAR_dmean: abio_Cbased/PAR_dmean  # PAR, daily mean (mol/m2/d)
+      D: abio_Cbased/D                  # Dilution rate (d-1)
   RHSext_Cbased_IA:
     use: .true.
     long_name: RHSext_IA
@@ -111,8 +111,8 @@ instances:
     parameters:
       PAR_ext_inE: .true.            # PAR provided externally are in Einsten/Quanta [mol/m2/d]
       PAR_dmean_FDL: .true.          # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
-      kc: 0.00                       # specific light extinction (m2 mmolC-1)
-      kdet: 0.1                      # Degredation rate of Detritus (d-1)
+      kc: 0.0                       # specific light extinction (m2 mmolC-1)
+      kdet: 0.1                      # Degradation rate of Detritus (d-1)
       kdon: 0.1                      # Remineralization rate of DON
       par0_dt0: 4.5                  # daily average par at the surface on the first time step
       kc_dt0: 0.2                    # attenuation coefficient on the first time step
@@ -128,8 +128,5 @@ instances:
       doc: 19.875                    # DOC concentration (mmol m-3)
       detn: 3.0                      # Det-N concentration (mmol m-3)
       detc: 19.875                   # Det-C concentration (mmol m-3)
-      extn: 0.0                   # external N (mmolN m-3)
-      extc: 0.0                  # external C (mmolC m-3)
-    #coupling:
-    #  phyC1: phy_Cbased_IA1/C
-    #  phyN1: phy_Cbased_IA1/N
+      extn: 0.0                      # external N (mmolN m-3)
+      extc: 0.0                      # external C (mmolC m-3)
