@@ -143,8 +143,8 @@
    call self%register_state_variable(self%id_extN,'extn','mmolN/m^3','External N concentration',     &
                                 0.0_rk,minimum=-1e20_rk,no_river_dilution=.false., &
                                 specific_light_extinction=0.0_rk)
-   call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_extc)
-   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_extn)
+   !call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_extc)
+   !call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_extn)
    
    ! Register diagnostic variables
    call self%register_bottom_diagnostic_variable(self%id_detn_sed,'detn_sed','mmolN/m^2/d','sedimentation rate of detN')
