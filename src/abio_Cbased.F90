@@ -24,7 +24,7 @@
    type,extends(type_base_model),public :: type_NflexPD_abio_Cbased
 !     Variable identifiers
       type (type_state_variable_id)     :: id_dic,id_din,id_don,id_doc,id_detn,id_detc
-      type (type_state_variable_id)     :: id_phyC1,id_phyN1 !abio module needs these to be able to set dilution fluxes 
+      type (type_state_variable_id)     :: id_extC,id_extN !external C and N: to trace the dilution and sedimentation fluxes in 0D mode
       type (type_dependency_id)         :: id_temp,id_depth,id_parW,id_parW_dmean
       type (type_horizontal_dependency_id)  :: id_lat
       type (type_global_dependency_id)  :: id_doy
@@ -48,7 +48,7 @@
       !type (type_dependency_id)            :: id_dep_del_phyn_din 
       
 !     Model parameters
-      logical :: PAR_dmean_FDL,PAR_ext_inE,dynQN
+      logical :: PAR_dmean_FDL,PAR_ext_inE
       real(rk) :: w_det,kdet,kdon,par0_dt0,kc_dt0
       real(rk) :: D,DICin,DINin,sdet,Hsml
 
@@ -99,19 +99,13 @@
    call self%get_parameter(self%par0_dt0,'par0_dt0','W m-2', 'daily average par at the surface on the first time step',  default=4.5_rk)
    call self%get_parameter(self%kc_dt0,'kc_dt0','m-1', 'attenuaton coefficient on the first time step',  default=0.2_rk)
    !Dilution and sinking fluxes
-   call self%get_parameter(self%dynQN, 'dynQN','-', 'whether dynamically resolve QN', default=.false.) !abio module needs this to apply dilution to phyN 
    call self%get_parameter(self%D,   'D',   'd-1','dilution rate', default=0.0_rk,scale_factor=d_per_s)
    call self%get_parameter(self%DICin,   'DICin',   'mmolC m-3','DIC concentration in the inflow',               default=1000.0_rk)
    call self%get_parameter(self%DINin,   'DINin',   'mmolN m-3','DIN concentration in the inflow',               default=5.0_rk)
    call self%get_parameter(self%sdet,   'sdet',   'm d-1','Sedimentation rate of detritus', default=0.0_rk, scale_factor=d_per_s)
    call self%get_parameter(self%Hsml,   'Hsml',   'm','Height of the SML', default=20.0_rk)
    
-   ! Register dependendcies on external state variables
-   call self%register_state_dependency(self%id_phyC1, 'phyC1',   'mmolC/m^3','phytoplankton carbon')
-   if (self%dynQN) then
-     call self%register_state_dependency(self%id_phyN1, 'phyN1',   'mmolC/m^3','phytoplankton nitrogen')
-   end if  
-   
+
    ! Register state variables
    call self%register_state_variable(self%id_dic,'dic','mmolC/m^3','DIC concentration',     &
                                 1000.0_rk,minimum=0.0_rk,no_river_dilution=.true., &
@@ -124,14 +118,14 @@
                                 specific_light_extinction=0.0_rk)
    call self%register_state_variable(self%id_doc,'doc','mmolC/m^3','DOC concentration',     &
                                 6.625_rk,minimum=0.0_rk,no_river_dilution=.true., &
-                                specific_light_extinction=0.0_rk)                             
+                                specific_light_extinction=0.0_rk)
    call self%register_state_variable(self%id_detn,'detn','mmolN/m^3','Det-N concentration',    &
                                 4.5_rk,minimum=0.0_rk,vertical_movement=self%w_det, &
                                 specific_light_extinction=0.0_rk)
    call self%register_state_variable(self%id_detc,'detc','mmolC/m^3','Det-C concentration',    &
                                 6.625_rk,minimum=0.0_rk,vertical_movement=self%w_det, &
-                                specific_light_extinction=kc)                             
-   
+                                specific_light_extinction=kc)
+                                
    ! Register contribution of state to global aggregate variables.
    call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_dic)
    call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_doc)
@@ -139,6 +133,16 @@
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_din)
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_don)
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_detn)
+   
+   !External C and D: to trace the dilution and sedimentation fluxes in 0D mode
+   call self%register_state_variable(self%id_extC,'extc','mmolC/m^3','External C concentration',     &
+                                0.0_rk,minimum=-1e20_rk,no_river_dilution=.false., &
+                                specific_light_extinction=0.0_rk)
+   call self%register_state_variable(self%id_extN,'extn','mmolN/m^3','External N concentration',     &
+                                0.0_rk,minimum=-1e20_rk,no_river_dilution=.false., &
+                                specific_light_extinction=0.0_rk)
+   call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_extc)
+   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_extn)
    
    ! Register diagnostic variables
    call self%register_bottom_diagnostic_variable(self%id_detn_sed,'detn_sed','mmolN/m^2/d','sedimentation rate of detN')
@@ -230,7 +234,6 @@
    real(rk)                   :: tC_prev,delta_temp
    real(rk)                   :: parEdm_prev,delta_parE
    real(rk)                   :: total_del_phyn_din,del_phyn_din
-   real(rk)                   :: phyC1,phyN1
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
 !-----------------------------------------------------------------------
@@ -245,6 +248,8 @@
    _GET_(self%id_detn,detn) ! detrital nitrogen
    _GET_(self%id_doc,doc) ! dissolved organic carbon
    _GET_(self%id_don,don) ! dissolved organic nitrogen
+   _GET_(self%id_dic,dic) ! dic
+   _GET_(self%id_din,din) ! din
    ! Retrieve environmental dependencies
    _GET_(self%id_temp,tC) ! temperature in Celcius
    _GET_GLOBAL_(self%id_doy,doy) ! day of year 
@@ -283,8 +288,7 @@
    if (doy .ne. doy_prev) then !i.e., if it's a real time step (and, e.g., not a 'fake' step of a RK4 ode method)
      
      !Access the values at the prev. time step as recorded by the diagnostic variables
-     _GET_(self%id_dic,dic) ! dic
-     _GET_(self%id_din,din) ! din
+     !write(*,*)' (abio.291) din',din
      _GET_(self%id_dtemp_dep,tC_prev)
      _GET_(self%id_ddin_dep,din_prev)
      _GET_(self%id_dPARdm_dep,parEdm_prev) !mol/m2/d
@@ -332,7 +336,6 @@
      _GET_(self%id_dep_delta_din,delta_din)
      _GET_(self%id_dep_delta_par,delta_parE) !mol/m2/d
      _GET_(self%id_dep_delta_temp,delta_temp)
-     
      !_GET_(self%id_dep_del_phyn_din,del_phyn_din)
      !total_del_phyn_din=del_phyn_din !temporary shortcut for 1-species case for experimental purposes
      !write(*,*)' (abio.3b) prev_tot_del_phyn_din',total_del_phyn_din
@@ -349,24 +352,18 @@
    f_doc_dic = self%kdon * Tfac * doc  !Table 1 in K20
    
    ! Set temporal derivatives
-   _SET_ODE_(self%id_detn, -f_det_don -self%D*detn - (self%sdet/self%Hsml)*detn)
-   _SET_ODE_(self%id_detc, -f_det_doc -self%D*detc - (self%sdet/self%Hsml)*detc)
+   _SET_ODE_(self%id_detn, -f_det_don -(self%D+self%sdet/self%Hsml)*detn)
+   _SET_ODE_(self%id_detc, -f_det_doc -(self%D+self%sdet/self%Hsml)*detc)
    _SET_ODE_(self%id_don,  f_det_don - f_don_din - self%D*don)
    _SET_ODE_(self%id_doc,  f_det_doc - f_doc_dic - self%D*doc)  !Eq.3b
    _SET_ODE_(self%id_dic, f_doc_dic - self%D*(dic-self%DICin))
    
    _SET_DIAGNOSTIC_(self%id_fabiodin, f_don_din * secs_pr_day - self%D*(din-self%DINin)* secs_pr_day)
    
-   !Apply dilution to phytoplankton
-   _GET_(self%id_phyC1,phyC1) 
-   _SET_ODE_(self%id_phyC1, -self%D*phyC1)
-   if (self%dynQN) then
-     _GET_(self%id_phyN1,phyN1) 
-     _SET_ODE_(self%id_phyN1, -self%D*phyN1)
-   end if
-   
-   !write(*,*)' (abio.368) DdetN,SdetN,Ddon,Ddin,DphyN',self%D*detn,(self%sdet/self%Hsml)*detn,self%D*don,self%D*(din-self%DINin),-self%D*phyC1
-   
+   !External C and D: to trace the dilution and sedimentation fluxes in 0D mode
+   _SET_ODE_(self%id_extN, (self%D+self%sdet/self%Hsml)*detn + self%D*don + self%D*(din-self%DINin))
+   _SET_ODE_(self%id_extC, (self%D+self%sdet/self%Hsml)*detc + self%D*doc + self%D*(dic-self%DICin))
+
    !Standard: i.e., DA or FS approaches:
    !_SET_ODE_(self%id_din,   f_don_din)
    !IA approach:

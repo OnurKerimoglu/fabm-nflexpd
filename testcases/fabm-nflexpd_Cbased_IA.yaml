@@ -26,6 +26,7 @@ instances:
       zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       M0p: 0.01                       # sp. quad. mortality rate (m3 molC-1 d-1)
       Mpart: 1.0                     # part of the mortality that goes to detritus
+      D: 0.1                         # Dilution rate [d-1]
     initialization:
       C: 0.8                      # Phytoplankton-N concentration (mmol m-3)
     coupling:
@@ -35,6 +36,8 @@ instances:
       doc: abio_Cbased/doc        # sink for excreted matter (mmolC m-3)
       detN: abio_Cbased/detn      # sink for dead matter (mmolN m-3)
       detC: abio_Cbased/detc      # sink for dead matter (mmolC m-3)
+      extN: abio_Cbased/extn      # external N (mmolN m-3)
+      extC: abio_Cbased/extc      # external C (mmolC m-3)
       delta_t: abio_Cbased/delta_t # integ. time step (s)
       delta_din: abio_Cbased/delta_din # difference in DIN since the prev. time step
       delta_par: abio_Cbased/delta_par # difference in par since the prev. time step
@@ -69,6 +72,7 @@ instances:
       zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
       M0p: 0.01                       # sp. quad. mortality rate (m3 molC-1 d-1)
       Mpart: 1.0                     # part of the mortality that goes to detritus
+      D: 0.1                         # Dilution rate [d-1]
     initialization:
       C: 0.8                      # Phytoplankton-N concentration (mmol m-3)
     coupling:
@@ -78,6 +82,8 @@ instances:
       doc: abio_Cbased/doc        # sink for excreted matter (mmolC m-3)
       detN: abio_Cbased/detn      # sink for dead matter (mmolN m-3)
       detC: abio_Cbased/detc      # sink for dead matter (mmolC m-3)
+      extN: abio_Cbased/extn      # external N (mmolN m-3)
+      extC: abio_Cbased/extc      # external C (mmolC m-3)
       delta_t: abio_Cbased/delta_t # integ. time step (s)
       delta_din: abio_Cbased/delta_din # difference in DIN since the prev. time step
       delta_par: abio_Cbased/delta_par # difference in par since the prev. time step
@@ -103,7 +109,6 @@ instances:
     long_name: Abiotic
     model: nflexpd/abio_Cbased
     parameters:
-      dynQN: .false.                 # whether to dynamically represent QN (explicit state var for N- and C-)
       PAR_ext_inE: .true.            # PAR provided externally are in Einsten/Quanta [mol/m2/d]
       PAR_dmean_FDL: .true.          # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
       kc: 0.00                       # specific light extinction (m2 mmolC-1)
@@ -111,9 +116,9 @@ instances:
       kdon: 0.1                      # Remineralization rate of DON
       par0_dt0: 4.5                  # daily average par at the surface on the first time step
       kc_dt0: 0.2                    # attenuation coefficient on the first time step
-      D: 0.0                         # Dilution rate [d-1]
+      D: 0.1                         # Dilution rate [d-1]
       DICin: 1000.0                  # DIC concentration in the inflow [mmolC m-3]
-      DINin: 25.0                     # DIN concentration in the inflow [mmolN m-3]
+      DINin: 25.0                    # DIN concentration in the inflow [mmolN m-3]
       sdet: 0.0                      # Sedimentation rate of detritus [m d-1]
       Hsml: 20.0                     # Height of the SML [m]
     initialization:
@@ -123,6 +128,8 @@ instances:
       doc: 19.875                    # DOC concentration (mmol m-3)
       detn: 3.0                      # Det-N concentration (mmol m-3)
       detc: 19.875                   # Det-C concentration (mmol m-3)
-    coupling:
-      phyC1: phy_Cbased_IA1/C
-      #phyN1: phy_Cbased_IA1/N
+      extn: 0.0                   # external N (mmolN m-3)
+      extc: 0.0                  # external C (mmolC m-3)
+    #coupling:
+    #  phyC1: phy_Cbased_IA1/C
+    #  phyN1: phy_Cbased_IA1/N

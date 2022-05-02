@@ -26,6 +26,7 @@
 !     Variable identifiers
       type (type_state_variable_id)        :: id_phyC,id_phyN
       type (type_state_variable_id)        :: id_dic,id_din,id_don,id_doc,id_detn,id_detc
+      type (type_state_variable_id)        :: id_extn,id_extc !external C and N: to trace the dilution and sedimentation fluxes in 0D mode
       type (type_diagnostic_variable_id)   :: id_dI_dt,id_muhatNET,id_ZINT,id_Vhat,id_Ahat,id_KN
       type (type_diagnostic_variable_id)   :: id_dQdt,id_delQdelt_I,id_delQdelt_N,id_delQdelt_Ld,id_delQdelt_T
       type (type_diagnostic_variable_id)   :: id_Q,id_d_phyN,id_Chl,id_Chl2C,id_fV,id_fA,id_ThetaHat
@@ -40,7 +41,7 @@
       type (type_dependency_id)            :: id_dep_delta_t,id_dep_delta_din,id_dep_delta_parE,id_dep_delta_temp
       
 !     Model parameters
-      real(rk) :: kc,w_phy,mindin
+      real(rk) :: kc,w_phy,mindin,D
       real(rk) :: zetaN,zetaChl,M0p,Mpart,RMChl
       real(rk) :: mu0hat,aI
       real(rk) :: A0hat,V0hat,Q0,Qmax,KN_monod
@@ -111,6 +112,7 @@
    call self%get_parameter(self%V0hat, 'V0hat','molN molC-1 d-1', 'Potential maximum uptake rate', default=5.0_rk,scale_factor=d_per_s)
    call self%get_parameter(self%A0hat, 'A0hat','m3 mmolC-1 d-1', 'Potential maximum nutrient affinity', default=0.15_rk,scale_factor=d_per_s)
    call self%get_parameter(self%KN_monod, 'KN_monod','mmolN m-3', 'Half saturation constant for growth [when Monod model is mimicked]', default=-1.0_rk)
+   call self%get_parameter(self%D,   'D',   'd-1','dilution rate', default=0.0_rk,scale_factor=d_per_s)
    
    !consistency checks
    if (self%Q_fixed .gt. 0.0 ) then
@@ -149,7 +151,11 @@
    call self%register_state_dependency(self%id_doc, 'doc','mmolC/m^3','dissolved organic carbon')
    call self%register_state_dependency(self%id_detn,'detN','mmolN/m^3','detrital nitrogen')
    call self%register_state_dependency(self%id_detc,'detC','mmolC/m^3','detrital carbon')
-
+   
+   !External C and D: to trace the dilution and sedimentation fluxes in 0D mode
+   call self%register_state_dependency(self%id_extN, 'extN','mmolN/m^3','external nitrogen')
+   call self%register_state_dependency(self%id_extC, 'extC','mmolC/m^3','external carbon')
+   
    ! Register state variables
    call self%register_state_variable(self%id_phyC,'C','mmolC/m^3','bound-C concentration',0.0_rk,minimum=0.0_rk,vertical_movement=w_phy, specific_light_extinction=self%kc)
    call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_phyC)
@@ -703,10 +709,10 @@
    !end if
    
    ! Set temporal derivatives
-   _SET_ODE_(self%id_phyC, f_dic_phy - f_phy_doc - f_phy_detc)  !  f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
+   _SET_ODE_(self%id_phyC, f_dic_phy - f_phy_doc - f_phy_detc - self%D*phyC)  !  f_din_phy/Q - f_phy_don/Q - f_phy_detn/Q)
    !write(*,'(A,2F15.10)')'  (phy.6) phyC,delta_phyC',phyC,(mu*phyC - f_phy_don/Q - f_phy_detn/Q)*delta_t
    if ( self%dynQN ) then
-     _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn) !Eq.1b, Eq8 (for mu*phyC) (f_phy_doc doesn't appear in K20, since it's=0 (see above))
+     _SET_ODE_(self%id_phyN, f_din_phy - f_phy_don - f_phy_detn - self%D*phyN) !Eq.1b, Eq8 (for mu*phyC) (f_phy_doc doesn't appear in K20, since it's=0 (see above))
    end if
    
    !dC/dt
@@ -735,6 +741,10 @@
    _SET_ODE_(self%id_doc,  f_phy_doc)  !Eq.3b
    _SET_ODE_(self%id_detn, f_phy_detn)
    _SET_ODE_(self%id_detc, f_phy_detc) !Sink term in Eq.2b
+   
+   !External C and D: to trace the dilution and sedimentation fluxes in 0D mode
+   _SET_ODE_(self%id_extN, +self%D*phyN)
+   _SET_ODE_(self%id_extC, +self%D*phyC)
    
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_Q, Q)
