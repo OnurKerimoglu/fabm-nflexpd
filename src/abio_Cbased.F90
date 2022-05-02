@@ -49,7 +49,7 @@
       !type (type_dependency_id)            :: id_dep_del_phyn_din 
       
 !     Model parameters
-      logical :: PAR_dmean_FDL,PAR_ext_inE
+      logical :: PAR_dmean_FDL,PAR_ext_inE,varD
       real(rk) :: w_det,kdet,kdon,par0_dt0,kc_dt0
       real(rk) :: D,DICin,DINin,sdet,Hsml
 
@@ -100,6 +100,7 @@
    call self%get_parameter(self%par0_dt0,'par0_dt0','W m-2', 'daily average par at the surface on the first time step',  default=4.5_rk)
    call self%get_parameter(self%kc_dt0,'kc_dt0','m-1', 'attenuaton coefficient on the first time step',  default=0.2_rk)
    !Dilution and sinking fluxes
+   call self%get_parameter(self%varD, 'varD','-', 'variable D', default=.false.)
    call self%get_parameter(self%D,   'D',   'd-1','dilution rate', default=0.0_rk,scale_factor=d_per_s)
    call self%get_parameter(self%DICin,   'DICin',   'mmolC m-3','DIC concentration in the inflow',               default=1000.0_rk)
    call self%get_parameter(self%DINin,   'DINin',   'mmolN m-3','DIN concentration in the inflow',               default=5.0_rk)
@@ -237,6 +238,7 @@
    real(rk)                   :: tC_prev,delta_temp
    real(rk)                   :: parEdm_prev,delta_parE
    real(rk)                   :: total_del_phyn_din,del_phyn_din
+   real(rk)                   :: D
    real(rk), parameter        :: secs_pr_day = 86400.0_rk
 !EOP
 !-----------------------------------------------------------------------
@@ -355,6 +357,11 @@
    f_doc_dic = self%kdon * Tfac * doc  !Table 1 in K20
    
    ! Set temporal derivatives
+   if (self%varD) then
+     D=MLDmixing_seasonal(doy)/secs_pr_day !s-1
+   else
+     D=self%D !s-1
+   end if
    _SET_ODE_(self%id_detn, -f_det_don -(self%D+self%sdet/self%Hsml)*detn)
    _SET_ODE_(self%id_detc, -f_det_doc -(self%D+self%sdet/self%Hsml)*detc)
    _SET_ODE_(self%id_don,  f_det_don - f_don_din - self%D*don)
@@ -377,7 +384,7 @@
    _SET_DIAGNOSTIC_(self%id_fdocdic, f_doc_dic * secs_pr_day) !mmolC m-3 d-1
    _SET_DIAGNOSTIC_(self%id_fdetdon, f_det_don * secs_pr_day) !mmolN m-3 d-1
    _SET_DIAGNOSTIC_(self%id_fdetdoc, f_det_doc * secs_pr_day) !mmolC m-3 d-1
-   _SET_DIAGNOSTIC_(self%id_D, self%D * secs_pr_day) !d-1
+   _SET_DIAGNOSTIC_(self%id_D, D * secs_pr_day) !d-1
    
    ! Leave spatial loops (if any)
    _LOOP_END_
