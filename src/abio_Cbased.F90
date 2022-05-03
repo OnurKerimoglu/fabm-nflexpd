@@ -143,8 +143,8 @@
    call self%register_state_variable(self%id_extN,'extn','mmolN/m^3','External N concentration',     &
                                 0.0_rk,minimum=-1e20_rk,no_river_dilution=.false., &
                                 specific_light_extinction=0.0_rk)
-   !call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_extc)
-   !call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_extn)
+   call self%add_to_aggregate_variable(standard_variables%total_carbon,self%id_extc)
+   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_extn)
    
    ! Register diagnostic variables
    call self%register_bottom_diagnostic_variable(self%id_detn_sed,'detn_sed','mmolN/m^2/d','sedimentation rate of detN')
@@ -362,17 +362,17 @@
    else
      D=self%D !s-1
    end if
-   _SET_ODE_(self%id_detn, -f_det_don -(self%D+self%sdet/self%Hsml)*detn)
-   _SET_ODE_(self%id_detc, -f_det_doc -(self%D+self%sdet/self%Hsml)*detc)
-   _SET_ODE_(self%id_don,  f_det_don - f_don_din - self%D*don)
-   _SET_ODE_(self%id_doc,  f_det_doc - f_doc_dic - self%D*doc)  !Eq.3b
-   _SET_ODE_(self%id_dic, f_doc_dic - self%D*(dic-self%DICin))
+   _SET_ODE_(self%id_detn, -f_det_don -(D+self%sdet/self%Hsml)*detn)
+   _SET_ODE_(self%id_detc, -f_det_doc -(D+self%sdet/self%Hsml)*detc)
+   _SET_ODE_(self%id_don,  f_det_don - f_don_din - D*don)
+   _SET_ODE_(self%id_doc,  f_det_doc - f_doc_dic - D*doc)  !Eq.3b
+   _SET_ODE_(self%id_dic, f_doc_dic - D*(dic-self%DICin))
    
-   _SET_DIAGNOSTIC_(self%id_fabiodin, f_don_din * secs_pr_day - self%D*(din-self%DINin)* secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_fabiodin, f_don_din * secs_pr_day - D*(din-self%DINin)* secs_pr_day)
    
    !External C and D: to trace the dilution and sedimentation fluxes in 0D mode
-   _SET_ODE_(self%id_extN, (self%D+self%sdet/self%Hsml)*detn + self%D*don + self%D*(din-self%DINin))
-   _SET_ODE_(self%id_extC, (self%D+self%sdet/self%Hsml)*detc + self%D*doc + self%D*(dic-self%DICin))
+   _SET_ODE_(self%id_extN, (D+self%sdet/self%Hsml)*detn + D*don + D*(din-self%DINin))
+   _SET_ODE_(self%id_extC, (D+self%sdet/self%Hsml)*detc + D*doc + D*(dic-self%DICin))
 
    !Standard: i.e., DA or FS approaches:
    !_SET_ODE_(self%id_din,   f_don_din)
