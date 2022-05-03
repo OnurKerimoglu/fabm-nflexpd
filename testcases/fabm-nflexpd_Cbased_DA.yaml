@@ -103,16 +103,16 @@ instances:
     parameters:
       PAR_ext_inE: .true.            # PAR provided externally are in Einsten/Quanta [mol/m2/d]
       PAR_dmean_FDL: .true.          # convert PARdm to day time average (PAR_dm/FDL, FDL: fractional day length)
-      kc: 0.0                       # specific light extinction (m2 mmolC-1)
+      kc: 0.0                        # specific light extinction (m2 mmolC-1)
       kdet: 0.1                      # Degradation rate of Detritus (d-1)
       kdon: 0.1                      # Remineralization rate of DON
       par0_dt0: 4.5                  # daily average par at the surface on the first time step
       kc_dt0: 0.2                    # attenuation coefficient on the first time step
       varD : .true.                  # variable Dilution rate
-      D: 0.1                         # Dilution rate [d-1]
+      D: 0.0                         # Dilution rate [d-1]
       DICin: 1000.0                  # DIC concentration in the inflow [mmolC m-3]
-      DINin: 25.0                    # DIN concentration in the inflow [mmolN m-3]
-      sdet: 0.0                      # Sedimentation rate of detritus [m d-1]
+      DINin: 15.0                    # DIN concentration in the inflow [mmolN m-3]
+      sdet: 0.1                      # Sedimentation rate of detritus [m d-1]
       Hsml: 20.0                     # Height of the SML [m]
     initialization:
       dic: 1000.0                    # DIN concentration (mmol m-3)

@@ -18,14 +18,18 @@ varlims1D={'I_dm':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf'
          'Phy-fA':[0.0,1.0], 'Phy-fV':[0.0,0.5], 'Phy-ThetaHat':[0.00,0.05],'Phy-fC':[0,0.2],'Phy-limfunc_L':[0.,1]}
 varlims0D={'I_dm':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf':[-100,0],'wind':[-6,26],
          'DetC_sed/DetN_sed':[4.0,16.0],'DetC/DetN':[5.0,30.0],'DOC/DON':[5.0,30.0],
-         'totalC':[1040.54,1040.56],'totalN':[21.09,21.14], #'totalN':[20.6, 21.2], #
-         #'totalC':[1040.45,1040.65], 'totalN':[20,30], #1D run
-         'DIC': [0, 1000],'DIN': [0, 20],'DetC':[0,300],'DetN':[0,15], 'DOC':[0,300], 'DON':[0,15],
+         'DIC': [0, 1050],'Global C':[1040.54,1040.56],'totalC':[800,1100], #,'totalC':[1040.54,1040.56],
+         'DIN': [0, 25],'Global N':[21.095,21.125],'totalN':[12,22], #'totalN':[21.095,21.125], #'totalN':[21.1113,21.1115], #'totalN':[21.095,21.125], #[21.199,21.201],
+         #'DIN': [0, 40],'DetC':[0,400],'DetN':[0,40], 'DOC':[0,400], 'DON':[0,40],'totalN':[36.195,36.22],
+         #'Phy-C':[0,100.0],'Phy-C 1':[0,100.0],'Phy-C 2':[0,100.0],'Phy-N':[0,10],'Phy-N 1':[0,10.0], 'Phy-N 2':[0,10.0],
+         'DetC':[0,300],'DetN':[0,20], 'DOC':[0,300], 'DON':[0,20],
+         #'Phy-C':[0,80.0],'Phy-C 1':[0,70.0],'Phy-C 2':[0,70.0],'Phy-N':[0,8],'Phy-N 1':[0,7.0], 'Phy-N 2':[0,7.0],
+         'Phy-C':[0,100.0],'Phy-C 1':[0,70.0],'Phy-C 2':[0,70.0],'Phy-N':[0,10],'Phy-N 1':[0,7.0], 'Phy-N 2':[0,7.0],
          'Phy-Chl':[0,20.],'Phy-Q':[0.02,0.22],'Phy-Chl2C':[0.00,0.1],
-        'Phy-C':[0,100.0],'Phy-C 1':[0,60.0],'Phy-C 2':[0,60.0],
-         'Phy-N':[0,7.5],'Phy-N 1':[0,6.0], 'Phy-N 2':[0,6.0],
          'Phy-PPR':[0,20.],'Phy-mu':[0,0.4],'Phy-vN':[0,0.05],'Phy-f_dinphy':[0,0.5],'Phy-R_N':[0,0.04],'Phy-R_Chl':[0,0.1],
-         'Phy-fA':[0.0,1.0], 'Phy-fV':[0.0,0.5], 'Phy-ThetaHat':[0.00,0.05],'Phy-fC':[0,0.2],'Phy-limfunc_L':[0.,1]}
+         'Phy-fA':[0.0,1.0], 'Phy-fV':[0.0,0.5], 'Phy-ThetaHat':[0.00,0.05],'Phy-fC':[0,0.2],'Phy-limfunc_L':[0.,1],
+         'dQ_dt': [-0.01,0.01],'delQ_delt_N': [-0.01,0.01],'delQ_delt_I': [-0.01,0.01],'delQ_delt_Ld': [-0.01,0.01],'delQ_delt_T': [-0.01,0.01],
+           }
 namelibNbasedIA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
                  'totalN':'total_nitrogen_calculator_result',
                'I-dm':'abio_PAR_dmean','I':'abio_PAR',
@@ -53,28 +57,37 @@ namelibNbasedDA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
              'DOC':'abio_doc','DetC':'abio_detc'
             }
 namelibCbasedIA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp', 'L$_D$':'abio_Cbased_FDL',
-             'totalC':'total_carbon_calculator_result',
-             'totalN':'total_nitrogen_calculator_result',
+             'Global C': 'total_carbon_calculator_result',
+             'Global N': 'total_nitrogen_calculator_result',
+             'totalC':'total_carbon_calculator_result-abio_Cbased_extc',
+             'totalN':'total_nitrogen_calculator_result-abio_Cbased_extn',
              #'totalN':'abio_Cbased_din+abio_Cbased_don+abio_Cbased_detn+phy_Cbased_IA_C*phy_Cbased_IA_Q', #+phy_Cbased_IA_N',
-             'I-dm':'abio_Cbased_PAR_dmean','I':'abio_Cbased_PAR', 'dI_dt':'phy_Cbased_IA_dI_dt',
+             'I-dm':'abio_Cbased_PAR_dmean','I':'abio_Cbased_PAR', 'dI_dt':'phy_Cbased_IA1_dI_dt',
              'Phy-C 1':'phy_Cbased_IA1_C','Phy-N 1':'phy_Cbased_IA1_N','PhyC-Q 1':'phy_Cbased_IA1_Q',
              'Phy-C 2':'phy_Cbased_IA2_C','Phy-N 2':'phy_Cbased_IA2_N','PhyC-Q 2':'phy_Cbased_IA2_Q',
-             'Phy-C':'phy_Cbased_IA_C','Phy-N':'phy_Cbased_IA_N','Phy-Q':'phy_Cbased_IA_Q',
+             'Phy-C':'phy_Cbased_IA1_C','Phy-N':'phy_Cbased_IA1_N','Phy-Q':'phy_Cbased_IA1_Q',
              'Phy-Chl':'phy_Cbased_IA_Chl','Phy-Chl2C':'phy_Cbased_IA_Chl2C',
              'mu':'phy_Cbased_IA_mu','vN':'phy_Cbased_IA_vN','R_N':'phy_Cbased_IA_R_N','R_Chl':'phy_Cbased_IA_R_Chl',
              'fA':'phy_Cbased_IA_fA', 'fV':'phy_Cbased_IA_fV', 'fC':'phy_Cbased_IA_fC',
              'ThetaHat':'phy_Cbased_IA_ThetaHat', 'limfunc_L':'phy_Cbased_IA_limfunc_L',
              'DIC':'abio_Cbased_dic','DIN':'abio_Cbased_din','DON':'abio_Cbased_don','DetN':'abio_Cbased_detn',
-             'DOC':'abio_Cbased_doc','DetC':'abio_Cbased_detc'
+             'DOC':'abio_Cbased_doc','DetC':'abio_Cbased_detc',
+             'dQ_dt':'phy_Cbased_IA1_dQdt',
+             'delQ_delt_N':'phy_Cbased_IA1_delQdelt_N',
+             'delQ_delt_I':'phy_Cbased_IA1_delQdelt_I',
+             'delQ_delt_Ld':'phy_Cbased_IA1_delQdelt_Ld',
+             'delQ_delt_T':'phy_Cbased_IA1_delQdelt_T'
             }
 namelibCbasedDA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
-            'totalC':'total_carbon_calculator_result',
-             'totalN':'total_nitrogen_calculator_result',
+             'Global C': 'total_carbon_calculator_result',
+             'Global N': 'total_nitrogen_calculator_result',
+            'totalC':'total_carbon_calculator_result-abio_Cbased_extc',
+             'totalN':'total_nitrogen_calculator_result-abio_Cbased_extn',
              #'totalN':'abio_Cbased_din+abio_Cbased_don+abio_Cbased_detn+phy_Cbased_DA_N',
-             'I-dm':'abio_Cbased_PAR_dmean','I':'abio_Cbased_PAR', 'dI_dt':'phy_Cbased_IA_dI_dt',
+             'I-dm':'abio_Cbased_PAR_dmean','I':'abio_Cbased_PAR', 'dI_dt':'phy_Cbased_IA1_dI_dt',
              'Phy-C 1':'phy_Cbased_DA1_C','Phy-N 1':'phy_Cbased_DA1_N','Phy-Q 1':'phy_Cbased_DA1_Q',
              'Phy-C 2':'phy_Cbased_DA2_C','Phy-N 2':'phy_Cbased_DA2_N','Phy-Q 2':'phy_Cbased_DA2_Q',
-             'Phy-C':'phy_Cbased_DA_C','Phy-N':'phy_Cbased_DA_N','Phy-Q':'phy_Cbased_DA_Q',
+             'Phy-C':'phy_Cbased_DA1_C','Phy-N':'phy_Cbased_DA1_N','Phy-Q':'phy_Cbased_DA1_Q',
              'Phy-Chl':'phy_Cbased_DA_Chl','Phy-Chl2C':'phy_Cbased_DA_Chl2C',
              'mu':'phy_Cbased_DA_mu','vN':'phy_Cbased_DA_vN','R_N':'phy_Cbased_DA_R_N','R_Chl':'phy_Cbased_DA_R_Chl',
              'fA':'phy_Cbased_DA_fA', 'fV':'phy_Cbased_DA_fV', 'fC':'phy_Cbased_DA_fC',
@@ -87,10 +100,15 @@ prettyunits={'I_0':'E\ m^{-2}\ d^{-1}','wind':'m\ s^{-1}','T':'^\circ C',
              'Phy-C':'mmolC\ m^{-3}','Phy-C 1':'mmolC\ m^{-3}', 'Phy-C 2':'mmolC\ m^{-3}',
              'Phy-N':'mmolN\ m^{-3}','Phy-N 1':'mmolN\ m^{-3}', 'Phy-N 2':'mmolN\ m^{-3}',
              'Phy-Q':'molN\ molC^{-1}','Phy-Chl':'mg m^{-3}','Phy-Chl2C':'gChl\ gC^{-3}',
-             'DIN':'mmolN\ m^{-3}','DON':'mmolN\ m^{-3}','DetN':'mmolN\ m^{-3}', 'totalN':'mmolN\ m^{-3}',
-             'DIC':'mmolC\ m^{-3}','DOC':'mmolC\ m^{-3}','DetC':'mmolC\ m^{-3}', 'totalC':'mmolC\ m^{-3}',
+             'DIN':'mmolN\ m^{-3}','DON':'mmolN\ m^{-3}','DetN':'mmolN\ m^{-3}', 'Global C':'mmolC\ m^{-3}','totalN':'mmolN\ m^{-3}',
+             'DIC':'mmolC\ m^{-3}','DOC':'mmolC\ m^{-3}','DetC':'mmolC\ m^{-3}', 'Global N':'mmolN\ m^{-3}', 'totalC':'mmolC\ m^{-3}',
               'mu':'d^{-1}', 'vN':'molN\ molC^{-1} d^{-1}', 'R_N':'d^{-1}', 'R_Chl':'d^{-1}',
-             'fA':'-', 'fV':'-', 'fC':'-', 'limfunc_L':'-'
+             'fA':'-', 'fV':'-', 'fC':'-', 'limfunc_L':'-',
+             'dQ_dt':'molN\ molC^{-1}\ d^{-1}',
+             'delQ_delt_N':'molN\ molC^{-1}\ d^{-1}',
+             'delQ_delt_I':'molN\ molC^{-1}\ d^{-1}',
+             'delQ_delt_Ld':'molN\ molC^{-1}\ d^{-1}',
+             'delQ_delt_T':'molN\ molC^{-1}\ d^{-1}'
              }
 prettynames={'I_0':'$I_0$','wind':'wind','T':'T',
              'I-dm':r'$\bar{I}$','I':'$I$','dI_dt':r'd$\bar{I}$/d$t$',
@@ -101,7 +119,12 @@ prettynames={'I_0':'$I_0$','wind':'wind','T':'T',
              'DIN':'DIN','DON':'DON','DetN':'$Det_N$',
              'DOC':'DOC','DetC':'$Det_C$',
               'mu':'$\mu$', 'vN':'$V_N$', 'R_N':'$R_N$', 'R_Chl':'$R_{Chl}$',
-             'fA':'$f_A$', 'fV':'$f_V$', 'fC':'$f_C$', 'limfunc_L':'$L_I$','ThetaHat':r'$\hat{\theta}$'
+             'fA':'$f_A$', 'fV':'$f_V$', 'fC':'$f_C$', 'limfunc_L':'$L_I$','ThetaHat':r'$\hat{\theta}$',
+             'dQ_dt':r'$\frac{\mathrm{d}Q}{\mathrm{d}t}$',
+             'delQ_delt_N':r'$\frac{\partial Q}{\partial \mathrm{DIN}} \frac{\mathrm{d} \mathrm{DIN}}{\mathrm{d} t}$',
+             'delQ_delt_I':r'$\frac{\partial Q}{\partial \bar{I}} \frac{\mathrm{d} \bar{I}}{\mathrm{d} t}$',
+             'delQ_delt_Ld':r'$\frac{\partial Q}{\partial \mathrm{L}_\mathrm{D}} \frac{\mathrm{d} \mathrm{L}_\mathrm{D}}{\mathrm{d} t}$',
+             'delQ_delt_T':r'$\frac{\partial Q}{\partial T} \frac{\mathrm{d} \mathrm{T}}{\mathrm{d} t}$',
              }
 numlevels=6
 #depth range to be shown:
@@ -115,9 +138,10 @@ def main(fnames, numyears, modnames, variants, ids):
            #'abio2':['abio_din','abio_detc/abio_detn','abio_detc_sed/abio_detn_sed'],
            #'abio3':['abio_detn','abio_detc','abio_don','abio_doc'],
            #'abio0':['I-dm', 'dI_dt','T','L$_D$'],
-           'abio1':[ 'totalC','totalN',
-                     #'Phy-C', 'Phy-N',
-                     'Phy-C 1', 'Phy-N 1',
+           'abio1':[ 'Global C','Global N',
+                     'totalC','totalN',
+                     'Phy-C', 'Phy-N',
+                     #'Phy-C 1', 'Phy-N 1',
                      #'Phy-C 2', 'Phy-N 2',
                      'DIC','DIN',
                      'DOC','DON',
@@ -127,6 +151,9 @@ def main(fnames, numyears, modnames, variants, ids):
            #'phy-2': ['mu', 'vN', 'R_N', 'R_Chl'],
            #'phy-3': ['fA', 'fV', 'fC',
            #          'ThetaHat', 'limfunc_L',''],
+           #'phy-4':['dQ_dt','',
+           #         'delQ_delt_N','delQ_delt_I',
+           #         'delQ_delt_Ld','delQ_delt_T']
          }
   for groupname,varset in varsets.iteritems():
       #print ('%s,%s'%(groupname,varset))
@@ -141,11 +168,11 @@ def plot_multifile(fnames, numyears, groupname, varset, variants, modnames, ids)
     linestyles=['-',':','--']
     varlims=varlims0D
     if len(varset)>3:
-        if len(varset) in [10, 12]:
+        if len(varset) in [4,6,8,10, 12]:
             numcol = 2.0
-        elif len(varset) in [3,6,9]:
+        elif len(varset) in [3,9]:
             numcol=3.0
-        elif len(varset) in [4,8,12]:
+        elif len(varset) in [12]:
             numcol=4.0
     else:
         numcol = len(varset)
@@ -198,8 +225,9 @@ def plot_multifile(fnames, numyears, groupname, varset, variants, modnames, ids)
                 else:
                     #ax.plot(t, datC, label=variant, color=cols[i],linestyle=linestyles[i])
                     ax.plot(t, datC, label=ids[i], color=cols[i], linestyle=linestyles[i])
-                    if varn in ['totalN','totalC']:
-                        ax.text(0.6,0.55-i*0.2,r'$\delta$(%s):%.2e'%(ids[i],max(datC[1:])-min(datC[1:])), transform=ax.transAxes) #,color=cols[i]
+                    #if varn in ['totalN','totalC']:
+                    if varn in ['Global N', 'Global C']:
+                        ax.text(0.6,0.6-i*0.2,r'$\delta$(%s):%.2e'%(ids[i],max(datC[1:])-min(datC[1:])), transform=ax.transAxes) #,color=cols[i]
         if varn in prettyunits:
             prettyunit = prettyunits[varn]
         else:
@@ -223,7 +251,7 @@ def plot_multifile(fnames, numyears, groupname, varset, variants, modnames, ids)
         # shrink the axes width by 20% to fit that of the contour plots, and put the legend in that space
         # box = ax.get_position()
         # ax.set_position([box.x0, box.y0, (box.x1 - box.x0) * 0.8, box.y1 - box.y0])
-        if j==0: #(j+1)%numcol==1 
+        if j==0: #(j+1)%numcol==1
             #ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.8),fontsize=12)
             ax.legend(loc='center left', bbox_to_anchor=(0.05, 0.7),fontsize=12)
 
