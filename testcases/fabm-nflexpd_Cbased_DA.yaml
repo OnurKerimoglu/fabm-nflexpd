@@ -29,7 +29,7 @@ instances:
       Mpart: 1.0                     # part of the mortality that goes to detritus
     initialization:
       C: 0.8                      # Phytoplankton-N concentration (mmol m-3)
-      N: 0.1                        # Phytoplankton-N concentration (mmol m-3)
+      N: 0.1221356                # Phytoplankton-N concentration (mmol m-3) (N predicted by the IA for the first time step)
     coupling:
       dic: abio_Cbased/dic        # carbon source (mmolC m-3)
       din: abio_Cbased/din        # nutrient source (mmolN m-3)
@@ -43,7 +43,7 @@ instances:
       PAR_dmean: abio_Cbased/PAR_dmean  # PAR, daily mean (mol/m2/d)
       D: abio_Cbased/D                  # Dilution rate (d-1)
   phy_Cbased_DA2: # A0,Q0,V0 allometrically scaled for 10um
-    use: .false.
+    use: .true.
     long_name: Phytoplankton-Cbased-DA2
     model: nflexpd/phy_Cbased
     parameters:
@@ -72,7 +72,7 @@ instances:
       Mpart: 1.0                     # part of the mortality that goes to detritus
     initialization:
       C: 0.8                      # Phytoplankton-N concentration (mmol m-3)
-      N: 0.1                        # Phytoplankton-N concentration (mmol m-3)
+      N: 0.07799841               # Phytoplankton-N concentration (mmol m-3)
     coupling:
       dic: abio_Cbased/dic        # carbon source (mmolC m-3)
       din: abio_Cbased/din        # nutrient source (mmolN m-3)
@@ -91,12 +91,12 @@ instances:
     model: nflexpd/RHSext_Cbased
     parameters:
       IA: .false.                               # whether IA approach is used (true/false)
-      numphy: 1                                # number of phytoplankton instances to be coupled
+      numphy: 2                                # number of phytoplankton instances to be coupled
     coupling:
       din: abio_Cbased/din                       # [mmolN/m^3] (state) nutrient source (mmolN m-3)
       f_abio_din: abio_Cbased/f_abio_din         # [mmolN/m^3/d] (diagnostic) net abiotic fluxes to din
       f_din_phy1: phy_Cbased_DA1/f_dinphy         #[molN/m^3/d] (diagnostic) net N uptake by phytoplankton
-      #f_din_phy2: phy_Cbased_DA2/f_dinphy         #[molN/m^3/d] (diagnostic) net N uptake by phytoplankton
+      f_din_phy2: phy_Cbased_DA2/f_dinphy         #[molN/m^3/d] (diagnostic) net N uptake by phytoplankton
   abio_Cbased:
     long_name: Abiotic
     model: nflexpd/abio_Cbased
@@ -108,8 +108,8 @@ instances:
       kdon: 0.1                      # Remineralization rate of DON
       par0_dt0: 4.5                  # daily average par at the surface on the first time step
       kc_dt0: 0.2                    # attenuation coefficient on the first time step
-      varD : .true.                  # variable Dilution rate
-      D: 0.0                         # Dilution rate [d-1]
+      varD: .true.                   # variable Dilution rate (Dmax=D; Dmin=D*0.001)
+      D: 1.0                         # Max. (or constant, if varD:false) dilution rate [d-1]
       DICin: 1000.0                  # DIC concentration in the inflow [mmolC m-3]
       DINin: 15.0                    # DIN concentration in the inflow [mmolN m-3]
       sdet: 0.1                      # Sedimentation rate of detritus [m d-1]

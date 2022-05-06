@@ -18,18 +18,19 @@ varlims1D={'I_dm':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf'
          'Phy-fA':[0.0,1.0], 'Phy-fV':[0.0,0.5], 'Phy-ThetaHat':[0.00,0.05],'Phy-fC':[0,0.2],'Phy-limfunc_L':[0.,1]}
 varlims0D={'I_dm':[0,30], 'airt':[0,21], 'I_0':[0,250],'temp':[2,22], 'mld_surf':[-100,0],'wind':[-6,26],
          'DetC_sed/DetN_sed':[4.0,16.0],'DetC/DetN':[5.0,30.0],'DOC/DON':[5.0,30.0],
-         'DIC': [0, 1050],'Global C':[1040.54,1040.56],'totalC':[800,1100], #,'totalC':[1040.54,1040.56],
-         'DIN': [0, 25],'Global N':[21.095,21.125],'totalN':[12,22], #'totalN':[21.095,21.125], #'totalN':[21.1113,21.1115], #'totalN':[21.095,21.125], #[21.199,21.201],
-         #'DIN': [0, 40],'DetC':[0,400],'DetN':[0,40], 'DOC':[0,400], 'DON':[0,40],'totalN':[36.195,36.22],
+         #'DIC': [0, 1050], 'totalC':[1040.5500,1040.5502],
+         #'DIN': [0, 20],'totalN':[21.1220,21.1222],
+         'DIN': [0, 40],'DetC':[0,400],'DetN':[0,40], 'DOC':[0,400], 'DON':[0,40],'Global N':[21.2001,21.2003],'totalN':[12,22],'Global C':[1041.3498,1041.3500],'totalC':[800,1100],
          #'Phy-C':[0,100.0],'Phy-C 1':[0,100.0],'Phy-C 2':[0,100.0],'Phy-N':[0,10],'Phy-N 1':[0,10.0], 'Phy-N 2':[0,10.0],
-         'DetC':[0,300],'DetN':[0,20], 'DOC':[0,300], 'DON':[0,20],
-         #'Phy-C':[0,80.0],'Phy-C 1':[0,70.0],'Phy-C 2':[0,70.0],'Phy-N':[0,8],'Phy-N 1':[0,7.0], 'Phy-N 2':[0,7.0],
-         'Phy-C':[0,100.0],'Phy-C 1':[0,70.0],'Phy-C 2':[0,70.0],'Phy-N':[0,10],'Phy-N 1':[0,7.0], 'Phy-N 2':[0,7.0],
+         'DetC':[0,250],'DetN':[0,20], 'DOC':[0,250], 'DON':[0,20],
+         #'Phy-C':[0,80.0],'Phy-C 1':[0,70.0],'Phy-C 2':[0,70.0],'Phy-N':[0,8],'Phy-N 1':[0,7.0], 'Phy-N 2':[0,7.0], #2P case
+         #'Phy-N':[-2,2],'DIN':[-2,2],'DON':[-2,2],'DetN':[-2,2],'totalN':[-2,2],
+         #'Phy-C':[-10,10],'DIC':[-10,10],'DOC':[-10,10],'DetC':[-10,10],'totalC':[-10,10],
          'Phy-Chl':[0,20.],'Phy-Q':[0.02,0.22],'Phy-Chl2C':[0.00,0.1],
          'Phy-PPR':[0,20.],'Phy-mu':[0,0.4],'Phy-vN':[0,0.05],'Phy-f_dinphy':[0,0.5],'Phy-R_N':[0,0.04],'Phy-R_Chl':[0,0.1],
          'Phy-fA':[0.0,1.0], 'Phy-fV':[0.0,0.5], 'Phy-ThetaHat':[0.00,0.05],'Phy-fC':[0,0.2],'Phy-limfunc_L':[0.,1],
          'dQ_dt': [-0.01,0.01],'delQ_delt_N': [-0.01,0.01],'delQ_delt_I': [-0.01,0.01],'delQ_delt_Ld': [-0.01,0.01],'delQ_delt_T': [-0.01,0.01],
-           }
+         }
 namelibNbasedIA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
                  'totalN':'total_nitrogen_calculator_result',
                'I-dm':'abio_PAR_dmean','I':'abio_PAR',
@@ -81,7 +82,7 @@ namelibCbasedIA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp', 'L$_D$':'abio_Cbased
 namelibCbasedDA={'I_0':'I_0','wind':'m\ s^{-1}','T':'temp',
              'Global C': 'total_carbon_calculator_result',
              'Global N': 'total_nitrogen_calculator_result',
-            'totalC':'total_carbon_calculator_result-abio_Cbased_extc',
+             'totalC':'total_carbon_calculator_result-abio_Cbased_extc',
              'totalN':'total_nitrogen_calculator_result-abio_Cbased_extn',
              #'totalN':'abio_Cbased_din+abio_Cbased_don+abio_Cbased_detn+phy_Cbased_DA_N',
              'I-dm':'abio_Cbased_PAR_dmean','I':'abio_Cbased_PAR', 'dI_dt':'phy_Cbased_IA1_dI_dt',
@@ -108,7 +109,7 @@ prettyunits={'I_0':'E\ m^{-2}\ d^{-1}','wind':'m\ s^{-1}','T':'^\circ C',
              'delQ_delt_N':'molN\ molC^{-1}\ d^{-1}',
              'delQ_delt_I':'molN\ molC^{-1}\ d^{-1}',
              'delQ_delt_Ld':'molN\ molC^{-1}\ d^{-1}',
-             'delQ_delt_T':'molN\ molC^{-1}\ d^{-1}'
+             'delQ_delt_T':'molN\ molC^{-1}\ d^{-1}',
              }
 prettynames={'I_0':'$I_0$','wind':'wind','T':'T',
              'I-dm':r'$\bar{I}$','I':'$I$','dI_dt':r'd$\bar{I}$/d$t$',
@@ -118,7 +119,7 @@ prettynames={'I_0':'$I_0$','wind':'wind','T':'T',
              'Phy-Q':'$Q$','Phy-Chl':'$Phy_{Chl}$','Phy-Chl2C':r'$\theta$',
              'DIN':'DIN','DON':'DON','DetN':'$Det_N$',
              'DOC':'DOC','DetC':'$Det_C$',
-              'mu':'$\mu$', 'vN':'$V_N$', 'R_N':'$R_N$', 'R_Chl':'$R_{Chl}$',
+             'mu':'$\mu$', 'vN':'$V_N$', 'R_N':'$R_N$', 'R_Chl':'$R_{Chl}$',
              'fA':'$f_A$', 'fV':'$f_V$', 'fC':'$f_C$', 'limfunc_L':'$L_I$','ThetaHat':r'$\hat{\theta}$',
              'dQ_dt':r'$\frac{\mathrm{d}Q}{\mathrm{d}t}$',
              'delQ_delt_N':r'$\frac{\partial Q}{\partial \mathrm{DIN}} \frac{\mathrm{d} \mathrm{DIN}}{\mathrm{d} t}$',
@@ -140,9 +141,9 @@ def main(fnames, numyears, modnames, variants, ids):
            #'abio0':['I-dm', 'dI_dt','T','L$_D$'],
            'abio1':[ 'Global C','Global N',
                      'totalC','totalN',
-                     'Phy-C', 'Phy-N',
-                     #'Phy-C 1', 'Phy-N 1',
-                     #'Phy-C 2', 'Phy-N 2',
+                     #'Phy-C', 'Phy-N',
+                     'Phy-C 1', 'Phy-N 1',
+                     'Phy-C 2', 'Phy-N 2',
                      'DIC','DIN',
                      'DOC','DON',
                      'DetC', 'DetN'],
@@ -168,11 +169,11 @@ def plot_multifile(fnames, numyears, groupname, varset, variants, modnames, ids)
     linestyles=['-',':','--']
     varlims=varlims0D
     if len(varset)>3:
-        if len(varset) in [4,6,8,10, 12]:
+        if len(varset) in [4,6,8,10,12,14]:
             numcol = 2.0
         elif len(varset) in [3,9]:
             numcol=3.0
-        elif len(varset) in [12]:
+        elif len(varset) in [16]:
             numcol=4.0
     else:
         numcol = len(varset)
@@ -227,7 +228,7 @@ def plot_multifile(fnames, numyears, groupname, varset, variants, modnames, ids)
                     ax.plot(t, datC, label=ids[i], color=cols[i], linestyle=linestyles[i])
                     #if varn in ['totalN','totalC']:
                     if varn in ['Global N', 'Global C']:
-                        ax.text(0.6,0.6-i*0.2,r'$\delta$(%s):%.2e'%(ids[i],max(datC[1:])-min(datC[1:])), transform=ax.transAxes) #,color=cols[i]
+                        ax.text(0.5,0.6-i*0.2,r'$\delta$(%s):%.2e'%(ids[i],max(datC[1:])-min(datC[1:])), transform=ax.transAxes) #,color=cols[i]
         if varn in prettyunits:
             prettyunit = prettyunits[varn]
         else:
@@ -640,9 +641,10 @@ if __name__ == "__main__":
     if len(sys.argv) < 2: #this means no arguments were passed
       #fnames = ['/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_NbasedDA.nc',
                # '/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_dm_CbasedDA.nc']
-      fnames = ['/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lext_Ldvar_Tvar_2P_CbasedIA_modular_24h.nc',
-                '/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lext_Ldvar_Tvar_2P_CbasedIA_modular_24h.nc']
-                #'/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lint_CbasedIA_dm.nc']
+      fnames = [#'/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lext_Ldvar_Tvar_2P_CbasedIA_modular_24h.nc',
+                #'/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lext_Ldvar_Tvar_2P_CbasedIA_modular_24h.nc']
+                #'/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/0D-Highlat_wconst_lint_CbasedIA_dm.nc'
+                '/home/onur/setups/test-BGCmodels/nflexpd/ideal_highlat_NflexPD-Nbased_Cbased/2022-03-22d_Ldvar_Tvar_ThatVar_PARext_IA_vs_DA/IA-DIF-DA.nc']
       print('plotting default file(s):'+'; '.join(fnames))
     else:
       print('plotting file specified:'+sys.argv[1])
@@ -651,13 +653,14 @@ if __name__ == "__main__":
     if len(sys.argv)<3:
       #variants = ['dm', '6h']
       #variants = ['IA','DA']
-      variants = ['IA', 'IA']
+      #variants = ['IA', 'IA']
+      variants=['DA']
     else:
       variants=sys.argv[2].split(',')
 
     if len(sys.argv)<4: #no third argument was passed
       #modnames=['Nbased','Cbased']
-      modnames=['Cbased','Cbased']#
+      modnames=['Cbased']#,'Cbased']#
     else:
       modnames=sys.argv[3].split(',')
 
@@ -665,7 +668,7 @@ if __name__ == "__main__":
       #ids=['sim']
       #ids=['Nbased','Cbased']
       #ids = ['IA', 'DA']
-      ids=['PAR:N','PAR:A']
+      ids=['IA-DA'] #['PAR:N','PAR:A']
     else:
       ids=sys.argv[4].split(',')
 

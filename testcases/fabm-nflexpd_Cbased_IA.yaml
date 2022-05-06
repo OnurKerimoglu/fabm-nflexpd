@@ -46,7 +46,7 @@ instances:
       PAR_dmean: abio_Cbased/PAR_dmean  # PAR, daily mean (mol/m2/d)
       D: abio_Cbased/D                  # Dilution rate (d-1)
   phy_Cbased_IA2: # A0,mu0,Q0,V0 allometrically scaled for ESD = 10um
-    use: .false.
+    use: .true.
     long_name: Phytoplankton-Cbased-IA2
     model: nflexpd/phy_Cbased
     parameters:
@@ -97,14 +97,14 @@ instances:
     model: nflexpd/RHSext_Cbased
     parameters:
       IA : .true.                              # whether IA approach is used (true/false)
-      numphy: 1                                # number of phytoplankton instances to be coupled
+      numphy: 2                                # number of phytoplankton instances to be coupled
     coupling:
       din: abio_Cbased/din                       # [mmolN/m^3] (state) nutrient source (mmolN m-3)
       f_abio_din: abio_Cbased/f_abio_din         # [mmolN/m^3/d] (diagnostic) net abiotic fluxes to din
       vN_dQdt_I1: phy_Cbased_IA1/vN_dQdt_I       #[molN/m^3/d] (diagnostic) phyC*(vN+delQ/delI*dI/dt+delQ_delLd*dLd_dt)
       del_phyn_din1: phy_Cbased_IA1/del_phyn_din #[-] (diagnostic) Change in phyto-N per change in DIN
-      #vN_dQdt_I2: phy_Cbased_IA2/vN_dQdt_I       #[molN/m^3/d] (diagnostic) phyC*(vN+delQ/delI*dI/dt+delQ_delLd*dLd_dt)
-      #del_phyn_din2: phy_Cbased_IA2/del_phyn_din #[-] (diagnostic) Change in phyto-N per change in DIN
+      vN_dQdt_I2: phy_Cbased_IA2/vN_dQdt_I       #[molN/m^3/d] (diagnostic) phyC*(vN+delQ/delI*dI/dt+delQ_delLd*dLd_dt)
+      del_phyn_din2: phy_Cbased_IA2/del_phyn_din #[-] (diagnostic) Change in phyto-N per change in DIN
   abio_Cbased:
     long_name: Abiotic
     model: nflexpd/abio_Cbased
@@ -116,8 +116,8 @@ instances:
       kdon: 0.1                      # Remineralization rate of DON
       par0_dt0: 4.5                  # daily average par at the surface on the first time step
       kc_dt0: 0.2                    # attenuation coefficient on the first time step
-      varD : .true.                  # variable Dilution rate
-      D: 0.0                         # Dilution rate [d-1]
+      varD: .true.                   # variable Dilution rate (Dmax=D; Dmin=D*0.001)
+      D: 1.0                         # Max. (or constant, if varD:false) dilution rate [d-1]
       DICin: 1000.0                  # DIC concentration in the inflow [mmolC m-3]
       DINin: 15.0                    # DIN concentration in the inflow [mmolN m-3]
       sdet: 0.1                      # Sedimentation rate of detritus [m d-1]
