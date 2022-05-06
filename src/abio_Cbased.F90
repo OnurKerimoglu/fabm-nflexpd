@@ -358,7 +358,7 @@
    
    ! Set temporal derivatives
    if (self%varD) then
-     D=MLDmixing_seasonal(doy)/secs_pr_day !s-1
+     D=MLDmixing_seasonal(doy,self%D)/secs_pr_day !s-1
    else
      D=self%D !s-1
    end if

@@ -297,7 +297,7 @@ module nflexpd_common
 !  !IROUTINE: calculate a seasonal MLD mixing rate
 !
 !  !INTERFACE:
-   real(rk) function MLDmixing_seasonal(doy)
+   real(rk) function MLDmixing_seasonal(doy,Dmax_s)
 !
 !  !DESCRIPTION:
 !  Returns the value of the Lambert-W function, or its approximation 
@@ -307,10 +307,11 @@ module nflexpd_common
 !
 !  !INPUT PARAMETERS:
    real(rk), intent(in)    :: doy
+   real(rk), intent(in)    :: Dmax_s ![s-1]
    real(rk), parameter     :: pi=3.14159
    real(rk)                :: yearlength=365.0
-   real(rk)                :: Dmin=0.001
-   real(rk)                :: Dmax=1.0
+   real(rk)                :: Dmax,Dmin
+   
 !
 !  !REVISION HISTORY:
 !  Original author(s):  Markus Pahlow (implemented by Onur Kerimoglu)
@@ -318,6 +319,8 @@ module nflexpd_common
 !EOP
 !-----------------------------------------------------------------------
 !BOC
+    Dmax=Dmax_s*86400
+    Dmin=0.001*Dmax
     MLDmixing_seasonal= Dmin + 0.25 * (Dmax - Dmin) * (1 - sin(2 * pi * (doy / yearlength - 0.15)))**2
       
    return
