@@ -24,7 +24,7 @@ instances:
       A0hat: 0.15                    # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
-      M0p: 0.01                       # sp. quad. mortality rate (m3 molC-1 d-1)
+      M0p: 0.01                       # sp. quad. mortality rate (m3 mmolC-1 d-1)
       Mpart: 1.0                     # part of the mortality that goes to detritus
     initialization:
       C: 0.8                      # Phytoplankton-N concentration (mmol m-3)
@@ -70,7 +70,7 @@ instances:
       A0hat: 0.024                   # Potential maximum nutrient affinity (m3 mmolC-1 d-1)
       zetaN: 0.6                     # C-cost of N uptake (molC molN-1)
       zetaChl: 0.5                   # C-cost of Chlorophyll synthesis (molC gChl-1)
-      M0p: 0.01                       # sp. quad. mortality rate (m3 molC-1 d-1)
+      M0p: 0.01                       # sp. quad. mortality rate (m3 mmolC-1 d-1)
       Mpart: 1.0                     # part of the mortality that goes to detritus
     initialization:
       C: 0.8                      # Phytoplankton-N concentration (mmol m-3)
@@ -123,7 +123,7 @@ instances:
       sdet: 0.1                      # Sedimentation rate of detritus [m d-1]
       Hsml: 20.0                     # Height of the SML [m]
     initialization:
-      dic: 1000.0                    # DIN concentration (mmol m-3)
+      dic: 1000.0                    # DIC concentration (mmol m-3)
       din: 15.0                      # DIN concentration (mmol m-3)
       don: 3.0                       # DON concentration (mmol m-3)
       doc: 19.875                    # DOC concentration (mmol m-3)
