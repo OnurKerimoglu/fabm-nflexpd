@@ -4,7 +4,7 @@ A copy of the license is provided in COPYING.
 
 # A few words on NflexPD, the Nutrient- flexible Phytoplankton - Detritus model
 
-This is the 'Carbon-based' version of the model described in the preprint by Kerimoglu et al., 2022 (https://doi.org/10.5194/egusphere-2022-493), a revised version of which is accepted for publication in Geoscientific Model Development. An N-based version was described by Kerimoglu et al., 2021 (https://doi.org/10.5194/gmd-2020-396). A previous, non-FABM version was originally introduced by Smith et al. 2016, Journal of Plankton Research 38, 977–992 (https://doi.org/10.1093/plankt/fbv038).
+This is the 'Carbon-based' version of the model described in the preprint by Kerimoglu et al., 2022 (https://doi.org/10.5194/egusphere-2022-493), a revised version of which is accepted for publication in Geoscientific Model Development. A previous, "N-based" version was described by Kerimoglu et al., 2021 (https://doi.org/10.5194/gmd-2020-396), which is only closed in N, but not C, and works consistently in spatially explicit setups. A similar, non-FABM version of the model was originally described by Smith et al. 2016, Journal of Plankton Research 38, 977–992 (https://doi.org/10.1093/plankt/fbv038).
 
 # Obtaining the code and building 
 Obtain the FABM-NflexPD code:
